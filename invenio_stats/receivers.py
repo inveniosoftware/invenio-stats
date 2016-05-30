@@ -22,23 +22,39 @@
 # waive the privileges and immunities granted to it by virtue of its status
 # as an Intergovernmental Organization or submit itself to any jurisdiction.
 
-"""Minimal Flask application example for development.
-
-Run example development server:
-
-.. code-block:: console
-
-   $ cd examples
-   $ flask -a app.py --debug run
-"""
+"""Signal receivers for certain events."""
 
 from __future__ import absolute_import, print_function
 
-from flask import Flask
+from datetime import datetime
 
-from invenio_stats import InvenioStats
+from .proxies import current_stats
+from .utils import get_user
 
-# Create Flask application
-# TODO
-app = Flask(__name__)
-InvenioStats(app)
+
+def filedownload_receiver(sender_app, obj=None, **kwargs):
+    """Log that a file was downloaded."""
+    current_stats.publish('file_download', dict(
+        # When:
+        timestamp=datetime.utcnow().isoformat(),
+        # What:
+        bucket=str(obj.bucket_id),
+        filename=obj.key,
+        # Who:
+        **get_user()
+    ))
+
+
+def recordview_receiver(sender_app, pid=None, record=None, **kwargs):
+    """Log that a record was viewed."""
+    current_stats.publish('record_view', dict(
+        # When:
+        timestamp=datetime.utcnow().isoformat(),
+        # What:
+        id=record.id,
+        pid_type=pid.pid_type,
+        pid_value=pid.pid_value,
+        labels=record.get('communities', []),
+        # Who:
+        **get_user()
+    ))

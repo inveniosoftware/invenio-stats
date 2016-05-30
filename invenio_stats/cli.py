@@ -22,23 +22,46 @@
 # waive the privileges and immunities granted to it by virtue of its status
 # as an Intergovernmental Organization or submit itself to any jurisdiction.
 
-"""Minimal Flask application example for development.
-
-Run example development server:
-
-.. code-block:: console
-
-   $ cd examples
-   $ flask -a app.py --debug run
-"""
+"""CLI for Invenio-Stats."""
 
 from __future__ import absolute_import, print_function
 
-from flask import Flask
+import click
+from flask_cli import with_appcontext
+from invenio_search.cli import index
 
-from invenio_stats import InvenioStats
+from .proxies import current_stats
 
-# Create Flask application
-# TODO
-app = Flask(__name__)
-InvenioStats(app)
+
+@click.group()
+def stats():
+    """Command related to statistics processing."""
+
+
+@index.group(chain=True)
+def queue():
+    """Manage events queue."""
+
+
+@queue.command('init')
+@with_appcontext
+def init_queue():
+    """Initialize indexing queue."""
+    current_stats.declare()
+    click.secho('Events queue has been initialized.', fg='green')
+
+
+@queue.command('purge')
+@with_appcontext
+def purge_queue():
+    """Purge indexing queue."""
+    current_stats.purge()
+    click.secho('Events queue has been purged.', fg='green')
+
+
+@queue.command('delete')
+@with_appcontext
+def delete_queue():
+    """Delete indexing queue."""
+    current_stats.delete()
+    click.secho('Events queue has been deleted.', fg='green')

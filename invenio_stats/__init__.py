@@ -27,6 +27,13 @@
 from __future__ import absolute_import, print_function
 
 from .ext import InvenioStats
+from .proxies import current_stats
+from .queue import EventQueue
 from .version import __version__
 
-__all__ = ('__version__', 'InvenioStats')
+__all__ = (
+    '__version__',
+    'current_stats',
+    'EventQueue',
+    'InvenioStats',
+)

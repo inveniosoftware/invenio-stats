@@ -27,4 +27,4 @@ Authors
 
 Invenio module for collecting statistics.
 
-- CERN <info@invenio-software.org>
+- Lars Holm Nielsen <lars.holm.nielsen@cern.ch>

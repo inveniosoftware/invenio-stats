@@ -34,6 +34,7 @@ history = open('CHANGES.rst').read()
 tests_require = [
     'check-manifest>=0.25',
     'coverage>=4.0',
+    'invenio-db>=1.0.0a9',
     'isort>=4.2.2',
     'pydocstyle>=1.0.0',
     'pytest-cache>=1.0',
@@ -44,7 +45,7 @@ tests_require = [
 
 extras_require = {
     'docs': [
-        'Sphinx>=1.3',
+        'Sphinx>=1.4',
     ],
     'tests': tests_require,
 }
@@ -58,7 +59,14 @@ setup_requires = [
 ]
 
 install_requires = [
+    'arrow>=0.7.0',
     'Flask>=0.10',
+    'invenio-files-rest>=1.0.0a3',
+    'invenio-records-ui>=1.0.0a6',
+    'invenio-search>=1.0.0a7',
+    'python-geoip>=1.2',
+    # 'python-geoip-geolite2>=2015.0303',
+    'robot-detection>=0.3',
 ]
 
 packages = find_packages()
@@ -91,6 +99,13 @@ setup(
         'invenio_base.api_apps': [
             'invenio_stats = invenio_stats:InvenioStats',
         ],
+        'invenio_celery.tasks': [
+            'invenio_stats = invenio_stats.tasks',
+        ],
+        'invenio_stats.estemplates': [
+            'filedownload = invenio_stats.estemplates',
+            'recordview = invenio_stats.estemplates',
+        ]
     },
     extras_require=extras_require,
     install_requires=install_requires,

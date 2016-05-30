@@ -22,23 +22,16 @@
 # waive the privileges and immunities granted to it by virtue of its status
 # as an Intergovernmental Organization or submit itself to any jurisdiction.
 
-"""Minimal Flask application example for development.
-
-Run example development server:
-
-.. code-block:: console
-
-   $ cd examples
-   $ flask -a app.py --debug run
-"""
+"""Test celery tasks."""
 
 from __future__ import absolute_import, print_function
 
-from flask import Flask
+from invenio_stats import current_stats
+from invenio_stats.tasks import index_events
 
-from invenio_stats import InvenioStats
 
-# Create Flask application
-# TODO
-app = Flask(__name__)
-InvenioStats(app)
+def test_index_events(app):
+    """Test process event."""
+    current_stats.declare()
+    current_stats.publish('filedownload', [dict(data='val')])
+    index_events.delay('filedownload')

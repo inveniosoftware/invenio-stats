@@ -22,23 +22,23 @@
 # waive the privileges and immunities granted to it by virtue of its status
 # as an Intergovernmental Organization or submit itself to any jurisdiction.
 
-"""Minimal Flask application example for development.
-
-Run example development server:
-
-.. code-block:: console
-
-   $ cd examples
-   $ flask -a app.py --debug run
-"""
+"""Test CLI."""
 
 from __future__ import absolute_import, print_function
 
-from flask import Flask
+from click.testing import CliRunner
 
-from invenio_stats import InvenioStats
+from invenio_stats import cli
 
-# Create Flask application
-# TODO
-app = Flask(__name__)
-InvenioStats(app)
+
+def test_cli(script_info):
+    """Test run."""
+    runner = CliRunner()
+    res = runner.invoke(cli.init_queue, [], obj=script_info)
+    assert 0 == res.exit_code
+
+    res = runner.invoke(cli.purge_queue, [], obj=script_info)
+    assert 0 == res.exit_code
+
+    res = runner.invoke(cli.delete_queue, [], obj=script_info)
+    assert 0 == res.exit_code

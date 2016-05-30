@@ -22,23 +22,24 @@
 # waive the privileges and immunities granted to it by virtue of its status
 # as an Intergovernmental Organization or submit itself to any jurisdiction.
 
-"""Minimal Flask application example for development.
-
-Run example development server:
-
-.. code-block:: console
-
-   $ cd examples
-   $ flask -a app.py --debug run
-"""
+"""Proxy to the curren stats module."""
 
 from __future__ import absolute_import, print_function
 
-from flask import Flask
+from kombu import Exchange
 
-from invenio_stats import InvenioStats
+STATS_MQ_EXCHANGE = Exchange(
+    'events',
+    type='direct',
+    delivery_mode='transient',  # in-memory queue
+)
+"""Default exchange for message queue."""
 
-# Create Flask application
-# TODO
-app = Flask(__name__)
-InvenioStats(app)
+STATS_INDICIES_PREFIX = 'events'
+"""Allowed event types."""
+
+STATS_REGISTER_RECEIVERS = True
+"""Register signal receivers."""
+
+STATS_INDICES_SUFFIX = '%Y.%W',
+"""Suffix of indices."""

@@ -33,10 +33,18 @@ language: python
 cache:
   - pip
 
+services:
+  - elasticsearch
+  - redis
+  - rabbitmq
+
 env:
-  - REQUIREMENTS=lowest
-  - REQUIREMENTS=release
-  - REQUIREMENTS=devel
+  - REQUIREMENTS=lowest BROKER_URL=redis://localhost:6379/0
+  - REQUIREMENTS=lowest BROKER_URL=amqp://localhost:5672//
+  - REQUIREMENTS=release BROKER_URL=redis://localhost:6379/0
+  - REQUIREMENTS=release BROKER_URL=amqp://localhost:5672//
+  - REQUIREMENTS=devel BROKER_URL=redis://localhost:6379/0
+  - REQUIREMENTS=devel BROKER_URL=amqp://localhost:5672//
 
 python:
   - "2.7"
