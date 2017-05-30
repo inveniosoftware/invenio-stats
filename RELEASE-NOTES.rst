@@ -1,8 +1,8 @@
-========================
+======================
  Invenio-Stats v1.0.0a1
-========================
+======================
 
-Invenio-Stats v1.0.0a1 was released on TBD, 2016.
+Invenio-Stats v1.0.0a1 was released on TBD, 2017.
 
 About
 -----
@@ -24,13 +24,13 @@ Installation
 Documentation
 -------------
 
-   http://pythonhosted.org/invenio-stats/
+   https://invenio-stats.readthedocs.io/
 
 Happy hacking and thanks for flying Invenio-Stats.
 
 | Invenio Development Team
-|   Email: info@invenio-software.org
+|   Email: info@inveniosoftware.org
 |   IRC: #invenio on irc.freenode.net
-|   Twitter: http://twitter.com/inveniosoftware
+|   Twitter: https://twitter.com/inveniosoftware
 |   GitHub: https://github.com/inveniosoftware/invenio-stats
-|   URL: http://invenio-software.org
+|   URL: http://inveniosoftware.org

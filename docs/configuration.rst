@@ -22,4 +22,8 @@
     as an Intergovernmental Organization or submit itself to any jurisdiction.
 
 
-.. include:: ../CHANGES.rst
+Configuration
+=============
+
+.. automodule:: invenio_stats.config
+   :members:

@@ -1,6 +1,6 @@
 ..
     This file is part of Invenio.
-    Copyright (C) 2016 CERN.
+    Copyright (C) 2017 CERN.
 
     Invenio is free software; you can redistribute it
     and/or modify it under the terms of the GNU General Public License as
@@ -28,13 +28,15 @@ User's Guide
 ------------
 
 This part of the documentation will show you how to get started in using
-Invenio-Base.
+Invenio-Stats.
 
 .. toctree::
    :maxdepth: 2
 
    installation
+   configuration
    usage
+   examplesapp
 
 
 API Reference

@@ -22,4 +22,7 @@
     as an Intergovernmental Organization or submit itself to any jurisdiction.
 
 
-.. include:: ../CHANGES.rst
+Example application
+===================
+
+.. automodule:: app
