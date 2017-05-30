@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 #
 # This file is part of Invenio.
-# Copyright (C) 2016 CERN.
+# Copyright (C) 2017 CERN.
 #
 # Invenio is free software; you can redistribute it
 # and/or modify it under the terms of the GNU General Public License as
@@ -22,26 +22,25 @@
 # waive the privileges and immunities granted to it by virtue of its status
 # as an Intergovernmental Organization or submit itself to any jurisdiction.
 
+"""Sphinx configuration."""
+
 from __future__ import print_function
 
 import os
+import sys
 
 import sphinx.environment
-from docutils.utils import get_source_line
 
-
-def _warn_node(self, msg, node):
-    """Do not warn on external images."""
-    if not msg.startswith('nonlocal image URI found:'):
-        self._warnfunc(msg, '{0}:{1}'.format(get_source_line(node)))
-
-sphinx.environment.BuildEnvironment.warn_node = _warn_node
-
+# Plug example application into module path
+sys.path.append('examples')
 
 # -- General configuration ------------------------------------------------
 
 # If your documentation needs a minimal Sphinx version, state it here.
 #needs_sphinx = '1.0'
+
+# Do not warn on external images.
+suppress_warnings = ['image.nonlocal_uri']
 
 # Add any Sphinx extension module names here, as strings. They can be
 # extensions coming with Sphinx (named 'sphinx.ext.*') or your custom
@@ -70,7 +69,7 @@ master_doc = 'index'
 
 # General information about the project.
 project = u'Invenio-Stats'
-copyright = u'2016, CERN'
+copyright = u'2017, CERN'
 author = u'CERN'
 
 # The version info for the project you're documenting, acts as replacement for
@@ -81,7 +80,9 @@ author = u'CERN'
 
 # Get the version string. Cannot be done with import!
 g = {}
-with open(os.path.join('..', 'invenio_stats', 'version.py'), 'rt') as fp:
+with open(os.path.join(os.path.dirname(__file__), '..',
+                       'invenio_stats', 'version.py'),
+          'rt') as fp:
     exec(fp.read(), g)
     version = g['__version__']
 
@@ -144,8 +145,8 @@ html_theme_options = {
     'github_banner': True,
     'show_powered_by': False,
     'extra_nav_links': {
-        'invenio-stats@GitHub': 'http://github.com/inveniosoftware/invenio-stats',
-        'invenio-stats@PyPI': 'http://pypi.python.org/pypi/invenio-stats/',
+        'invenio-stats@GitHub': 'https://github.com/inveniosoftware/invenio-stats',
+        'invenio-stats@PyPI': 'https://pypi.python.org/pypi/invenio-stats/',
     }
 }
 
@@ -335,4 +336,11 @@ texinfo_documents = [
 
 
 # Example configuration for intersphinx: refer to the Python standard library.
-intersphinx_mapping = {'https://docs.python.org/': None}
+intersphinx_mapping = {
+    'python': ('https://docs.python.org/', None),
+    # TODO: Configure external documentation references, eg:
+    # 'Flask-Admin': ('https://flask-admin.readthedocs.io/en/latest/', None),
+}
+
+# Autodoc configuraton.
+autoclass_content = 'both'

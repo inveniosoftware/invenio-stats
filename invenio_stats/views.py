@@ -22,34 +22,9 @@
 # waive the privileges and immunities granted to it by virtue of its status
 # as an Intergovernmental Organization or submit itself to any jurisdiction.
 
-[aliases]
-test = pytest
+"""Invenio extension to syncronize with services."""
 
-[build_sphinx]
-source-dir = docs/
-build-dir = docs/_build
-all_files = 1
+# TODO: This is an example file. Remove it if you do not need it, including
+# the templates and static folders as well as the test case.
 
-[bdist_wheel]
-universal = 1
-
-[pydocstyle]
-add_ignore = D401
-
-[compile_catalog]
-directory = invenio_stats/translations/
-
-[extract_messages]
-copyright_holder = CERN
-msgid_bugs_address = info@inveniosoftware.org
-mapping-file = babel.ini
-output-file = invenio_stats/translations/messages.pot
-add-comments = NOTE
-
-[init_catalog]
-input-file = invenio_stats/translations/messages.pot
-output-dir = invenio_stats/translations/
-
-[update_catalog]
-input-file = invenio_stats/translations/messages.pot
-output-dir = invenio_stats/translations/
+from __future__ import absolute_import, print_function

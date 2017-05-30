@@ -40,7 +40,7 @@ class IndexTemplate(object):
     """Index template."""
 
     def __init__(self, event_type, name, package_name, client=None):
-        """"."""
+        """."""
         self.client = client or current_search_client
         self.event_type = event_type
         self.name = name
@@ -55,7 +55,7 @@ class IndexTemplate(object):
         ).decode('utf8'))
 
     def create(self, ignore=None):
-        """"Create template."""
+        """Create template."""
         ignore = ignore or []
 
         return self.client.indices.put_template(
@@ -65,7 +65,7 @@ class IndexTemplate(object):
         )
 
     def delete(self, ignore=None):
-        """"Create template."""
+        """Create template."""
         ignore = ignore or []
 
         return self.client.indices.delete_template(

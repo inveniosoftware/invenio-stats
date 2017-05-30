@@ -34,13 +34,14 @@ history = open('CHANGES.rst').read()
 tests_require = [
     'check-manifest>=0.25',
     'coverage>=4.0',
-    'invenio-db>=1.0.0a9',
+    'invenio-db>=1.0.0b5',
     'isort>=4.2.2',
     'pydocstyle>=1.0.0',
     'pytest-cache>=1.0',
     'pytest-cov>=1.8.0',
     'pytest-pep8>=1.0.6',
     'pytest>=2.8.0',
+    'redis>=2.10.0',
 ]
 
 extras_require = {
@@ -60,10 +61,10 @@ setup_requires = [
 
 install_requires = [
     'arrow>=0.7.0',
-    'Flask>=0.10',
-    'invenio-files-rest>=1.0.0a3',
-    'invenio-records-ui>=1.0.0a6',
-    'invenio-search>=1.0.0a7',
+    'Flask>=0.11',
+    'invenio-files-rest>=1.0.0a16',
+    'invenio-records-ui>=1.0.0a9',
+    'invenio-search>=1.0.0a9',
     'python-geoip>=1.2',
     # 'python-geoip-geolite2>=2015.0303',
     'robot-detection>=0.3',
