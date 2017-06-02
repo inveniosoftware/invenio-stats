@@ -36,32 +36,3 @@ from .proxies import current_stats
 @click.group()
 def stats():
     """Command related to statistics processing."""
-
-
-@index.group(chain=True)
-def queue():
-    """Manage events queue."""
-
-
-@queue.command('init')
-@with_appcontext
-def init_queue():
-    """Initialize indexing queue."""
-    current_stats.declare()
-    click.secho('Events queue has been initialized.', fg='green')
-
-
-@queue.command('purge')
-@with_appcontext
-def purge_queue():
-    """Purge indexing queue."""
-    current_stats.purge()
-    click.secho('Events queue has been purged.', fg='green')
-
-
-@queue.command('delete')
-@with_appcontext
-def delete_queue():
-    """Delete indexing queue."""
-    current_stats.delete()
-    click.secho('Events queue has been deleted.', fg='green')

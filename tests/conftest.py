@@ -44,59 +44,130 @@ from invenio_records import InvenioRecords
 from invenio_records_ui import InvenioRecordsUI
 from invenio_search import InvenioSearch, current_search, current_search_client
 from sqlalchemy_utils.functions import create_database, database_exists
+from kombu import Exchange
+from mock import patch
+from invenio_queues.proxies import current_queues
+from invenio_queues import InvenioQueues
 
-from invenio_stats import EventQueue, InvenioStats, current_stats
-
-
-@pytest.yield_fixture(scope='session')
-def instance_path():
-    """Default instance path."""
-    path = tempfile.mkdtemp()
-
-    yield path
-
-    shutil.rmtree(path)
+# from invenio_stats import EventQueue, InvenioStats, current_stats
+from invenio_stats import InvenioStats, current_stats
 
 
-@pytest.fixture(scope='session')
-def env_config(instance_path):
-    """Default instance path."""
-    os.environ.update(
-        APP_INSTANCE_PATH=os.environ.get(
-            'INSTANCE_PATH', instance_path),
-    )
+def mock_iter_entry_points_factory(data, mocked_group):
+    """Create a mock iter_entry_points function."""
+    from pkg_resources import iter_entry_points
+    def entrypoints(group, name=None):
+        if group == mocked_group:
+            for entrypoint in data:
+                yield entrypoint
+        else:
+            for x in iter_entry_points(group=group, name=name):
+                yield x
+    return entrypoints
 
-    return os.environ
+
+@pytest.yield_fixture()
+def event_queues_entrypoints(app):
+    """Declare some events by mocking the invenio_stats.events entrypoint.
+
+    It yields a list like [{event_type: <event_type_name>}, ...].
+    """
+    data = []
+    result = []
+    for idx in range(5):
+        event_type_name = 'event_{}'.format(idx)
+        from pkg_resources import EntryPoint
+        entrypoint = EntryPoint(event_type_name, event_type_name)
+        conf = dict(event_type=event_type_name)
+        entrypoint.load = lambda conf=conf: (lambda: [conf])
+        data.append(entrypoint)
+        result.append(conf)
+
+    entrypoints = mock_iter_entry_points_factory(data, 'invenio_stats.events')
+
+    with patch('pkg_resources.iter_entry_points',
+               entrypoints):
+        try:
+            yield result
+        finally:
+            current_queues.delete()
+
+@pytest.yield_fixture()
+def event_queues(app, event_queues_entrypoints):
+    """Declare test queues."""
+    current_queues.declare()
 
 
-@pytest.fixture(scope='session')
-def config(request):
-    """Default configuration."""
-    # Parameterize application.
-    return dict(
-        BROKER_URL=os.environ.get('BROKER_URL', 'memory://'),
+# @pytest.yield_fixture(scope='session')
+# def instance_path():
+#     """Default instance path."""
+#     path = tempfile.mkdtemp()
+
+#     yield path
+
+#     shutil.rmtree(path)
+
+
+# @pytest.fixture(scope='session')
+# def env_config(instance_path):
+#     """Default instance path."""
+#     os.environ.update(
+#         APP_INSTANCE_PATH=os.environ.get(
+#             'INSTANCE_PATH', instance_path),
+#     )
+
+#     return os.environ
+
+
+# @pytest.fixture(scope='session')
+# def config(request):
+#     """Default configuration."""
+#     # Parameterize application.
+#     return dict(
+#         BROKER_URL=os.environ.get('BROKER_URL', 'memory://'),
+#         CELERY_ALWAYS_EAGER=True,
+#         CELERY_CACHE_BACKEND="memory",
+#         CELERY_EAGER_PROPAGATES_EXCEPTIONS=True,
+#         CELERY_RESULT_BACKEND="cache",
+#         SQLALCHEMY_DATABASE_URI=os.environ.get(
+#             'SQLALCHEMY_DATABASE_URI', 'sqlite:///test.db'),
+#         SQLALCHEMY_TRACK_MODIFICATIONS=True,
+#         TESTING=True,
+#     )
+
+
+@pytest.yield_fixture()
+# def app(env_config, config, instance_path):
+def app():
+    """Flask application fixture."""
+    # app_ = Flask('testapp', instance_path=instance_path)
+    # app_.config.update(**config)
+    app_ = Flask('testapp')
+    app_.config.update(dict(
+        # BROKER_URL=os.environ.get('BROKER_URL', 'memory://'),
         CELERY_ALWAYS_EAGER=True,
         CELERY_CACHE_BACKEND="memory",
         CELERY_EAGER_PROPAGATES_EXCEPTIONS=True,
         CELERY_RESULT_BACKEND="cache",
         SQLALCHEMY_DATABASE_URI=os.environ.get(
-            'SQLALCHEMY_DATABASE_URI', 'sqlite:///test.db'),
+            # 'SQLALCHEMY_DATABASE_URI', 'sqlite:///test.db'),
+            'SQLALCHEMY_DATABASE_URI', 'sqlite://'),
         SQLALCHEMY_TRACK_MODIFICATIONS=True,
         TESTING=True,
-    )
-
-
-@pytest.yield_fixture()
-def app(env_config, config, instance_path):
-    """Flask application fixture."""
-    app_ = Flask('testapp', instance_path=instance_path)
-    app_.config.update(**config)
+        STATS_MQ_EXCHANGE = Exchange(
+            'test_events',
+            type='direct',
+            delivery_mode='transient',  # in-memory queue
+            durable=True,
+        )
+    ))
     FlaskCeleryExt(app_)
     InvenioDB(app_)
     InvenioRecords(app_)
     InvenioRecordsUI(app_)
     InvenioPIDStore(app_)
     InvenioStats(app_)
+    InvenioQueues(app_)
     InvenioFilesREST(app_)
     InvenioSearch(app_, entry_point_group=None)
     # search.register_mappings('records', 'data')
@@ -116,17 +187,17 @@ def db(app):
     db_.drop_all()
 
 
-# @pytest.yield_fixture()
-# def es(app):
-#     """Provide elasticsearch access."""
-#     try:
-#         list(current_search.create())
-#     except RequestError:
-#         list(current_search.delete(ignore=[400, 404]))
-#         list(current_search.create())
-#     current_search_client.indices.refresh()
-#     yield current_search_client
-#     list(current_search.delete(ignore=[404]))
+@pytest.yield_fixture()
+def es(app):
+    """Provide elasticsearch access."""
+    try:
+        list(current_search.create())
+    except RequestError:
+        list(current_search.delete(ignore=[400, 404]))
+        list(current_search.create())
+    current_search_client.indices.refresh()
+    yield current_search_client
+    list(current_search.delete(ignore=[404]))
 
 
 # @pytest.yield_fixture()
@@ -147,10 +218,10 @@ def db(app):
 #     shutil.rmtree(tmppath)
 
 
-@pytest.fixture()
-def exchange(app):
-    """Get queueobject for testing bulk operations."""
-    return app.config['STATS_MQ_EXCHANGE']
+# @pytest.fixture()
+# def exchange(app):
+#     """Get queueobject for testing bulk operations."""
+#     return app.config['STATS_MQ_EXCHANGE']
 
 
 @pytest.fixture()
@@ -159,15 +230,15 @@ def celery(app):
     return app.extensions['flask-celeryext'].celery
 
 
-@pytest.fixture()
-def event_queue(app, exchange, celery):
-    """Get queueobject for testing bulk operations."""
-    queue = EventQueue(exchange, 'test-event')
-    with celery.pool.acquire(block=True) as conn:
-        queue.queue(conn).declare()
-        queue.queue(conn).purge()
+# @pytest.fixture()
+# def event_queue(app, exchange, celery):
+#     """Get queueobject for testing bulk operations."""
+#     queue = EventQueue(exchange, 'test-event')
+#     with celery.pool.acquire(block=True) as conn:
+#         queue.queue(conn).declare()
+#         queue.queue(conn).purge()
 
-    return queue
+#     return queue
 
 
 @pytest.fixture()

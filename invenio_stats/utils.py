@@ -86,7 +86,7 @@ def get_user():
     # TODO: Take proxy into account
     return dict(
         ip_address=request.remote_addr,
-        user_agent=request.user_agent['string'],
+        user_agent=request.user_agent.string,
         user_id=(
             current_user.get_id() if current_user.is_authenticated else None
         ),

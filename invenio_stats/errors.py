@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 #
 # This file is part of Invenio.
-# Copyright (C) 2016 CERN.
+# Copyright (C) 2017 CERN.
 #
 # Invenio is free software; you can redistribute it
 # and/or modify it under the terms of the GNU General Public License as
@@ -22,33 +22,10 @@
 # waive the privileges and immunities granted to it by virtue of its status
 # as an Intergovernmental Organization or submit itself to any jurisdiction.
 
-"""Proxy to the curren stats module."""
+"""Errors used in Invenio-Stats."""
 
 from __future__ import absolute_import, print_function
 
-from datetime import timedelta
 
-from kombu import Exchange
-
-STATS_MQ_EXCHANGE = Exchange(
-    'events',
-    type='direct',
-    delivery_mode='transient',  # in-memory queue
-)
-"""Default exchange for message queue."""
-
-STATS_INDICES_PREFIX = 'events'
-"""Allowed event types."""
-
-STATS_REGISTER_RECEIVERS = True
-"""Register signal receivers."""
-
-STATS_INDICES_SUFFIX = '%Y.%W',
-"""Suffix of indices."""
-
-CELERY_BEAT_SCHEDULE = {
-    'indexer': {
-        'task': 'invenio_stats.tasks.index_events',
-        'schedule': timedelta(seconds=5),
-    },
-}
+class DuplicateEventError(Exception):
+    """Error raised when a duplicate event is detected."""

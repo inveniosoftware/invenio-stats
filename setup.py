@@ -41,7 +41,6 @@ tests_require = [
     'pytest-cov>=1.8.0',
     'pytest-pep8>=1.0.6',
     'pytest>=2.8.0',
-    'redis>=2.10.0',
 ]
 
 extras_require = {
@@ -104,9 +103,17 @@ setup(
             'invenio_stats = invenio_stats.tasks',
         ],
         'invenio_stats.estemplates': [
-            'filedownload = invenio_stats.estemplates',
-            'recordview = invenio_stats.estemplates',
-        ]
+            'file_download = invenio_stats.indexer:EventsIndexer',
+            'record_view = invenio_stats.indexer:EventsIndexer',
+        ],
+        'invenio_search.mappings': [
+            'file_download = invenio_stats.estemplates.stats',
+            'record_view = invenio_stats.estemplates.stats',
+        ],
+        'invenio_queues.queues': [
+            'invenio_stats = invenio_stats.queues:declare_queues',
+        ],
+
     },
     extras_require=extras_require,
     install_requires=install_requires,
@@ -123,7 +130,6 @@ setup(
         'Programming Language :: Python :: 2',
         'Programming Language :: Python :: 2.7',
         'Programming Language :: Python :: 3',
-        'Programming Language :: Python :: 3.3',
         'Programming Language :: Python :: 3.4',
         'Programming Language :: Python :: 3.5',
         'Development Status :: 1 - Planning',
