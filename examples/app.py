@@ -35,9 +35,9 @@ Run example development server:
 from __future__ import absolute_import, print_function
 
 from flask import Flask
+from invenio_queues import InvenioQueues
 
 from invenio_stats import InvenioStats
-from invenio_queues import InvenioQueues
 
 # Create Flask application
 # TODO

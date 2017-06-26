@@ -27,9 +27,9 @@
 from __future__ import absolute_import, print_function
 
 from flask import Flask
+from invenio_queues.proxies import current_queues
 
 from invenio_stats import InvenioStats
-from invenio_queues.proxies import current_queues
 from invenio_stats.proxies import current_stats
 
 
@@ -52,7 +52,7 @@ def test_init():
     assert 'invenio-stats' in app.extensions
 
 
-def test_event_queues_declare(app, event_queues_entrypoints):
+def test_event_queues_declare(app, event_entrypoints):
     """Test that event queues are declared properly."""
     for event in current_stats.events.values():
         assert not event.queue.exists
@@ -61,8 +61,10 @@ def test_event_queues_declare(app, event_queues_entrypoints):
         assert event.queue.exists
 
 
-def test_publish_and_consume_events(app, event_queues):
+def test_publish_and_consume_events(app, event_entrypoints):
+    """Test that events are published and consumed properly."""
     event_type = 'event_0'
     events = [{"payload": "test {}".format(idx)} for idx in range(3)]
+    current_queues.declare()
     current_stats.publish(event_type, events)
     assert list(current_stats.consume(event_type)) == events

@@ -33,6 +33,10 @@ language: python
 cache:
   - pip
 
+python:
+  - "2.7"
+  - "3.5"
+
 services:
   - elasticsearch
   - redis
@@ -46,9 +50,24 @@ env:
   - REQUIREMENTS=devel BROKER_URL=redis://localhost:6379/0
   - REQUIREMENTS=devel BROKER_URL=amqp://localhost:5672//
 
-python:
-  - "2.7"
-  - "3.5"
+matrix:
+  allow_failures:
+    - python: "2.7"
+      env: REQUIREMENTS=lowest BROKER_URL=redis://localhost:6379/0
+    - python: "2.7"
+      env: REQUIREMENTS=lowest BROKER_URL=amqp://localhost:5672//
+    - python: "2.7"
+      env: REQUIREMENTS=release BROKER_URL=redis://localhost:6379/0
+    - python: "2.7"
+      env: REQUIREMENTS=release BROKER_URL=amqp://localhost:5672//
+    - python: "3.5"
+      env: REQUIREMENTS=lowest BROKER_URL=redis://localhost:6379/0
+    - python: "3.5"
+      env: REQUIREMENTS=lowest BROKER_URL=amqp://localhost:5672//
+    - python: "3.5"
+      env: REQUIREMENTS=release BROKER_URL=redis://localhost:6379/0
+    - python: "3.5"
+      env: REQUIREMENTS=release BROKER_URL=amqp://localhost:5672//
 
 before_install:
   - "travis_retry pip install --upgrade pip setuptools py"

@@ -29,3 +29,7 @@ from __future__ import absolute_import, print_function
 
 class DuplicateEventError(Exception):
     """Error raised when a duplicate event is detected."""
+
+
+class UnknownEventError(Exception):
+    """Error raised when a duplicate event is detected."""

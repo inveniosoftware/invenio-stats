@@ -22,7 +22,7 @@
 # waive the privileges and immunities granted to it by virtue of its status
 # as an Intergovernmental Organization or submit itself to any jurisdiction.
 
-"""Proxy to the curren stats module."""
+"""Proxy to the current stats module."""
 
 from __future__ import absolute_import, print_function
 
@@ -52,3 +52,8 @@ CELERY_BEAT_SCHEDULE = {
         'schedule': timedelta(seconds=5),
     },
 }
+
+STATS_EVENTS = [
+    'record_view',
+    'file_download'
+]

@@ -25,22 +25,18 @@
 """Invenio module for collecting statistics."""
 
 from __future__ import absolute_import, print_function
+
 from collections import namedtuple
 
-from flask import current_app
 from invenio_files_rest.signals import file_downloaded
+from invenio_queues.proxies import current_queues
 from invenio_records_ui.signals import record_viewed
-from pkg_resources import iter_entry_points
+from pkg_resources import iter_entry_points, resource_listdir
 from werkzeug.utils import cached_property
 
 from . import config
-from .cli import stats as stats_cli
+from .errors import DuplicateEventError, UnknownEventError
 from .indexer import EventsIndexer
-from .manager import IndexTemplate
-from .errors import DuplicateEventError
-from invenio_queues.queue import Queue
-from invenio_queues.proxies import current_queues
-
 from .receivers import filedownload_receiver, recordview_receiver
 
 
@@ -51,37 +47,53 @@ class _InvenioStatsState(object):
         self.app = app
         self.exchange = app.config['STATS_MQ_EXCHANGE']
         self.suffix = app.config['STATS_INDICES_SUFFIX']
+        self.enabled_events = app.config['STATS_EVENTS']
         self.events_entry_point_group = events_entry_point_group
 
     @cached_property
     def _events_config(self):
         """Load events configuration."""
         # import iter_entry_points here so that it can be mocked in tests
-        from pkg_resources import iter_entry_points
         result = {}
-        for ep in iter_entry_points(group=self.events_entry_point_group):
-            entry = ep.load()
-            for cfg in ep.load()():
-                if cfg['event_type'] in result:
-                    raise DuplicateEventError(
-                        'Duplicate event {0} in entry point '
-                        '{1}'.format(cfg['event_type'], ep.name))
+        contrib_dev = False
 
-            result[cfg['event_type']] = cfg
+        if contrib_dev:
+            for event in resource_listdir('invenio_stats', 'contrib'):
+                if event in ['__pycache__', '__init__.py']:
+                    continue
+                result[event] = dict(event_type=event, processor=EventsIndexer)
+        else:
+            for ep in iter_entry_points(group=self.events_entry_point_group):
+                for cfg in ep.load()():
+                    if cfg['event_type'] not in self.enabled_events:
+                        continue
+                    elif cfg['event_type'] in result:
+                        raise DuplicateEventError(
+                            'Duplicate event {0} in entry point '
+                            '{1}'.format(cfg['event_type'], ep.name))
+                    result[cfg['event_type']] = cfg
         return result
 
     @cached_property
     def events(self):
-        EventConfig = namedtuple('EventConfig', ['queue', 'config'])
+        EventConfig = namedtuple('EventConfig',
+                                 ['queue', 'config', 'processor'])
         # import iter_entry_points here so that it can be mocked in tests
         result = {}
         config = self._events_config
+
+        for event in self.enabled_events:
+            if event not in config.keys():
+                raise UnknownEventError(
+                    'Unknown event {0} '.format(event))
+
         for cfg in config.values():
+            queue = current_queues.queues[
+                'stats_{}'.format(cfg['event_type'])]
             result[cfg['event_type']] = EventConfig(
-                queue=current_queues.queues[
-                    'stats_{}'.format(cfg['event_type'])
-                ],
-                config=cfg
+                queue=queue,
+                config=cfg,
+                processor=cfg['processor'](queue)
             )
         return result
 

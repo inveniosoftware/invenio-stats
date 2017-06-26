@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 #
 # This file is part of Invenio.
-# Copyright (C) 2016 CERN.
+# Copyright (C) 2017 CERN.
 #
 # Invenio is free software; you can redistribute it
 # and/or modify it under the terms of the GNU General Public License as
@@ -22,17 +22,4 @@
 # waive the privileges and immunities granted to it by virtue of its status
 # as an Intergovernmental Organization or submit itself to any jurisdiction.
 
-"""CLI for Invenio-Stats."""
-
-from __future__ import absolute_import, print_function
-
-import click
-from flask.cli import with_appcontext
-from invenio_search.cli import index
-
-from .proxies import current_stats
-
-
-@click.group()
-def stats():
-    """Command related to statistics processing."""
+"""Invenio module for collecting statistics."""

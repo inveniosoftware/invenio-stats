@@ -65,6 +65,7 @@ install_requires = [
     'invenio-records-ui>=1.0.0a9',
     'invenio-search>=1.0.0a9',
     'python-geoip>=1.2',
+    'maxminddb-geolite2>=2017.0404',
     # 'python-geoip-geolite2>=2015.0303',
     'robot-detection>=0.3',
 ]
@@ -102,13 +103,12 @@ setup(
         'invenio_celery.tasks': [
             'invenio_stats = invenio_stats.tasks',
         ],
-        'invenio_stats.estemplates': [
-            'file_download = invenio_stats.indexer:EventsIndexer',
-            'record_view = invenio_stats.indexer:EventsIndexer',
-        ],
-        'invenio_search.mappings': [
-            'file_download = invenio_stats.estemplates.stats',
-            'record_view = invenio_stats.estemplates.stats',
+        # 'invenio_stats.estemplates': [
+        #     'file_download = invenio_stats.indexer:EventsIndexer',
+        #     'record_view = invenio_stats.indexer:EventsIndexer',
+        # ],
+        'invenio_search.templates': [
+            'invenio_stats = invenio_stats.templates:register_templates',
         ],
         'invenio_queues.queues': [
             'invenio_stats = invenio_stats.queues:declare_queues',

@@ -32,9 +32,9 @@ from .proxies import current_stats
 
 
 @shared_task
-def index_events(event_types):
+def process_events(event_types):
     """Index statistics events."""
     results = []
     for e in event_types:
-        results.append((e, current_stats.indexer(e).run()))
+        results.append((e, current_stats.events[e].processor.run()))
     return results

@@ -27,11 +27,10 @@
 from __future__ import absolute_import, print_function
 
 from invenio_stats import current_stats
-from invenio_stats.tasks import index_events
+from invenio_stats.tasks import process_events
 
 
-def test_index_events(app):
+def test_process_events(app, event_entrypoints):
     """Test process event."""
-    current_stats.declare()
-    current_stats.publish('filedownload', [dict(data='val')])
-    index_events.delay('filedownload')
+    current_stats.publish('event_0', [dict(data='val')])
+    process_events.delay(['event_0'])
