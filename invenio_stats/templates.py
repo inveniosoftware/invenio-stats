@@ -22,23 +22,12 @@
 # waive the privileges and immunities granted to it by virtue of its status
 # as an Intergovernmental Organization or submit itself to any jurisdiction.
 
-"""Test CLI."""
+"""Celery background tasks."""
 
-from __future__ import absolute_import, print_function
-
-from click.testing import CliRunner
-
-from invenio_stats import cli
+from .proxies import current_stats
 
 
-def test_cli(script_info):
-    """Test run."""
-    runner = CliRunner()
-    res = runner.invoke(cli.init_queue, [], obj=script_info)
-    assert 0 == res.exit_code
-
-    res = runner.invoke(cli.purge_queue, [], obj=script_info)
-    assert 0 == res.exit_code
-
-    res = runner.invoke(cli.delete_queue, [], obj=script_info)
-    assert 0 == res.exit_code
+def register_templates():
+    """Register elasticsearch templates for events."""
+    return ['contrib/{0}'.format(event['event_type'])
+            for event in current_stats._events_config.values()]

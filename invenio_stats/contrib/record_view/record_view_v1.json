@@ -1,5 +1,5 @@
 {
-  "template": "events-recordview-*",
+  "template": "events-stats_record_view-*",
   "settings": {
     "index": {
       "refresh_interval": "5s"

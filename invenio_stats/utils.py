@@ -30,12 +30,13 @@ import hashlib
 
 from flask import request
 from flask_login import current_user
-from geoip import geolite2
+from geolite2 import geolite2
 
 
 def get_geoip(ip):
     """Lookup country for IP address."""
-    ip_data = geolite2.lookup(ip)
+    reader = geolite2.reader()
+    ip_data = reader.get(ip)
     if ip_data is not None:
         return dict(country=ip_data.country)
     return {}
@@ -54,7 +55,7 @@ def anonimize_user(doc):
     # TODO: include random salt here, that changes once a day.
     # m.update(random_salt)
     if uid:
-        m.update(uid)
+        m.update(uid.encode('utf-8'))
     elif ua:
         m.update(ua)
     else:

@@ -40,22 +40,24 @@ from invenio_db import InvenioDB
 from invenio_files_rest import InvenioFilesREST
 from invenio_files_rest.models import Location
 from invenio_pidstore import InvenioPIDStore
+from invenio_queues import InvenioQueues
+from invenio_queues.proxies import current_queues
 from invenio_records import InvenioRecords
 from invenio_records_ui import InvenioRecordsUI
 from invenio_search import InvenioSearch, current_search, current_search_client
-from sqlalchemy_utils.functions import create_database, database_exists
 from kombu import Exchange
 from mock import patch
-from invenio_queues.proxies import current_queues
-from invenio_queues import InvenioQueues
+from sqlalchemy_utils.functions import create_database, database_exists
 
 # from invenio_stats import EventQueue, InvenioStats, current_stats
 from invenio_stats import InvenioStats, current_stats
+from invenio_stats.indexer import EventsIndexer
 
 
 def mock_iter_entry_points_factory(data, mocked_group):
     """Create a mock iter_entry_points function."""
     from pkg_resources import iter_entry_points
+
     def entrypoints(group, name=None):
         if group == mocked_group:
             for entrypoint in data:
@@ -67,7 +69,7 @@ def mock_iter_entry_points_factory(data, mocked_group):
 
 
 @pytest.yield_fixture()
-def event_queues_entrypoints(app):
+def event_entrypoints():
     """Declare some events by mocking the invenio_stats.events entrypoint.
 
     It yields a list like [{event_type: <event_type_name>}, ...].
@@ -78,19 +80,20 @@ def event_queues_entrypoints(app):
         event_type_name = 'event_{}'.format(idx)
         from pkg_resources import EntryPoint
         entrypoint = EntryPoint(event_type_name, event_type_name)
-        conf = dict(event_type=event_type_name)
+        conf = dict(event_type=event_type_name, processor=EventsIndexer)
         entrypoint.load = lambda conf=conf: (lambda: [conf])
         data.append(entrypoint)
         result.append(conf)
 
     entrypoints = mock_iter_entry_points_factory(data, 'invenio_stats.events')
 
-    with patch('pkg_resources.iter_entry_points',
+    with patch('invenio_stats.ext.iter_entry_points',
                entrypoints):
         try:
             yield result
         finally:
             current_queues.delete()
+
 
 @pytest.yield_fixture()
 def event_queues(app, event_queues_entrypoints):
@@ -142,24 +145,25 @@ def app():
     """Flask application fixture."""
     # app_ = Flask('testapp', instance_path=instance_path)
     # app_.config.update(**config)
+
     app_ = Flask('testapp')
     app_.config.update(dict(
         # BROKER_URL=os.environ.get('BROKER_URL', 'memory://'),
         CELERY_ALWAYS_EAGER=True,
-        CELERY_CACHE_BACKEND="memory",
+        CELERY_CACHE_BACKEND='memory',
         CELERY_EAGER_PROPAGATES_EXCEPTIONS=True,
-        CELERY_RESULT_BACKEND="cache",
+        CELERY_RESULT_BACKEND='cache',
         SQLALCHEMY_DATABASE_URI=os.environ.get(
-            # 'SQLALCHEMY_DATABASE_URI', 'sqlite:///test.db'),
             'SQLALCHEMY_DATABASE_URI', 'sqlite://'),
         SQLALCHEMY_TRACK_MODIFICATIONS=True,
         TESTING=True,
-        STATS_MQ_EXCHANGE = Exchange(
+        STATS_MQ_EXCHANGE=Exchange(
             'test_events',
             type='direct',
             delivery_mode='transient',  # in-memory queue
             durable=True,
-        )
+        ),
+        STATS_EVENTS=['event_0']
     ))
     FlaskCeleryExt(app_)
     InvenioDB(app_)
@@ -171,7 +175,6 @@ def app():
     InvenioFilesREST(app_)
     InvenioSearch(app_, entry_point_group=None)
     # search.register_mappings('records', 'data')
-
     with app_.app_context():
         yield app_
 
