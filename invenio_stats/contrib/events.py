@@ -22,9 +22,14 @@
 # waive the privileges and immunities granted to it by virtue of its status
 # as an Intergovernmental Organization or submit itself to any jurisdiction.
 
-"""Invenio extension to syncronize with services."""
+"""Registration of contrib events."""
+from invenio_stats.indexer import EventsIndexer
 
-# TODO: This is an example file. Remove it if you do not need it, including
-# the templates and static folders as well as the test case.
 
-from __future__ import absolute_import, print_function
+def register():
+    """Register sample events."""
+    return [dict(event_type='file-download',
+                 processor=EventsIndexer),
+            dict(event_type='record-view',
+                 processor=EventsIndexer)]
+    # return []

@@ -1,12 +1,12 @@
 {
-  "template": "events-stats_record_view-*",
+  "template": "events-stats-file-download-*",
   "settings": {
     "index": {
       "refresh_interval": "5s"
     }
   },
   "mappings": {
-    "recordview": {
+    "file-download": {
       "_source": {
         "enabled": false
       },
@@ -16,22 +16,18 @@
       "date_detection": false,
       "numeric_detection": false,
       "properties": {
-        "@timestamp": {
+        "timestamp": {
           "type": "date"
         },
-        "id": {
+        "bucket_id": {
           "type": "string",
           "index": "not_analyzed"
         },
-        "type": {
+        "file_id": {
           "type": "string",
           "index": "not_analyzed"
         },
-        "value": {
-          "type": "string",
-          "index": "not_analyzed"
-        },
-        "labels": {
+        "filename": {
           "type": "string",
           "index": "not_analyzed"
         },
@@ -42,11 +38,15 @@
         "visitor_id": {
           "type": "string",
           "index": "not_analyzed"
+        },
+        "collection": {
+          "type": "string",
+          "index": "not_analyzed"
         }
       }
     }
   },
   "aliases": {
-    "events-recordview": {}
+    "events-stats-file-download": {}
   }
 }

@@ -36,6 +36,7 @@ from __future__ import absolute_import, print_function
 
 from flask import Flask
 from invenio_queues import InvenioQueues
+from invenio_search import InvenioSearch
 
 from invenio_stats import InvenioStats
 
@@ -44,3 +45,4 @@ from invenio_stats import InvenioStats
 app = Flask(__name__)
 InvenioStats(app)
 InvenioQueues(app)
+InvenioSearch(app)

@@ -1,37 +1,29 @@
 {
-  "template": "events-stats_file_download-*",
+  "template": "stats-file-download-*",
   "settings": {
     "index": {
-      "refresh_interval": "5s"
+      "refresh_interval": "1m"
     }
   },
   "mappings": {
-    "filedownload": {
+    "file-download-aggregation": {
       "_source": {
-        "enabled": false
+        "enabled": true
       },
       "_all": {
         "enabled": false
       },
+      "_timestamp": {
+        "enabled": true
+      },
       "date_detection": false,
       "numeric_detection": false,
       "properties": {
-        "@timestamp": {
-          "type": "date"
-        },
-        "bucket": {
-          "type": "string",
+        "count": {
+          "type": "integer",
           "index": "not_analyzed"
         },
-        "key": {
-          "type": "string",
-          "index": "not_analyzed"
-        },
-        "country": {
-          "type": "string",
-          "index": "not_analyzed"
-        },
-        "visitor_id": {
+        "file_id": {
           "type": "string",
           "index": "not_analyzed"
         },
@@ -40,6 +32,17 @@
           "index": "not_analyzed"
         }
       }
+    },
+    "file-download-bookmark": {
+      "date_detection": false,
+      "properties": {
+        "date": {
+          "type": "date"
+        }
+      }
     }
+  },
+  "aliases": {
+    "stats-file-download": {}
   }
 }

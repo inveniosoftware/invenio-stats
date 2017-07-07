@@ -28,9 +28,7 @@ from __future__ import absolute_import, print_function
 
 from collections import namedtuple
 
-from invenio_files_rest.signals import file_downloaded
 from invenio_queues.proxies import current_queues
-from invenio_records_ui.signals import record_viewed
 from pkg_resources import iter_entry_points, resource_listdir
 from werkzeug.utils import cached_property
 
@@ -55,23 +53,15 @@ class _InvenioStatsState(object):
         """Load events configuration."""
         # import iter_entry_points here so that it can be mocked in tests
         result = {}
-        contrib_dev = False
-
-        if contrib_dev:
-            for event in resource_listdir('invenio_stats', 'contrib'):
-                if event in ['__pycache__', '__init__.py']:
+        for ep in iter_entry_points(group=self.events_entry_point_group):
+            for cfg in ep.load()():
+                if cfg['event_type'] not in self.enabled_events:
                     continue
-                result[event] = dict(event_type=event, processor=EventsIndexer)
-        else:
-            for ep in iter_entry_points(group=self.events_entry_point_group):
-                for cfg in ep.load()():
-                    if cfg['event_type'] not in self.enabled_events:
-                        continue
-                    elif cfg['event_type'] in result:
-                        raise DuplicateEventError(
-                            'Duplicate event {0} in entry point '
-                            '{1}'.format(cfg['event_type'], ep.name))
-                    result[cfg['event_type']] = cfg
+                elif cfg['event_type'] in result:
+                    raise DuplicateEventError(
+                        'Duplicate event {0} in entry point '
+                        '{1}'.format(cfg['event_type'], ep.name))
+                result[cfg['event_type']] = cfg
         return result
 
     @cached_property
@@ -89,7 +79,7 @@ class _InvenioStatsState(object):
 
         for cfg in config.values():
             queue = current_queues.queues[
-                'stats_{}'.format(cfg['event_type'])]
+                'stats-{}'.format(cfg['event_type'])]
             result[cfg['event_type']] = EventConfig(
                 queue=queue,
                 config=cfg,
@@ -108,7 +98,7 @@ class _InvenioStatsState(object):
     def indexer(self, event_type):
         # TODO: Allow customization of indexer and suffix
         return EventsIndexer(
-            current_queues.queues['stats_{}'.format(event_type)],
+            current_queues.queues['stats-{}'.format(event_type)],
             prefix=self.app.config['STATS_INDICES_PREFIX'],
             suffix=self.suffix
         )
@@ -116,12 +106,12 @@ class _InvenioStatsState(object):
     def publish(self, event_type, events):
         """Publish events."""
         assert event_type in self.events
-        current_queues.queues['stats_{}'.format(event_type)].publish(events)
+        current_queues.queues['stats-{}'.format(event_type)].publish(events)
 
     def consume(self, event_type, no_ack=True, payload=True):
         """Comsume all pending events."""
         assert event_type in self.events
-        return current_queues.queues['stats_{}'.format(event_type)].consume(
+        return current_queues.queues['stats-{}'.format(event_type)].consume(
             payload=payload)
 
     # def register_eventtype(self, event_type, package_name):
@@ -149,6 +139,8 @@ class InvenioStats(object):
         self.init_config(app)
 
         if app.config['STATS_REGISTER_RECEIVERS']:
+            from invenio_files_rest.signals import file_downloaded
+            from invenio_records_ui.signals import record_viewed
             file_downloaded.connect(filedownload_receiver, sender=app)
             record_viewed.connect(recordview_receiver, sender=app)
 

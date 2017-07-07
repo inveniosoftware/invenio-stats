@@ -46,6 +46,8 @@ STATS_REGISTER_RECEIVERS = True
 STATS_INDICES_SUFFIX = '%Y.%W',
 """Suffix of indices."""
 
+SQLALCHEMY_TRACK_MODIFICATIONS = False
+
 CELERY_BEAT_SCHEDULE = {
     'indexer': {
         'task': 'invenio_stats.tasks.index_events',
@@ -54,6 +56,6 @@ CELERY_BEAT_SCHEDULE = {
 }
 
 STATS_EVENTS = [
-    'record_view',
-    'file_download'
+    'file-download',
+    'record-view'
 ]

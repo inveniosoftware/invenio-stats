@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 #
 # This file is part of Invenio.
-# Copyright (C) 2016 CERN.
+# Copyright (C) 2017 CERN.
 #
 # Invenio is free software; you can redistribute it
 # and/or modify it under the terms of the GNU General Public License as
@@ -14,7 +14,7 @@
 # General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License
-# along with Invenio; if not, write to the
+# along with Invenio; if not,2 write to the
 # Free Software Foundation, Inc., 59 Temple Place, Suite 330, Boston,
 # MA 02111-1307, USA.
 #
@@ -28,6 +28,7 @@ from __future__ import absolute_import, print_function
 
 import arrow
 from elasticsearch.helpers import bulk
+from flask import current_app
 from invenio_search import current_search_client
 from robot_detection import is_robot
 
@@ -40,7 +41,7 @@ class EventsIndexer(object):
     Subclass this class in order to provide custom indexing behaviour.
     """
 
-    def __init__(self, queue, prefix='events', suffix='%Y.%m.%d', client=None):
+    def __init__(self, queue, prefix='events', suffix='%Y-%m-%d', client=None):
         """Initialize indexer."""
         self.queue = queue
         self.client = client or current_search_client
@@ -50,6 +51,10 @@ class EventsIndexer(object):
 
     def process_event(self, data):
         """Process data from a single event."""
+        if 'invenio-collections' in current_app.extensions:
+            print("add collection")
+        if 'invenio-communities' in current_app.extensions:
+            print("add community info")
         return anonimize_user(data)
 
     def actionsiter(self):
@@ -59,6 +64,7 @@ class EventsIndexer(object):
                 continue
 
             suffix = arrow.get(msg.get('timestamp')).strftime(self.suffix)
+            suffix = '2017-07-14'
             yield dict(
                 _op_type='index',
                 _index='{0}-{1}'.format(self.index, suffix),
