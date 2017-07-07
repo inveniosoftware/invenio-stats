@@ -29,6 +29,8 @@ from __future__ import absolute_import, print_function
 import os
 import shutil
 import tempfile
+from contextlib import contextmanager
+from flask import Flask, appcontext_pushed, g
 
 import pytest
 from elasticsearch.exceptions import RequestError
@@ -84,6 +86,15 @@ def event_entrypoints():
         entrypoint.load = lambda conf=conf: (lambda: [conf])
         data.append(entrypoint)
         result.append(conf)
+
+    # including file_download
+    event_type_name = 'file_download'
+    from pkg_resources import EntryPoint
+    entrypoint = EntryPoint(event_type_name, event_type_name)
+    conf = dict(event_type=event_type_name, processor=EventsIndexer)
+    entrypoint.load = lambda conf=conf: (lambda: [conf])
+    data.append(entrypoint)
+    result.append(conf)
 
     entrypoints = mock_iter_entry_points_factory(data, 'invenio_stats.events')
 
@@ -163,7 +174,7 @@ def app():
             delivery_mode='transient',  # in-memory queue
             durable=True,
         ),
-        STATS_EVENTS=['event_0']
+        STATS_EVENTS=['event_0', 'file_download']
     ))
     FlaskCeleryExt(app_)
     InvenioDB(app_)
@@ -248,3 +259,11 @@ def celery(app):
 def script_info(app):
     """Get ScriptInfo object for testing CLI."""
     return ScriptInfo(create_app=lambda info: app)
+
+
+@contextmanager
+def user_set(app, user):
+    def handler(sender, **kwargs):
+        g.user = user
+    with appcontext_pushed.connected_to(handler, app):
+        yield

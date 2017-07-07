@@ -1,12 +1,12 @@
 {
-  "template": "events-stats_file_download-*",
+  "template": "monthly-file_download-*",
   "settings": {
     "index": {
-      "refresh_interval": "5s"
+      "refresh_interval": "1m"
     }
   },
   "mappings": {
-    "file_download": {
+    "file_download_aggregation": {
       "_source": {
         "enabled": false
       },
@@ -19,23 +19,15 @@
         "@timestamp": {
           "type": "date"
         },
-        "bucket_id": {
-          "type": "string",
+        "count": {
+          "type": "integer",
           "index": "not_analyzed"
         },
-        "file_id": {
+        "bucket": {
           "type": "string",
           "index": "not_analyzed"
         },
         "key": {
-          "type": "string",
-          "index": "not_analyzed"
-        },
-        "country": {
-          "type": "string",
-          "index": "not_analyzed"
-        },
-        "visitor_id": {
           "type": "string",
           "index": "not_analyzed"
         },
@@ -44,9 +36,17 @@
           "index": "not_analyzed"
         }
       }
+    },
+    "file_download_bookmark": {
+      "date_detection": false,
+      "properties": {
+        "date": {
+          "type": "date"
+        }
+      }
     }
   },
   "aliases": {
-    "events-stats_file_download": {}
+    "monthly-file_download": {}
   }
 }

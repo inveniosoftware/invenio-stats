@@ -6,7 +6,7 @@
     }
   },
   "mappings": {
-    "recordview": {
+    "record_view": {
       "_source": {
         "enabled": false
       },
@@ -47,6 +47,6 @@
     }
   },
   "aliases": {
-    "events-recordview": {}
+    "events-stats_record_view": {}
   }
 }
