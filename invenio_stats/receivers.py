@@ -34,11 +34,12 @@ from .utils import get_user
 
 def filedownload_receiver(sender_app, obj=None, **kwargs):
     """Log that a file was downloaded."""
-    current_stats.publish('file_download', [dict(
+    current_stats.publish('file-download', [dict(
         # When:
         timestamp=datetime.utcnow().isoformat(),
         # What:
-        bucket=str(obj.bucket_id),
+        bucket_id=str(obj.bucket_id),
+        file_id=str(obj.file_id),
         filename=obj.key,
         # labels=record.get('communities', []),
         # Who:
@@ -48,13 +49,13 @@ def filedownload_receiver(sender_app, obj=None, **kwargs):
 
 def recordview_receiver(sender_app, pid=None, record=None, **kwargs):
     """Log that a record was viewed."""
-    current_stats.publish('record_view', [dict(
+    current_stats.publish('record-view', [dict(
         # When:
         timestamp=datetime.utcnow().isoformat(),
         # What:
-        id=record.id,
+        record_id=str(record.id),
         pid_type=pid.pid_type,
-        pid_value=pid.pid_value,
+        pid_value=str(pid.pid_value),
         labels=record.get('communities', []),
         # Who:
         **get_user()

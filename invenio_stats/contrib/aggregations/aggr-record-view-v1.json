@@ -1,0 +1,48 @@
+{
+  "template": "stats-record-view-*",
+  "settings": {
+    "index": {
+      "refresh_interval": "1m"
+    }
+  },
+  "mappings": {
+    "record-view-aggregation": {
+      "_source": {
+        "enabled": true
+      },
+      "_all": {
+        "enabled": false
+      },
+      "_timestamp": {
+        "enabled": true
+      },
+      "date_detection": false,
+      "numeric_detection": false,
+      "properties": {
+        "count": {
+          "type": "integer",
+          "index": "not_analyzed"
+        },
+        "record_id": {
+          "type": "string",
+          "index": "not_analyzed"
+        },
+        "collection": {
+          "type": "string",
+          "index": "not_analyzed"
+        }
+      }
+    },
+    "record-view-bookmark": {
+      "date_detection": false,
+      "properties": {
+        "date": {
+          "type": "date"
+        }
+      }
+    }
+  },
+  "aliases": {
+    "stats-record-view": {}
+  }
+}

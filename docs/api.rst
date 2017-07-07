@@ -27,9 +27,3 @@ API Docs
 
 .. automodule:: invenio_stats.ext
    :members:
-
-Views
------
-
-.. automodule:: invenio_stats.views
-   :members:
