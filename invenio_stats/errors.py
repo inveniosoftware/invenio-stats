@@ -33,3 +33,7 @@ class DuplicateEventError(Exception):
 
 class UnknownEventError(Exception):
     """Error raised when a duplicate event is detected."""
+
+
+class NotSupportedInterval(Exception):
+    """Error raised for an unsupported aggregation interval."""
