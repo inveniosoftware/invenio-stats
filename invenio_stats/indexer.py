@@ -64,7 +64,6 @@ class EventsIndexer(object):
                 continue
 
             suffix = arrow.get(msg.get('timestamp')).strftime(self.suffix)
-            suffix = '2017-07-14'
             yield dict(
                 _op_type='index',
                 _index='{0}-{1}'.format(self.index, suffix),

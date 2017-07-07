@@ -78,6 +78,35 @@ def test_publish_and_consume_events(app, event_entrypoints):
     assert list(current_stats.consume(event_type)) == events
 
 
+# def test_batch_events(app, event_entrypoints, objects):
+#     from invenio_files_rest.signals import file_downloaded
+#     from invenio_files_rest.models import ObjectVersion
+
+#     mock_user = Mock()
+#     mock_user.get_id = lambda: '123'
+#     mock_user.is_authenticated = True
+#     current_queues.declare()
+
+#     with patch('invenio_stats.utils.current_user', mock_user):
+#         with app.test_request_context(
+#             headers={'USER_AGENT':
+#                      'Mozilla/5.0 (Windows NT 6.1; WOW64) '
+#                      'AppleWebKit/537.36 (KHTML, like Gecko)'
+#                      'Chrome/45.0.2454.101 Safari/537.36'}):
+#             ids = [uuid.uuid1() for i in range(1000 * len(objects))]
+#             for i in range(1000):
+#                 for j in range(len(objects)):
+#                     file_obj = objects[j]
+#                     file_obj.bucket_id = ids[i + j]
+#                     print("sending bucket id:", file_obj.bucket_id)
+#                     file_downloaded.send(app, obj=file_obj)
+#     with app.app_context():
+#         from invenio_stats.tasks import process_events
+#         process_events(['file-download'])
+#     import ipdb
+#     ipdb.set_trace()
+
+
 # def test_register_events(app, event_entrypoints, objects):
 #     from invenio_files_rest.signals import file_downloaded
 #     from invenio_files_rest.models import ObjectVersion

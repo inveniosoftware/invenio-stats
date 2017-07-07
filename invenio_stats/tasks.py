@@ -33,6 +33,7 @@ from elasticsearch.helpers import bulk
 from elasticsearch_dsl import Index, Search
 from invenio_search import current_search_client
 
+from .errors import NotSupportedInterval
 from .proxies import current_stats
 
 
@@ -59,31 +60,28 @@ def aggregate_event(event):
     file_download_aggregator.run()
 
 
-class StatPreprocessor(object):
-    """Preprocessor class.
-
-    Subclass this class in order to provide specific statistics calculations.
-    """
-
-    def run(self):
-        """Run calculations."""
-        pass
-
-
-class StatAggregator(StatPreprocessor):
+class StatAggregator(object):
     """Aggregator class."""
 
     def __init__(self, client, event,
                  aggregation_field=None,
-                 index_name_suffix='%Y-%m',
-                 aggregation_interval='day'):
+                 aggregation_interval='month'):
         """Construct aggregator instance."""
         self.client = client
         self.event = event
         self.aggregation_alias = 'stats-{}'.format(self.event)
         self.aggregation_field = aggregation_field
-        self.index_name_suffix = index_name_suffix
         self.aggregation_interval = aggregation_interval
+        if aggregation_interval == 'year':
+            self.index_name_suffix = '%Y'
+        elif self.aggregation_interval == 'month':
+            self.index_name_suffix = '%Y-%m'
+        elif self.aggregation_interval == 'day':
+            self.index_name_suffix = '%Y-%m-%d'
+        else:
+            raise NotSupportedInterval(
+                'Not supported aggregation interval {0}'
+                .format(aggregation_interval))
 
     def get_bookmark(self):
         """Get last aggregation date."""
@@ -103,7 +101,8 @@ class StatAggregator(StatPreprocessor):
                                 doc_type='{0}-bookmark'.format(self.event))
         query_bookmark.aggs.metric('latest', 'max', field='date')
         bookmark = query_bookmark.execute()[0]
-        bookmark = datetime.datetime.strptime(bookmark.date, '%Y-%m-%d')
+        bookmark = datetime.datetime.strptime(bookmark.date,
+                                              self.aggregation_interval)
         return bookmark.date()
 
     def set_bookmark(self):
@@ -123,36 +122,40 @@ class StatAggregator(StatPreprocessor):
              _success_date(),
              stats_only=True)
 
-    def date_range(self, start_date, end_date):
-        """Get all dates that haven't been processed."""
-        if start_date >= end_date:
-            for n in range((start_date - end_date).days + 1):
-                yield end_date + datetime.timedelta(n)
-        else:
-            for n in range((end_date - start_date).days + 1):
-                yield start_date + datetime.timedelta(n)
-
-    def agg_iter(self, date):
+    def agg_iter(self):
         """Aggregate and return dictionary to be indexed in ES."""
         aggregation_data = {}
-        result = self.event_agg_query.execute()
-        for aggregation in result.aggregations:
-            for hit in result.aggregations[aggregation]['buckets']:
-                aggregation_data[self.aggregation_field] = hit['key']
-                aggregation_data['count'] = hit['doc_count']
-                print('aggregation_data:', aggregation_data)
-
-                tobeindexed = dict(_id='{0}_{1}'.
-                                   format(hit['key'],
-                                          date),
-                                   _index='stats-{0}-{1}'.
-                                   format(self.event,
-                                          date.strftime(
-                                              self.index_name_suffix)),
-                                   _type='{}-aggregation'.
-                                   format(self.event),
-                                   _source=aggregation_data)
-                yield tobeindexed
+        self.agg_query = Search(using=self.client,
+                                index='events-stats-{}'.format(self.event)).\
+            filter('range', timestamp={'gte': self.get_bookmark().isoformat(),
+                                       'lt': 'now'})
+        self.agg_query.aggs.bucket('per_{}'.format(self.aggregation_interval),
+                                   'date_histogram',
+                                   field='timestamp',
+                                   interval=self.aggregation_interval)
+        self.agg_query.aggs['per_{}'.format(self.aggregation_interval)].\
+            bucket('per_{}'.format(self.aggregation_field),
+                   'terms', field='file_id')
+        results = self.agg_query.execute()
+        for interval in results.aggregations[
+                'per_{}'.format(self.aggregation_interval)].buckets:
+            interval_date = datetime.datetime.strptime(
+                interval['key_as_string'], '%Y-%m-%dT%H:%M:%S.%fZ')
+            for aggregation in interval['per_{}'.format(
+                    self.aggregation_field)].buckets:
+                aggregation_data[self.aggregation_field] = aggregation['key']
+                aggregation_data['count'] = aggregation['doc_count']
+                yield dict(_id='{0}-{1}'.
+                           format(aggregation['key'],
+                                  datetime.date.today().
+                                  isoformat()),
+                           _index='stats-{0}-{1}'.
+                           format(self.event,
+                                  interval_date.strftime(
+                                      self.index_name_suffix)),
+                           _type='{}-aggregation'.
+                           format(self.event),
+                           _source=aggregation_data)
 
     def get_first_index_with_alias(self, alias_name):
         """Get all indices under an alias."""
@@ -175,21 +178,7 @@ class StatAggregator(StatPreprocessor):
 
     def run(self):
         """Calculate statistics aggregations."""
-        for date in self.date_range(self.get_bookmark(),
-                                    datetime.date.today()):
-            print("Aggregating day:", date)
-            events_alias_name = 'events-stats-{0}'.format(self.event)
-            print(events_alias_name)
-            if not self.get_indices_with_alias(events_alias_name):
-                continue
-
-            self.event_agg_query = Search(using=current_search_client,
-                                          index=events_alias_name)
-            self.event_agg_query.aggs.bucket('by-{}'.format(self.event),
-                                             'terms',
-                                             field=self.aggregation_field,
-                                             size=999999)
-            bulk(self.client,
-                 self.agg_iter(date),
-                 stats_only=True)
-            self.set_bookmark()
+        bulk(self.client,
+             self.agg_iter(),
+             stats_only=True)
+        self.set_bookmark()
