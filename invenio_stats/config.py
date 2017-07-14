@@ -46,6 +46,8 @@ STATS_REGISTER_RECEIVERS = True
 STATS_INDICES_SUFFIX = '%Y.%W',
 """Suffix of indices."""
 
+SQLALCHEMY_TRACK_MODIFICATIONS = False
+
 CELERY_BEAT_SCHEDULE = {
     'indexer': {
         'task': 'invenio_stats.tasks.index_events',
@@ -54,6 +56,18 @@ CELERY_BEAT_SCHEDULE = {
 }
 
 STATS_EVENTS = [
-    'record_view',
-    'file_download'
+    'file-download',
+    'record-view'
 ]
+
+STATS_REST_ENDPOINTS = dict(
+    stat=dict(
+        stats_serializers={
+            'application/json': ('invenio_stats.serializers'
+                                 ':stat_data_to_json_serializer'),
+        },
+        event_route='/stats/',
+        event_stats_route='/stats/<string:event>/<string:obj_id>',
+        default_media_type='application/json',
+    ),
+)

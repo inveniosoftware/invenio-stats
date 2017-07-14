@@ -40,7 +40,7 @@ from flask_celeryext import FlaskCeleryExt
 from invenio_db import db as db_
 from invenio_db import InvenioDB
 from invenio_files_rest import InvenioFilesREST
-from invenio_files_rest.models import Location
+from invenio_files_rest.models import Bucket, Location, ObjectVersion
 from invenio_pidstore import InvenioPIDStore
 from invenio_queues import InvenioQueues
 from invenio_queues.proxies import current_queues
@@ -49,6 +49,7 @@ from invenio_records_ui import InvenioRecordsUI
 from invenio_search import InvenioSearch, current_search, current_search_client
 from kombu import Exchange
 from mock import patch
+from six import BytesIO
 from sqlalchemy_utils.functions import create_database, database_exists
 
 # from invenio_stats import EventQueue, InvenioStats, current_stats
@@ -88,9 +89,9 @@ def event_entrypoints():
         result.append(conf)
 
     # including file_download
-    event_type_name = 'file_download'
+    event_type_name = 'file-download'
     from pkg_resources import EntryPoint
-    entrypoint = EntryPoint(event_type_name, event_type_name)
+    entrypoint = EntryPoint('invenio_files_rest', 'test_dir')
     conf = dict(event_type=event_type_name, processor=EventsIndexer)
     entrypoint.load = lambda conf=conf: (lambda: [conf])
     data.append(entrypoint)
@@ -174,7 +175,7 @@ def app():
             delivery_mode='transient',  # in-memory queue
             durable=True,
         ),
-        STATS_EVENTS=['event_0', 'file_download']
+        STATS_EVENTS=['event_0', 'file-download']
     ))
     FlaskCeleryExt(app_)
     InvenioDB(app_)
@@ -267,3 +268,55 @@ def user_set(app, user):
         g.user = user
     with appcontext_pushed.connected_to(handler, app):
         yield
+
+
+@pytest.yield_fixture()
+def dummy_location(db):
+    """File system location."""
+    tmppath = tempfile.mkdtemp()
+
+    loc = Location(
+        name='testloc',
+        uri=tmppath,
+        default=True
+    )
+    db.session.add(loc)
+    db.session.commit()
+
+    yield loc
+
+    shutil.rmtree(tmppath)
+
+
+@pytest.fixture()
+def bucket(db, dummy_location):
+    """File system location."""
+    b1 = Bucket.create()
+    return b1
+
+
+@pytest.yield_fixture()
+def objects(bucket):
+    """File system location."""
+    # Create older versions first
+    for key, content in [
+            ('LICENSE', b'old license'),
+            ('README.rst', b'old readme')]:
+        ObjectVersion.create(
+            bucket, key, stream=BytesIO(content), size=len(content)
+        )
+
+    # Create new versions
+    objs = []
+    for key, content in [
+            ('LICENSE', b'license file'),
+            ('README.rst', b'readme file')]:
+        objs.append(
+            ObjectVersion.create(
+                bucket, key, stream=BytesIO(content),
+                size=len(content)
+            )
+        )
+    # db.session.commit()
+
+    yield objs

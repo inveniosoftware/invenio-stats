@@ -31,5 +31,8 @@ def register_templates():
     """Register elasticsearch templates for events."""
     event_templates = ['contrib/{0}'.format(event['event_type'])
                        for event in current_stats._events_config.values()]
-    aggregation_templates = ['contrib/aggregations']
-    return event_templates.append(aggregation_templates)
+    aggregation_templates_dir = 'contrib/aggregations'
+    event_templates.append(aggregation_templates_dir)
+    import ipdb
+    ipdb.set_trace()
+    return event_templates

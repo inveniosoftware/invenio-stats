@@ -113,7 +113,9 @@ setup(
         'invenio_queues.queues': [
             'invenio_stats = invenio_stats.queues:declare_queues',
         ],
-
+        # 'invenio_stats.events': [
+        #     'invenio_stats = invenio_stats.contrib.events:register'
+        # ]
     },
     extras_require=extras_require,
     install_requires=install_requires,

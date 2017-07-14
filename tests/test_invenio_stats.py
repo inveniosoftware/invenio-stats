@@ -28,10 +28,13 @@ from __future__ import absolute_import, print_function
 
 from elasticsearch_dsl import Search
 from flask import Flask
+import time
+import datetime
 from invenio_queues.proxies import current_queues
 from invenio_search import current_search_client
 from invenio_stats import InvenioStats
 from invenio_stats.proxies import current_stats
+from invenio_stats.tasks import StatAggregator
 from mock import Mock, patch
 
 import uuid
@@ -74,44 +77,95 @@ def test_publish_and_consume_events(app, event_entrypoints):
     assert list(current_stats.consume(event_type)) == events
 
 
-def test_batch_events(app, event_entrypoints):
+def test_batch_events(app, event_entrypoints, objects):
     from invenio_files_rest.signals import file_downloaded
     from invenio_files_rest.models import ObjectVersion
-    # with user_set(app, my_user):
-    #     with app.test_client() as c:
-    #         resp = c.get('/users/me')
-    #         data = json.loads(resp.data)
-    #         self.assert_equal(data['username'], my_user.username)
+
     mock_user = Mock()
     mock_user.get_id = lambda: '123'
     mock_user.is_authenticated = True
     current_queues.declare()
-    with app.app_context():
-        file_objs = ObjectVersion.query.all()
-    import ipdb
-    ipdb.set_trace()
+
     with patch('invenio_stats.utils.current_user', mock_user):
-        with app.test_request_context(headers={'USER_AGENT':
-            'Mozilla/5.0 (Windows NT 6.1; WOW64) AppleWebKit/537.36 (KHTML, like Gecko)'
-            'Chrome/45.0.2454.101 Safari/537.36'}):
-            ids = [uuid.uuid1() for i in range(1024 * len(file_objs))]
-            print(ids)
-            for i in range(100024):
-                for j in range(len(file_objs)):
-                    file_obj = file_objs[j]
+        with app.test_request_context(
+            headers={'USER_AGENT':
+                     'Mozilla/5.0 (Windows NT 6.1; WOW64) '
+                     'AppleWebKit/537.36 (KHTML, like Gecko)'
+                     'Chrome/45.0.2454.101 Safari/537.36'}):
+            ids = [uuid.uuid1() for i in range(100000 * len(objects))]
+            for i in range(100000):
+                for j in range(len(objects)):
+                    file_obj = objects[j]
                     file_obj.bucket_id = ids[i + j]
                     print("sending bucket id:", file_obj.bucket_id)
                     file_downloaded.send(app, obj=file_obj)
+    with app.app_context():
+        from invenio_stats.tasks import process_events
+        process_events(['file-download'])
     import ipdb
     ipdb.set_trace()
+
+
+def test_register_events(app, event_entrypoints, objects):
+    from invenio_files_rest.signals import file_downloaded
+    from invenio_files_rest.models import ObjectVersion
+
+    mock_user = Mock()
+    mock_user.get_id = lambda: '123'
+    mock_user.is_authenticated = True
+    current_queues.declare()
+
+    with patch('invenio_stats.utils.current_user', mock_user):
+        with app.test_request_context(
+            headers={'USER_AGENT':
+                     'Mozilla/5.0 (Windows NT 6.1; WOW64) '
+                     'AppleWebKit/537.36 (KHTML, like Gecko)'
+                     'Chrome/45.0.2454.101 Safari/537.36'}):
+            ids = [uuid.uuid1() for i in range(len(objects))]
+            for i in range(len(objects)):
+                file_obj = objects[i]
+                file_obj.bucket_id = ids[i]
+                print("sending bucket id:", file_obj.bucket_id)
+                file_downloaded.send(app, obj=file_obj)
+    with app.app_context():
+        from invenio_stats.tasks import process_events
+        process_events(['file-download'])
+    time.sleep(10)
+    for _id in ids:
+        query = Search(using=current_search_client,
+                       index='events-stats-file-download').\
+            query('term', bucket_id=_id)
+        assert query.execute().hits.total == 1
 
 
 def test_aggregate(app):
     from invenio_stats.tasks import aggregate_event
-    aggregate_event.delay('file_download')
+    aggregate_event.delay('file-download')
     import ipdb
     ipdb.set_trace()
 
+
+def test_record_views(app):
+    pass
+
+
+def test_querying(app):
+    fds = StatAggregator(current_search_client, 'file-download')
+    print(fds.query('bucket', '8004'))
+    print(fds.query())
+    print(fds.query('bucket', '8004', 'week'))
+
+
+def test_get_count_by_day(app):
+    fds = StatAggregator(current_search_client, 'file-download')
+    print(fds.get_count_by_day(datetime.date.today()))
+
+
+def test_get_count_in_day_range(app):
+    fds = StatAggregator(current_search_client, 'file-download')
+    print(fds.get_count_in_day_range(
+        [datetime.datetime.strptime('2017-07-10', '%Y-%m-%d').date(),
+         datetime.datetime.strptime('2017-07-13', '%Y-%m-%d').date()]))
 # def test_set_last_successful_aggregation_date(app):
 #     doc = {
 #         'event': 'file_download',
