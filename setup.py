@@ -34,6 +34,8 @@ history = open('CHANGES.rst').read()
 tests_require = [
     'check-manifest>=0.25',
     'coverage>=4.0',
+    'elasticsearch<5,>=2.0.0',
+    'elasticsearch-dsl<5,>=2.0.0',
     'invenio-db>=1.0.0b5',
     'isort>=4.2.2',
     'pydocstyle>=1.0.0',
@@ -113,9 +115,9 @@ setup(
         'invenio_queues.queues': [
             'invenio_stats = invenio_stats.queues:declare_queues',
         ],
-        # 'invenio_stats.events': [
-        #     'invenio_stats = invenio_stats.contrib.events:register'
-        # ]
+        'invenio_stats.events': [
+            'invenio_stats = invenio_stats.contrib.events:register'
+        ]
     },
     extras_require=extras_require,
     install_requires=install_requires,

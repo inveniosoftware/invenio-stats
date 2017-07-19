@@ -38,7 +38,6 @@ python:
   - "3.5"
 
 services:
-  - elasticsearch
   - redis
   - rabbitmq
 
@@ -47,8 +46,8 @@ env:
   - REQUIREMENTS=lowest BROKER_URL=amqp://localhost:5672//
   - REQUIREMENTS=release BROKER_URL=redis://localhost:6379/0
   - REQUIREMENTS=release BROKER_URL=amqp://localhost:5672//
-  - REQUIREMENTS=devel BROKER_URL=redis://localhost:6379/0
-  - REQUIREMENTS=devel BROKER_URL=amqp://localhost:5672//
+  - REQUIREMENTS=devel ES_HOST=127.0.0.1 ES_URL="https://download.elastic.co/elasticsearch/release/org/elasticsearch/distribution/tar/elasticsearch/2.2.0/elasticsearch-2.2.0.tar.gz" BROKER_URL=redis://localhost:6379/0
+  - REQUIREMENTS=devel ES_HOST=127.0.0.1 ES_URL="https://download.elastic.co/elasticsearch/release/org/elasticsearch/distribution/tar/elasticsearch/2.2.0/elasticsearch-2.2.0.tar.gz" BROKER_URL=amqp://localhost:5672//
 
 matrix:
   allow_failures:
@@ -70,6 +69,9 @@ matrix:
       env: REQUIREMENTS=release BROKER_URL=amqp://localhost:5672//
 
 before_install:
+  - "mkdir /tmp/elasticsearch"
+  - "wget -O - $ES_URL | tar xz --directory=/tmp/elasticsearch --strip-components=1"
+  - "/tmp/elasticsearch/bin/elasticsearch &"
   - "travis_retry pip install --upgrade pip setuptools py"
   - "travis_retry pip install twine wheel coveralls requirements-builder"
   - "requirements-builder --level=min setup.py > .travis-lowest-requirements.txt"
