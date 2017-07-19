@@ -94,7 +94,6 @@ def event_entrypoints():
     conf = dict(event_type=event_type_name, processor=EventsIndexer)
     entrypoint.load = lambda conf=conf: (lambda: [conf])
     data.append(entrypoint)
-    result.append(conf)
 
     entrypoints = mock_iter_entry_points_factory(data, 'invenio_stats.events')
 
@@ -174,7 +173,7 @@ def app():
             delivery_mode='transient',  # in-memory queue
             durable=True,
         ),
-        STATS_EVENTS=['event_0', 'file-download']
+        STATS_EVENTS=['file-download']
     ))
     FlaskCeleryExt(app_)
     InvenioDB(app_)

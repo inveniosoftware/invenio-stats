@@ -32,5 +32,5 @@ from invenio_stats.tasks import process_events
 
 def test_process_events(app, event_entrypoints):
     """Test process event."""
-    current_stats.publish('event_0', [dict(data='val')])
-    process_events.delay(['event_0'])
+    current_stats.publish('file-download', [dict(data='val')])
+    process_events.delay(['file-download'])

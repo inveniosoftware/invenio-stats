@@ -101,8 +101,7 @@ class StatAggregator(object):
                                 doc_type='{0}-bookmark'.format(self.event))
         query_bookmark.aggs.metric('latest', 'max', field='date')
         bookmark = query_bookmark.execute()[0]
-        bookmark = datetime.datetime.strptime(bookmark.date,
-                                              self.aggregation_interval)
+        bookmark = datetime.datetime.strptime(bookmark.date, '%Y-%m-%d')
         return bookmark.date()
 
     def set_bookmark(self):
@@ -135,7 +134,7 @@ class StatAggregator(object):
                                    interval=self.aggregation_interval)
         self.agg_query.aggs['per_{}'.format(self.aggregation_interval)].\
             bucket('per_{}'.format(self.aggregation_field),
-                   'terms', field='file_id')
+                   'terms', field='file_id', size=0)
         results = self.agg_query.execute()
         for interval in results.aggregations[
                 'per_{}'.format(self.aggregation_interval)].buckets:

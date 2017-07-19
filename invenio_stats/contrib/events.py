@@ -32,4 +32,3 @@ def register():
                  processor=EventsIndexer),
             dict(event_type='record-view',
                  processor=EventsIndexer)]
-    # return []
