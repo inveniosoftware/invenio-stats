@@ -105,10 +105,6 @@ setup(
         'invenio_celery.tasks': [
             'invenio_stats = invenio_stats.tasks',
         ],
-        # 'invenio_stats.estemplates': [
-        #     'file_download = invenio_stats.indexer:EventsIndexer',
-        #     'record_view = invenio_stats.indexer:EventsIndexer',
-        # ],
         'invenio_search.templates': [
             'invenio_stats = invenio_stats.templates:register_templates',
         ],
@@ -116,7 +112,12 @@ setup(
             'invenio_stats = invenio_stats.queues:declare_queues',
         ],
         'invenio_stats.events': [
-            'invenio_stats = invenio_stats.contrib.events:register'
+            'invenio_stats = '
+            'invenio_stats.contrib.registrations:register_events'
+        ],
+        'invenio_stats.aggregations': [
+            'invenio_stats = '
+            'invenio_stats.contrib.registrations:register_aggregations'
         ]
     },
     extras_require=extras_require,

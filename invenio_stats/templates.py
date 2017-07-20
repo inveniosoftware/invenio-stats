@@ -29,8 +29,12 @@ from .proxies import current_stats
 
 def register_templates():
     """Register elasticsearch templates for events."""
-    event_templates = ['contrib/{0}'.format(event['event_type'])
-                       for event in current_stats._events_config.values()]
-    aggregation_templates_dir = 'contrib/aggregations'
-    event_templates.append(aggregation_templates_dir)
-    return event_templates
+    event_templates = [current_stats._events_config[e]
+                       ['templates']
+                       for e in
+                       current_stats._events_config]
+    aggregation_templates = [current_stats._aggregations_config[a]
+                             ['templates']
+                             for a in
+                             current_stats._aggregations_config]
+    return event_templates + aggregation_templates

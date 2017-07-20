@@ -29,11 +29,12 @@ from __future__ import absolute_import, print_function
 from collections import namedtuple
 
 from invenio_queues.proxies import current_queues
-from pkg_resources import iter_entry_points, resource_listdir
+from pkg_resources import iter_entry_points
 from werkzeug.utils import cached_property
 
 from . import config
-from .errors import DuplicateEventError, UnknownEventError
+from .errors import DuplicateAggregationError, DuplicateEventError, \
+    UnknownAggregationError, UnknownEventError
 from .indexer import EventsIndexer
 from .receivers import filedownload_receiver, recordview_receiver
 
@@ -41,19 +42,24 @@ from .receivers import filedownload_receiver, recordview_receiver
 class _InvenioStatsState(object):
     """State object for Invenio stats."""
 
-    def __init__(self, app, events_entry_point_group):
+    def __init__(self, app,
+                 entry_point_group_events,
+                 entry_point_group_aggs):
         self.app = app
         self.exchange = app.config['STATS_MQ_EXCHANGE']
         self.suffix = app.config['STATS_INDICES_SUFFIX']
         self.enabled_events = app.config['STATS_EVENTS']
-        self.events_entry_point_group = events_entry_point_group
+        self.enabled_aggregations = app.config['STATS_AGGREGATIONS']
+        self.entry_point_group_events = entry_point_group_events
+        self.entry_point_group_aggs = entry_point_group_aggs
 
     @cached_property
     def _events_config(self):
         """Load events configuration."""
         # import iter_entry_points here so that it can be mocked in tests
         result = {}
-        for ep in iter_entry_points(group=self.events_entry_point_group):
+        for ep in iter_entry_points(
+                group=self.entry_point_group_events):
             for cfg in ep.load()():
                 if cfg['event_type'] not in self.enabled_events:
                     continue
@@ -67,7 +73,8 @@ class _InvenioStatsState(object):
     @cached_property
     def events(self):
         EventConfig = namedtuple('EventConfig',
-                                 ['queue', 'config', 'processor'])
+                                 ['queue', 'config',
+                                  'templates', 'processor'])
         # import iter_entry_points here so that it can be mocked in tests
         result = {}
         config = self._events_config
@@ -83,7 +90,46 @@ class _InvenioStatsState(object):
             result[cfg['event_type']] = EventConfig(
                 queue=queue,
                 config=cfg,
+                templates=cfg['templates'],
                 processor=cfg['processor'](queue)
+            )
+        return result
+
+    @cached_property
+    def _aggregations_config(self):
+        """Load aggregation configurations."""
+        result = {}
+        for ep in iter_entry_points(
+                group=self.entry_point_group_aggs):
+            for cfg in ep.load()():
+                if cfg['aggregation_name'] not in self.enabled_aggregations:
+                    continue
+                elif cfg['aggregation_name'] in result:
+                    raise DuplicateAggregationError(
+                        'Duplicate aggregation {0} in entry point '
+                        '{1}'.format(cfg['event_type'], ep.name))
+                result[cfg['aggregation_name']] = cfg
+        return result
+
+    @cached_property
+    def aggregations(self):
+        AggregationConfig = namedtuple('AggregationConfig',
+                                       ['config', 'templates',
+                                        'aggregator', 'call_params'])
+        result = {}
+        config = self._aggregations_config
+
+        for aggregation in self.enabled_aggregations:
+            if aggregation not in config.keys():
+                raise UnknownAggregationError(
+                    'Unknown aggregation {0} '.format(aggregation))
+
+        for cfg in config.values():
+            result[cfg['aggregation_name']] = AggregationConfig(
+                config=cfg,
+                templates=cfg['templates'],
+                aggregator=cfg['aggregator'],
+                call_params=cfg['call_params']
             )
         return result
 
@@ -134,7 +180,9 @@ class InvenioStats(object):
         if app:
             self.init_app(app, **kwargs)
 
-    def init_app(self, app, events_entry_point_group='invenio_stats.events'):
+    def init_app(self, app,
+                 entry_point_group_events='invenio_stats.events',
+                 entry_point_group_aggs='invenio_stats.aggregations'):
         """Flask application initialization."""
         self.init_config(app)
 
@@ -146,7 +194,8 @@ class InvenioStats(object):
 
         state = _InvenioStatsState(
             app,
-            events_entry_point_group=events_entry_point_group
+            entry_point_group_events=entry_point_group_events,
+            entry_point_group_aggs=entry_point_group_aggs
         )
         self._state = app.extensions['invenio-stats'] = state
 

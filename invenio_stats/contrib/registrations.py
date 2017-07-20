@@ -23,12 +23,27 @@
 # as an Intergovernmental Organization or submit itself to any jurisdiction.
 
 """Registration of contrib events."""
+from invenio_search import current_search_client
+
 from invenio_stats.indexer import EventsIndexer
+from invenio_stats.tasks import StatAggregator
 
 
-def register():
+def register_events():
     """Register sample events."""
     return [dict(event_type='file-download',
+                 templates='contrib/file-download',
                  processor=EventsIndexer),
             dict(event_type='record-view',
+                 templates='contrib/record-view',
                  processor=EventsIndexer)]
+
+
+def register_aggregations():
+    """Register sample aggregations."""
+    return [dict(aggregation_name='file-download-agg',
+                 templates='contrib/aggregations/aggr-file-download',
+                 aggregator=StatAggregator,
+                 call_params=dict(client=current_search_client,
+                                  event='file-download',
+                                  aggregation_field='file_id'))]

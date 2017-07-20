@@ -31,7 +31,6 @@ import datetime
 from celery import shared_task
 from elasticsearch.helpers import bulk
 from elasticsearch_dsl import Index, Search
-from invenio_search import current_search_client
 
 from .errors import NotSupportedInterval
 from .proxies import current_stats
@@ -47,17 +46,14 @@ def process_events(event_types):
 
 
 @shared_task
-def aggregate_event(event):
-    """Calculate file downloads for today."""
-    if event == 'file-download':
-        aggregation_field = 'file_id'
-    else:
-        aggregation_field = 'record_id'
-    file_download_aggregator = StatAggregator(
-        client=current_search_client,
-        event=event,
-        aggregation_field=aggregation_field)
-    file_download_aggregator.run()
+def aggregate_events(aggregations):
+    """Aggregate indexed events."""
+    results = []
+    for a in aggregations:
+        aggregator = current_stats.aggregations[a].aggregator(
+            **current_stats.aggregations[a].call_params)
+        results.append(aggregator.run())
+    return results
 
 
 class StatAggregator(object):
