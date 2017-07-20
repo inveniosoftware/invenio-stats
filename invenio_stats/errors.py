@@ -32,7 +32,15 @@ class DuplicateEventError(Exception):
 
 
 class UnknownEventError(Exception):
-    """Error raised when a duplicate event is detected."""
+    """Error raised when an unknown event is detected."""
+
+
+class UnknownAggregationError(Exception):
+    """Error raised when an unknown  is detected."""
+
+
+class DuplicateAggregationError(Exception):
+    """Error raised when a duplicate aggregation is detected."""
 
 
 class NotSupportedInterval(Exception):

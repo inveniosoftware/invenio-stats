@@ -59,3 +59,7 @@ STATS_EVENTS = [
     'file-download',
     'record-view'
 ]
+
+STATS_AGGREGATIONS = [
+    'file-download-agg',
+]

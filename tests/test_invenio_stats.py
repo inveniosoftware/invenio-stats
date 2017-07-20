@@ -29,20 +29,16 @@ from __future__ import absolute_import, print_function
 import datetime
 import uuid
 
-from click.testing import CliRunner
-from conftest import ScriptInfo
 from elasticsearch_dsl import Search
 from flask import Flask
-from flask.cli import ScriptInfo
 from invenio_queues.proxies import current_queues
-from invenio_search import current_search_client
-from invenio_search.cli import index as index_cmd
+from invenio_search import current_search, current_search_client
 from mock import MagicMock, Mock, patch
 
 from invenio_stats import InvenioStats
 from invenio_stats.indexer import EventsIndexer
 from invenio_stats.proxies import current_stats
-from invenio_stats.tasks import StatAggregator, aggregate_event, process_events
+from invenio_stats.tasks import aggregate_events, process_events
 
 
 def test_version():
@@ -91,9 +87,8 @@ def test_batch_events(app, event_entrypoints, objects):
 
     current_queues.declare()
 
-    script_info = ScriptInfo(create_app=lambda info: app)
-    runner = CliRunner()
-    result = runner.invoke(index_cmd, ['init'], obj=script_info)
+    for t in current_search.put_templates(ignore=[400]):
+        pass
 
     with patch('invenio_stats.utils.current_user', mock_user):
         with app.test_request_context(
@@ -146,7 +141,7 @@ def test_batch_events(app, event_entrypoints, objects):
         with patch('invenio_stats.ext._InvenioStatsState.events', mock_events):
             process_events(['file-download'])
 
-    aggregate_event.delay('file-download')
+    aggregate_events.delay(['file-download-agg'])
 
     current_search_client.indices.flush(index='*')
 
