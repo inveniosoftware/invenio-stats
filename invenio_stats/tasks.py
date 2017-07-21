@@ -27,12 +27,12 @@
 from __future__ import absolute_import, print_function
 
 import datetime
+from collections import OrderedDict
 
 from celery import shared_task
 from elasticsearch.helpers import bulk
 from elasticsearch_dsl import Index, Search
 
-from .errors import NotSupportedInterval
 from .proxies import current_stats
 
 
@@ -61,23 +61,26 @@ class StatAggregator(object):
 
     def __init__(self, client, event,
                  aggregation_field=None,
-                 aggregation_interval='month'):
+                 aggregation_interval='month',
+                 index_interval='month'):
         """Construct aggregator instance."""
         self.client = client
         self.event = event
         self.aggregation_alias = 'stats-{}'.format(self.event)
         self.aggregation_field = aggregation_field
         self.aggregation_interval = aggregation_interval
-        if aggregation_interval == 'year':
-            self.index_name_suffix = '%Y'
-        elif self.aggregation_interval == 'month':
-            self.index_name_suffix = '%Y-%m'
-        elif self.aggregation_interval == 'day':
-            self.index_name_suffix = '%Y-%m-%d'
-        else:
-            raise NotSupportedInterval(
-                'Not supported aggregation interval {0}'
-                .format(aggregation_interval))
+        self.index_interval = index_interval
+        self.supported_intervals = OrderedDict([('day', '%Y-%m-%d'),
+                                                ('month', '%Y-%m'),
+                                                ('year', '%Y')])
+        if list(self.supported_intervals.keys()).\
+                index(aggregation_interval) \
+                > \
+                list(self.supported_intervals.keys()).\
+                index(index_interval):
+            raise(ValueError('Aggregation interval should be'
+                             ' shorter than index interval'))
+        self.index_name_suffix = self.supported_intervals[index_interval]
 
     def get_bookmark(self):
         """Get last aggregation date."""
@@ -138,18 +141,19 @@ class StatAggregator(object):
                 interval['key_as_string'], '%Y-%m-%dT%H:%M:%S.%fZ')
             for aggregation in interval['per_{}'.format(
                     self.aggregation_field)].buckets:
+                aggregation_data['timestamp'] = interval_date.isoformat()
                 aggregation_data[self.aggregation_field] = aggregation['key']
                 aggregation_data['count'] = aggregation['doc_count']
                 yield dict(_id='{0}-{1}'.
                            format(aggregation['key'],
-                                  datetime.date.today().
-                                  isoformat()),
+                                  interval_date.strftime(
+                                      self.index_name_suffix)),
                            _index='stats-{0}-{1}'.
                            format(self.event,
                                   interval_date.strftime(
                                       self.index_name_suffix)),
-                           _type='{}-aggregation'.
-                           format(self.event),
+                           _type='{0}-{1}-aggregation'.
+                           format(self.event, self.aggregation_interval),
                            _source=aggregation_data)
 
     def get_first_index_with_alias(self, alias_name):

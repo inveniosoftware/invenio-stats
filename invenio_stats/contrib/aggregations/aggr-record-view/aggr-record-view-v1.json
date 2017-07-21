@@ -13,12 +13,12 @@
       "_all": {
         "enabled": false
       },
-      "_timestamp": {
-        "enabled": true
-      },
       "date_detection": false,
       "numeric_detection": false,
       "properties": {
+        "timestamp": {
+          "type": "date"
+        },
         "count": {
           "type": "integer",
           "index": "not_analyzed"
