@@ -28,10 +28,10 @@ from __future__ import absolute_import, print_function
 
 from invenio_rest.errors import RESTException
 
-
 ##
 #  Events errors
 ##
+
 
 class DuplicateEventError(Exception):
     """Error raised when a duplicate event is detected."""
