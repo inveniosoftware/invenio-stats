@@ -320,7 +320,6 @@ def objects(bucket):
                 size=len(content)
             )
         )
-    # db.session.commit()
 
     yield objs
 
@@ -335,61 +334,66 @@ def sequential_ids():
 
 
 @pytest.yield_fixture()
-def queued_events(app, objects, sequential_ids):
-    """Queued events for processing tests."""
+def mock_user_ctx():
+    """Create mock user context."""
     mock_user = Mock()
     mock_user.get_id = lambda: '123'
     mock_user.is_authenticated = True
+    with patch('invenio_stats.utils.current_user', mock_user):
+        yield
 
+
+@pytest.fixture()
+def queued_events(app, objects, sequential_ids, mock_user_ctx, request):
+    """Queued events for processing tests."""
     current_queues.declare()
 
     for t in current_search.put_templates(ignore=[400]):
         pass
-
-    with patch('invenio_stats.utils.current_user', mock_user):
-        with app.test_request_context(
-            headers={'USER_AGENT':
-                     'Mozilla/5.0 (Windows NT 6.1; WOW64) '
-                     'AppleWebKit/537.36 (KHTML, like Gecko)'
-                     'Chrome/45.0.2454.101 Safari/537.36'}):
-            multiple_events = sequential_ids[:1000]
-            multiple_events = [event for event in multiple_events
-                               for _ in range(100)]
-            sequential_ids = sequential_ids + multiple_events
-            generator_list = []
+    with app.test_request_context(
+        headers={'USER_AGENT':
+                 'Mozilla/5.0 (Windows NT 6.1; WOW64) '
+                 'AppleWebKit/537.36 (KHTML, like Gecko)'
+                 'Chrome/45.0.2454.101 Safari/537.36'}):
+        multiple_events = sequential_ids[:1000]
+        multiple_events = [event for event in multiple_events
+                           for _ in range(100)]
+        sequential_ids = sequential_ids + multiple_events
+        generator_list = []
+        for entry_date in request.param:
             for i in sequential_ids:
                 file_obj = objects[0]
                 file_obj.file_id = i
                 file_obj.bucket_id = i
                 msg = dict(
                     # When:
-                    timestamp=datetime.datetime.utcnow().isoformat(),
+                    timestamp=entry_date,
                     # What:
                     bucket_id=str(i),
                     file_id=str(i),
                     filename='test.pdf',
-                    # labels=record.get('communities', []),
                     # Who:
                     visitor_id=100,
                 )
                 generator_list.append(msg)
 
-            mock_queue = Mock()
-            mock_queue.consume.return_value = (msg for msg in generator_list)
-            mock_queue.routing_key = 'stats-file-download'
-            mock_processor = MagicMock()
-            mock_processor.run = EventsIndexer(mock_queue,
-                                               'events',
-                                               '%Y-%m-%d',
-                                               current_search_client).run
-            mock_processor.actionsiter = EventsIndexer.actionsiter
-            mock_processor.process_event = EventsIndexer.process_event
-            mock_cfg = MagicMock()
-            mock_cfg.processor = mock_processor
-            mock_events_dict = {'file-download': mock_cfg}
-            mock_events = MagicMock()
-            mock_events.__getitem__.side_effect = \
-                mock_events_dict.__getitem__
-        with patch('invenio_stats.ext._InvenioStatsState.events',
-                   mock_events):
-            yield
+        mock_queue = Mock()
+        mock_queue.consume.return_value = \
+            (msg for msg in generator_list)
+        mock_queue.routing_key = 'stats-file-download'
+        mock_processor = MagicMock()
+        mock_processor.run = EventsIndexer(mock_queue,
+                                           'events',
+                                           '%Y-%m-%d',
+                                           current_search_client).run
+        mock_processor.actionsiter = EventsIndexer.actionsiter
+        mock_processor.process_event = EventsIndexer.process_event
+        mock_cfg = MagicMock()
+        mock_cfg.processor = mock_processor
+        mock_events_dict = {'file-download': mock_cfg}
+        mock_events = MagicMock()
+        mock_events.__getitem__.side_effect = \
+            mock_events_dict.__getitem__
+    with patch('invenio_stats.ext._InvenioStatsState.events',
+               mock_events):
+        yield

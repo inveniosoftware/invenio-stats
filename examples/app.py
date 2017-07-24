@@ -36,7 +36,7 @@ from __future__ import absolute_import, print_function
 
 import os.path
 import random
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timedelta
 
 from flask import Flask
 from invenio_queues import InvenioQueues
@@ -77,7 +77,9 @@ app.register_blueprint(blueprint)
 def fixtures():
     """Command for working with test data."""
 
-def publish_filedownload(nb_events, user_id, filename, file_id, bucket_id, date):
+
+def publish_filedownload(nb_events, user_id, filename,
+                         file_id, bucket_id, date):
     current_stats.publish('file-download', [dict(
         # When:
         timestamp=date.isoformat(),
@@ -89,6 +91,7 @@ def publish_filedownload(nb_events, user_id, filename, file_id, bucket_id, date)
         user_id=str(user_id)
     )] * nb_events)
 
+
 @fixtures.command()
 def events():
     # Create events
@@ -98,12 +101,13 @@ def events():
     random.seed(42)
     for _ in range(nb_days):
         publish_filedownload(random.randrange(1, max_events),
-                            1, 'test.txt', 10, 20, day)
+                             1, 'test.txt', 10, 20, day)
         day = day + timedelta(days=1)
 
     process_events(['file-download'])
     # flush elasticsearch indices so that the events become searchable
     current_search_client.indices.flush(index='*')
+
 
 @fixtures.command()
 def aggregations():

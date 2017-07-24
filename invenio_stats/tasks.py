@@ -32,6 +32,7 @@ from collections import OrderedDict
 from celery import shared_task
 from elasticsearch.helpers import bulk
 from elasticsearch_dsl import Index, Search
+from invenio_search import current_search_client
 
 from .proxies import current_stats
 
@@ -70,7 +71,8 @@ class StatAggregator(object):
         self.aggregation_field = aggregation_field
         self.aggregation_interval = aggregation_interval
         self.index_interval = index_interval
-        self.supported_intervals = OrderedDict([('day', '%Y-%m-%d'),
+        self.supported_intervals = OrderedDict([('hour', '%Y-%m-%dT%H'),
+                                                ('day', '%Y-%m-%d'),
                                                 ('month', '%Y-%m'),
                                                 ('year', '%Y')])
         if list(self.supported_intervals.keys()).index(aggregation_interval) \
@@ -99,25 +101,30 @@ class StatAggregator(object):
                                 doc_type='{0}-bookmark'.format(self.event))
         query_bookmark.aggs.metric('latest', 'max', field='date')
         bookmark = query_bookmark.execute()[0]
-        bookmark = datetime.datetime.strptime(bookmark.date, '%Y-%m-%d')
+        # change it to doc_id_suffix
+        bookmark = datetime.datetime.strptime(bookmark.date,
+                                              self.supported_intervals[
+                                                  self.aggregation_interval])
         return bookmark.date()
 
     def set_bookmark(self):
         """Set bookmark for starting next aggregation."""
+        current_search_client.indices.flush(index='*')
+
         def _success_date():
             bookmark = {
-                'date': datetime.date.today().isoformat()
+                'date': self.new_bookmark or datetime.datetime.utcnow().
+                strftime(self.supported_intervals[
+                    self.aggregation_interval])
             }
-            yield dict(_index='stats-{0}-{1}'.
-                       format(self.event,
-                              datetime.date.today().strftime(
-                                  self.index_name_suffix)),
+
+            yield dict(_index=self.last_index_written,
                        _type='{}-bookmark'.format(self.event),
                        _source=bookmark)
-
-        bulk(self.client,
-             _success_date(),
-             stats_only=True)
+        if self.last_index_written:
+            bulk(self.client,
+                 _success_date(),
+                 stats_only=True)
 
     def agg_iter(self):
         """Aggregate and return dictionary to be indexed in ES."""
@@ -125,7 +132,8 @@ class StatAggregator(object):
         self.agg_query = Search(using=self.client,
                                 index='events-stats-{}'.format(self.event)).\
             filter('range', timestamp={'gte': self.get_bookmark().isoformat(),
-                                       'lt': 'now'})
+                                       'lte': datetime.datetime.utcnow().
+                                       isoformat()})
         self.agg_query.aggs.bucket('per_{}'.format(self.aggregation_interval),
                                    'date_histogram',
                                    field='timestamp',
@@ -143,6 +151,10 @@ class StatAggregator(object):
                 aggregation_data['timestamp'] = interval_date.isoformat()
                 aggregation_data[self.aggregation_field] = aggregation['key']
                 aggregation_data['count'] = aggregation['doc_count']
+                index_name = 'stats-{0}-{1}'.\
+                             format(self.event,
+                                    interval_date.strftime(
+                                        self.index_name_suffix))
                 yield dict(_id='{0}-{1}'.
                            format(aggregation['key'],
                                   interval_date.strftime(
@@ -154,6 +166,7 @@ class StatAggregator(object):
                            _type='{0}-{1}-aggregation'.
                            format(self.event, self.aggregation_interval),
                            _source=aggregation_data)
+        self.last_index_written = index_name or None
 
     def get_first_index_with_alias(self, alias_name):
         """Get all indices under an alias."""
@@ -176,6 +189,9 @@ class StatAggregator(object):
 
     def run(self):
         """Calculate statistics aggregations."""
+        self.new_bookmark = (datetime.datetime.utcnow() -
+                             datetime.timedelta(hours=1)).\
+            strftime(self.doc_id_suffix)
         bulk(self.client,
              self.agg_iter(),
              stats_only=True)
