@@ -53,7 +53,7 @@ from mock import MagicMock, Mock, patch
 from six import BytesIO
 from sqlalchemy_utils.functions import create_database, database_exists
 
-from invenio_stats import InvenioStats
+from invenio_stats import InvenioStats, current_stats
 from invenio_stats.indexer import EventsIndexer
 
 

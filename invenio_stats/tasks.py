@@ -73,14 +73,13 @@ class StatAggregator(object):
         self.supported_intervals = OrderedDict([('day', '%Y-%m-%d'),
                                                 ('month', '%Y-%m'),
                                                 ('year', '%Y')])
-        if list(self.supported_intervals.keys()).\
-                index(aggregation_interval) \
+        if list(self.supported_intervals.keys()).index(aggregation_interval) \
                 > \
-                list(self.supported_intervals.keys()).\
-                index(index_interval):
+                list(self.supported_intervals.keys()).index(index_interval):
             raise(ValueError('Aggregation interval should be'
                              ' shorter than index interval'))
         self.index_name_suffix = self.supported_intervals[index_interval]
+        self.doc_id_suffix = self.supported_intervals[aggregation_interval]
 
     def get_bookmark(self):
         """Get last aggregation date."""
@@ -147,7 +146,7 @@ class StatAggregator(object):
                 yield dict(_id='{0}-{1}'.
                            format(aggregation['key'],
                                   interval_date.strftime(
-                                      self.index_name_suffix)),
+                                      self.doc_id_suffix)),
                            _index='stats-{0}-{1}'.
                            format(self.event,
                                   interval_date.strftime(

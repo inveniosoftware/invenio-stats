@@ -77,4 +77,5 @@ class EventsIndexer(object):
             self.client,
             self.actionsiter(),
             stats_only=True,
+            chunk_size=50
         )

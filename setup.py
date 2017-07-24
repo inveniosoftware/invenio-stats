@@ -43,6 +43,7 @@ tests_require = [
     'pytest-cov>=1.8.0',
     'pytest-pep8>=1.0.6',
     'pytest>=2.8.0',
+    'python-dateutil>=2.6.0',
 ]
 
 extras_require = {
@@ -105,6 +106,9 @@ setup(
         'invenio_celery.tasks': [
             'invenio_stats = invenio_stats.tasks',
         ],
+        'invenio_base.api_blueprints': [
+            'invenio_files_rest = invenio_stats.views:blueprint',
+        ],
         'invenio_search.templates': [
             'invenio_stats = invenio_stats.templates:register_templates',
         ],
@@ -118,6 +122,9 @@ setup(
         'invenio_stats.aggregations': [
             'invenio_stats = '
             'invenio_stats.contrib.registrations:register_aggregations'
+        ],
+        'invenio_stats.queries': [
+            'invenio_stats = invenio_stats.contrib.queries:register'
         ]
     },
     extras_require=extras_require,

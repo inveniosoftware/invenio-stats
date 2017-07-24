@@ -46,4 +46,5 @@ def register_aggregations():
                  aggregator=StatAggregator,
                  call_params=dict(client=current_search_client,
                                   event='file-download',
-                                  aggregation_field='file_id'))]
+                                  aggregation_field='file_id',
+                                  aggregation_interval='day'))]

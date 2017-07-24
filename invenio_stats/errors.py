@@ -26,6 +26,12 @@
 
 from __future__ import absolute_import, print_function
 
+from invenio_rest.errors import RESTException
+
+
+##
+#  Events errors
+##
 
 class DuplicateEventError(Exception):
     """Error raised when a duplicate event is detected."""
@@ -43,5 +49,33 @@ class DuplicateAggregationError(Exception):
     """Error raised when a duplicate aggregation is detected."""
 
 
+##
+#  Aggregation errors
+##
+
 class NotSupportedInterval(Exception):
     """Error raised for an unsupported aggregation interval."""
+
+
+##
+#  Query errors
+##
+
+class InvalidRequestInputError(RESTException):
+    """Error raised when the request input is invalid."""
+
+    code = 400
+
+
+class UnknownQueryError(RESTException):
+    """Error raised when the request input is invalid."""
+
+    def __init__(self, query_name):
+        """Constructor.
+
+        :param query_name: name of the unknown query.
+        """
+        super(RESTException, self).__init__()
+        self.query_name = query_name
+        self.description = 'Unknown statistic "{}"'.format(query_name)
+    code = 400

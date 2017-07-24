@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 #
 # This file is part of Invenio.
-# Copyright (C) 2016 CERN.
+# Copyright (C) 2017 CERN.
 #
 # Invenio is free software; you can redistribute it
 # and/or modify it under the terms of the GNU General Public License as
@@ -22,37 +22,28 @@
 # waive the privileges and immunities granted to it by virtue of its status
 # as an Intergovernmental Organization or submit itself to any jurisdiction.
 
+"""Query processing classes."""
 
-root = true
+from invenio_search import current_search_client
 
-[*]
-indent_style = space
-end_of_line = lf
-insert_final_newline = true
-trim_trailing_whitespace = true
-charset = utf-8
 
-# Python files
-[*.py]
-indent_size = 4
-# isort plugin configuration
-known_first_party = invenio_stats
-known_third_party = invenio_search, invenio_queues
-multi_line_output = 2
-default_section = THIRDPARTY
+class ESQuery(object):
+    """Elasticsearch query."""
 
-# RST files (used by sphinx)
-[*.rst]
-indent_size = 4
+    def __init__(self, query_name, doc_type, index, client=None,
+                 *args, **kwargs):
+        """Constructor.
 
-# CSS, HTML, JS, JSON, YML
-[*.{css,html,js,json,yml}]
-indent_size = 2
+        :param doc_type: queried document type.
+        :param index: queried index.
+        :param client: elasticsearch client used to query.
+        """
+        super(ESQuery, self).__init__()
+        self.index = index
+        self.client = client or current_search_client
+        self.query_name = query_name
+        self.doc_type = doc_type
 
-# Matches the exact files either package.json or .travis.yml
-[{package.json,.travis.yml}]
-indent_size = 2
-
-# Dockerfile
-[Dockerfile]
-indent_size = 4
+    def run(self, *args, **kwargs):
+        """Run the query."""
+        raise NotImplementedError()

@@ -28,9 +28,11 @@ from __future__ import absolute_import, print_function
 
 import hashlib
 
+import six
 from flask import request
 from flask_login import current_user
 from geolite2 import geolite2
+from werkzeug.utils import import_string
 
 
 def get_geoip(ip):
@@ -92,3 +94,48 @@ def get_user():
             current_user.get_id() if current_user.is_authenticated else None
         ),
     )
+
+
+def obj_or_import_string(value, default=None):
+    """Import string or return object.
+
+    :params value: Import path or class object to instantiate.
+    :params default: Default object to return if the import fails.
+    :returns: The imported object.
+    """
+    if isinstance(value, six.string_types):
+        return import_string(value)
+    elif value:
+        return value
+    return default
+
+
+def load_or_import_from_config(key, app=None, default=None):
+    """Load or import value from config.
+
+    :returns: The loaded value.
+    """
+    app = app or current_app
+    imp = app.config.get(key)
+    return obj_or_import_string(imp, default=default)
+
+
+AllowAllPermission = type('Allow', (), {
+    'can': lambda self: True,
+    'allows': lambda *args: True,
+})()
+
+
+def default_permission_factory(query_name, params):
+    """Default permission factory.
+
+    It enables by default the statistics if they don't have a dedicated
+    permission factory.
+    """
+    from invenio_stats import current_stats
+    if current_stats.queries[query_name].permission_factory is None:
+        return AllowAllPermission
+    else:
+        return current_stats.queries[query_name].permission_factory(
+            query_name, params
+        )

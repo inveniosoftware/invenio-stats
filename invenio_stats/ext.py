@@ -37,6 +37,7 @@ from .errors import DuplicateAggregationError, DuplicateEventError, \
     UnknownAggregationError, UnknownEventError
 from .indexer import EventsIndexer
 from .receivers import filedownload_receiver, recordview_receiver
+from .utils import load_or_import_from_config
 
 
 class _InvenioStatsState(object):
@@ -44,14 +45,17 @@ class _InvenioStatsState(object):
 
     def __init__(self, app,
                  entry_point_group_events,
-                 entry_point_group_aggs):
+                 entry_point_group_aggs,
+                 entry_point_group_queries):
         self.app = app
         self.exchange = app.config['STATS_MQ_EXCHANGE']
         self.suffix = app.config['STATS_INDICES_SUFFIX']
         self.enabled_events = app.config['STATS_EVENTS']
         self.enabled_aggregations = app.config['STATS_AGGREGATIONS']
+        self.enabled_queries = app.config['STATS_QUERIES']
         self.entry_point_group_events = entry_point_group_events
         self.entry_point_group_aggs = entry_point_group_aggs
+        self.entry_point_group_queries = entry_point_group_queries
 
     @cached_property
     def _events_config(self):
@@ -137,9 +141,52 @@ class _InvenioStatsState(object):
     #     self.app = app
     #     self.event_types = []
     #     # self.queues = dict(app.extensions['invenio-queues'].queues
+    @cached_property
+    def _queries_config(self):
+        """Load queries configuration."""
+        result = {}
+        for ep in iter_entry_points(group=self.entry_point_group_queries):
+            for cfg in ep.load()():
+                if cfg['query_name'] not in self.enabled_queries:
+                    continue
+                elif cfg['query_name'] in result:
+                    raise DuplicateQueryError(
+                        'Duplicate query {0} in entry point '
+                        '{1}'.format(cfg['query'], ep.name))
+                result[cfg['query_name']] = cfg
+        return result
 
-    #     if entry_point_group:
-    #         self.load_entry_point_group(entry_point_group)
+    @cached_property
+    def queries(self):
+        QueryConfig = namedtuple(
+            'QueryConfig',
+            ['query_class', 'permission_factory', 'query_config', 'config']
+        )
+        result = {}
+        config = self._queries_config
+
+        for query in self.enabled_queries:
+            if query not in config.keys():
+                raise UnknownQueryError(
+                    'Unknown query {0} '.format(query))
+
+        for cfg in config.values():
+            queue = current_queues.queues[
+                'stats-{}'.format(cfg['query_name'])]
+            result[cfg['query_name']] = QueryConfig(
+                config=cfg,
+                query_class=cfg['query_class'],
+                query_config=cfg.get('query_config', {}),
+                permission_factory=cfg.get('permission_factory')
+            )
+        return result
+
+    @cached_property
+    def permission_factory(self):
+        """Load default permission factory for Buckets collections."""
+        return load_or_import_from_config(
+            'STATS_PERMISSION_FACTORY', app=self.app
+        )
 
     def indexer(self, event_type):
         # TODO: Allow customization of indexer and suffix
@@ -182,7 +229,8 @@ class InvenioStats(object):
 
     def init_app(self, app,
                  entry_point_group_events='invenio_stats.events',
-                 entry_point_group_aggs='invenio_stats.aggregations'):
+                 entry_point_group_aggs='invenio_stats.aggregations',
+                 entry_point_group_queries='invenio_stats.queries'):
         """Flask application initialization."""
         self.init_config(app)
 
@@ -195,7 +243,8 @@ class InvenioStats(object):
         state = _InvenioStatsState(
             app,
             entry_point_group_events=entry_point_group_events,
-            entry_point_group_aggs=entry_point_group_aggs
+            entry_point_group_aggs=entry_point_group_aggs,
+            entry_point_group_queries=entry_point_group_queries
         )
         self._state = app.extensions['invenio-stats'] = state
 

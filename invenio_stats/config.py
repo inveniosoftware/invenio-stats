@@ -30,6 +30,8 @@ from datetime import timedelta
 
 from kombu import Exchange
 
+from .utils import default_permission_factory
+
 STATS_MQ_EXCHANGE = Exchange(
     'events',
     type='direct',
@@ -63,3 +65,9 @@ STATS_EVENTS = [
 STATS_AGGREGATIONS = [
     'file-download-agg',
 ]
+
+STATS_QUERIES = [
+    'file-download'
+]
+
+STATS_PERMISSION_FACTORY = default_permission_factory
