@@ -53,8 +53,9 @@ from mock import MagicMock, Mock, patch
 from six import BytesIO
 from sqlalchemy_utils.functions import create_database, database_exists
 
-from invenio_stats import InvenioStats, current_stats
+from invenio_stats import InvenioStats
 from invenio_stats.indexer import EventsIndexer
+from invenio_stats.tasks import process_events
 
 
 def mock_iter_entry_points_factory(data, mocked_group):
@@ -106,6 +107,16 @@ def event_entrypoints():
             yield result
         finally:
             current_queues.delete()
+
+
+def date_range(start_date, end_date):
+    """Get all dates in a given range."""
+    if start_date >= end_date:
+        for n in range((start_date - end_date).days + 1):
+            yield end_date + datetime.timedelta(n)
+    else:
+        for n in range((end_date - start_date).days + 1):
+            yield start_date + datetime.timedelta(n)
 
 
 @pytest.yield_fixture()
@@ -324,12 +335,12 @@ def objects(bucket):
     yield objs
 
 
-@pytest.yield_fixture()
+@pytest.yield_fixture(scope="session")
 def sequential_ids():
     """Sequential uuids for files."""
     ids = [uuid.UUID((
         '0000000000000000000000000000000' + str(i))[-32:])
-        for i in range(10000)]
+        for i in range(100000)]
     yield ids
 
 
@@ -343,57 +354,68 @@ def mock_user_ctx():
         yield
 
 
-@pytest.fixture()
-def queued_events(app, objects, sequential_ids, mock_user_ctx, request):
+def generate_events(app, file_number=5, event_number=100,
+                    start_date=datetime.date(2017, 1, 1),
+                    end_date=datetime.date(2017, 1, 7)):
     """Queued events for processing tests."""
     current_queues.declare()
 
     for t in current_search.put_templates(ignore=[400]):
         pass
-    with app.test_request_context(
-        headers={'USER_AGENT':
-                 'Mozilla/5.0 (Windows NT 6.1; WOW64) '
-                 'AppleWebKit/537.36 (KHTML, like Gecko)'
-                 'Chrome/45.0.2454.101 Safari/537.36'}):
-        multiple_events = sequential_ids[:1000]
-        multiple_events = [event for event in multiple_events
-                           for _ in range(100)]
-        sequential_ids = sequential_ids + multiple_events
-        generator_list = []
-        for entry_date in request.param:
-            for i in sequential_ids:
-                file_obj = objects[0]
-                file_obj.file_id = i
-                file_obj.bucket_id = i
-                msg = dict(
-                    # When:
-                    timestamp=entry_date,
-                    # What:
-                    bucket_id=str(i),
-                    file_id=str(i),
-                    filename='test.pdf',
-                    # Who:
-                    visitor_id=100,
-                )
-                generator_list.append(msg)
 
-        mock_queue = Mock()
-        mock_queue.consume.return_value = \
-            (msg for msg in generator_list)
-        mock_queue.routing_key = 'stats-file-download'
-        mock_processor = MagicMock()
-        mock_processor.run = EventsIndexer(mock_queue,
-                                           'events',
-                                           '%Y-%m-%d',
-                                           current_search_client).run
-        mock_processor.actionsiter = EventsIndexer.actionsiter
-        mock_processor.process_event = EventsIndexer.process_event
-        mock_cfg = MagicMock()
-        mock_cfg.processor = mock_processor
-        mock_events_dict = {'file-download': mock_cfg}
-        mock_events = MagicMock()
-        mock_events.__getitem__.side_effect = \
-            mock_events_dict.__getitem__
+    def generator_list():
+        for file_idx in range(file_number):
+            for entry_date in date_range(start_date, end_date):
+                entry_date = datetime.datetime.combine(
+                    entry_date, datetime.time())
+                file_id = '{0}-{1}'.format(entry_date.strftime('%Y-%m-%d'),
+                                           file_idx)
+                for event_idx in range(event_number):
+                    msg = dict(
+                        timestamp=entry_date.isoformat(),
+                        bucket_id=file_id,
+                        file_id=file_id,
+                        filename='test.pdf',
+                        visitor_id=100,
+                    )
+                    yield msg
+
+    mock_queue = Mock()
+    mock_queue.consume.return_value = generator_list()
+    mock_queue.routing_key = 'stats-file-download'
+    mock_processor = MagicMock()
+    mock_processor.run = EventsIndexer(mock_queue,
+                                       'events',
+                                       '%Y-%m-%d',
+                                       current_search_client).run
+    mock_processor.actionsiter = EventsIndexer.actionsiter
+    mock_processor.process_event = EventsIndexer.process_event
+    mock_cfg = MagicMock()
+    mock_cfg.processor = mock_processor
+    mock_events_dict = {'file-download': mock_cfg}
+    mock_events = MagicMock()
+    mock_events.__getitem__.side_effect = \
+        mock_events_dict.__getitem__
     with patch('invenio_stats.ext._InvenioStatsState.events',
                mock_events):
+        process_events(['file-download'])
+        current_search_client.indices.flush(index='*')
+
+
+@pytest.yield_fixture()
+def indexed_events(app, mock_user_ctx, request):
+    """Parametrized pre indexed sample events."""
+    for t in current_search.put_templates(ignore=[400]):
+        pass
+    try:
+        generate_events(app=app,
+                        file_number=request.param['file_number'],
+                        event_number=request.param['event_number'],
+                        start_date=request.param['start_date'],
+                        end_date=request.param['end_date'])
         yield
+    finally:
+        current_search_client.indices.delete(
+            index='events-stats-file-download')
+        current_search_client.indices.delete(
+            index='stats-file-download')

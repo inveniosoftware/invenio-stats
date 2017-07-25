@@ -79,30 +79,6 @@ def test_publish_and_consume_events(app, event_entrypoints):
     assert list(current_stats.consume(event_type)) == events
 
 
-@pytest.mark.parametrize('queued_events',
-                         [[datetime.datetime.utcnow().isoformat()]],
-                         indirect=['queued_events'])
-def test_batch_events(app, event_entrypoints, objects,
-                      queued_events, sequential_ids):
-    """Test processing of multiple events and checking aggregation counts."""
-    process_events(['file-download'])
-    aggregate_events.delay(['file-download-agg'])
-    current_search_client.indices.flush(index='*')
-
-    query = Search(using=current_search_client,
-                   index='stats-file-download').sort('file_id')
-    results = query.execute()
-    for idx, result in enumerate(results.hits):
-        assert uuid.UUID(result.file_id) == sequential_ids[idx]
-        if idx < 1000:
-            assert result.count == 101
-        else:
-            assert result.count == 1
-
-    current_search_client.indices.delete(index='events-stats-file-download')
-    current_search_client.indices.delete(index='stats-file-download')
-
-
 def test_wrong_intervals(app):
     """Test wrong interval error."""
     with pytest.raises(ValueError):
@@ -128,7 +104,8 @@ def test_overwriting_aggregations(app, mock_user_ctx, sequential_ids):
                    file_id=str(sequential_ids[0]),
                    filename='test.pdf',
                    visitor_id=100),
-              dict(timestamp=datetime.date.today().strftime('%Y-%m-%d'),
+              dict(timestamp=datetime.datetime.utcnow().
+                   replace(microsecond=0).isoformat(),
                    # What:
                    bucket_id=str(sequential_ids[0]),
                    file_id=str(sequential_ids[0]),
@@ -146,7 +123,8 @@ def test_overwriting_aggregations(app, mock_user_ctx, sequential_ids):
         if 'file_id' in hit['_source'].keys():
             assert hit['_version'] == 1
 
-    new_events = [dict(timestamp=datetime.date.today().strftime('%Y-%m-%d'),
+    new_events = [dict(timestamp=datetime.datetime.utcnow().
+                       replace(microsecond=0).isoformat(),
                        # What:
                        bucket_id=str(sequential_ids[0]),
                        file_id=str(sequential_ids[0]),
@@ -165,6 +143,7 @@ def test_overwriting_aggregations(app, mock_user_ctx, sequential_ids):
     current_search_client.indices.flush(index='*')
 
     class NewDate(datetime.datetime):
+
         @classmethod
         def utcnow(cls):
             return cls(3000, 2, 1)
@@ -184,3 +163,35 @@ def test_overwriting_aggregations(app, mock_user_ctx, sequential_ids):
 
     current_search_client.indices.delete(index='events-stats-file-download')
     current_search_client.indices.delete(index='stats-file-download')
+
+
+@pytest.mark.parametrize('indexed_events',
+                         [dict(file_number=5,
+                               event_number=50,
+                               start_date=datetime.date(2015, 1, 28),
+                               end_date=datetime.date(2015, 2, 3))],
+                         indirect=['indexed_events'])
+def test_date_range(app, indexed_events):
+    aggregate_events(['file-download-agg'])
+    current_search_client.indices.flush(index='*')
+
+    query = Search(using=current_search_client,
+                   index='stats-file-download')[0:30].sort('file_id')
+    results = query.execute()
+    for result in results:
+        if 'file_id' in result:
+            assert result.count == 50
+
+
+def test_file_download_receiver(app, mock_user_ctx, sequential_ids, objects):
+    from invenio_files_rest.signals import file_downloaded
+    for j in range(len(objects)):
+        file_obj = objects[0]
+        file_obj.bucket_id = sequential_ids[0]
+        with app.test_request_context(
+            headers={'USER_AGENT':
+                     'Mozilla/5.0 (Windows NT 6.1; WOW64) '
+                     'AppleWebKit/537.36 (KHTML, like Gecko)'
+                     'Chrome/45.0.2454.101 Safari/537.36'}):
+            file_downloaded.send(app, obj=file_obj)
+            process_events(['file-download'])

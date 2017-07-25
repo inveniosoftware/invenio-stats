@@ -36,7 +36,8 @@ def filedownload_receiver(sender_app, obj=None, **kwargs):
     """Log that a file was downloaded."""
     current_stats.publish('file-download', [dict(
         # When:
-        timestamp=datetime.utcnow().isoformat(),
+        timestamp=datetime.utcnow().
+        replace(microsecond=0).isoformat(),
         # What:
         bucket_id=str(obj.bucket_id),
         file_id=str(obj.file_id),
@@ -51,7 +52,8 @@ def recordview_receiver(sender_app, pid=None, record=None, **kwargs):
     """Log that a record was viewed."""
     current_stats.publish('record-view', [dict(
         # When:
-        timestamp=datetime.utcnow().isoformat(),
+        timestamp=datetime.utcnow().
+        replace(microsecond=0).isoformat(),
         # What:
         record_id=str(record.id),
         pid_type=pid.pid_type,

@@ -17,7 +17,8 @@
       "numeric_detection": false,
       "properties": {
         "timestamp": {
-          "type": "date"
+          "type": "date",
+          "format": "strict_date_hour_minute_second"
         },
         "record_id": {
           "type": "string",

@@ -94,8 +94,7 @@ class StatAggregator(object):
                                                            format(self.event))
             return datetime.datetime.strptime(oldest_index,
                                               'events-stats-{}-%Y-%m-%d'.
-                                              format(self.event)).date()
-
+                                              format(self.event))
         query_bookmark = Search(using=self.client,
                                 index=self.aggregation_alias,
                                 doc_type='{0}-bookmark'.format(self.event))
@@ -105,7 +104,7 @@ class StatAggregator(object):
         bookmark = datetime.datetime.strptime(bookmark.date,
                                               self.supported_intervals[
                                                   self.aggregation_interval])
-        return bookmark.date()
+        return bookmark
 
     def set_bookmark(self):
         """Set bookmark for starting next aggregation."""
@@ -133,7 +132,7 @@ class StatAggregator(object):
                                 index='events-stats-{}'.format(self.event)).\
             filter('range', timestamp={'gte': self.get_bookmark().isoformat(),
                                        'lte': datetime.datetime.utcnow().
-                                       isoformat()})
+                                       replace(microsecond=0).isoformat()})
         self.agg_query.aggs.bucket('per_{}'.format(self.aggregation_interval),
                                    'date_histogram',
                                    field='timestamp',
@@ -142,10 +141,11 @@ class StatAggregator(object):
             bucket('per_{}'.format(self.aggregation_field),
                    'terms', field='file_id', size=0)
         results = self.agg_query.execute()
+        index_name = None
         for interval in results.aggregations[
                 'per_{}'.format(self.aggregation_interval)].buckets:
             interval_date = datetime.datetime.strptime(
-                interval['key_as_string'], '%Y-%m-%dT%H:%M:%S.%fZ')
+                interval['key_as_string'], '%Y-%m-%dT%H:%M:%S')
             for aggregation in interval['per_{}'.format(
                     self.aggregation_field)].buckets:
                 aggregation_data['timestamp'] = interval_date.isoformat()
@@ -166,7 +166,7 @@ class StatAggregator(object):
                            _type='{0}-{1}-aggregation'.
                            format(self.event, self.aggregation_interval),
                            _source=aggregation_data)
-        self.last_index_written = index_name or None
+        self.last_index_written = index_name
 
     def get_first_index_with_alias(self, alias_name):
         """Get all indices under an alias."""
