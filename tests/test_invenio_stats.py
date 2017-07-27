@@ -37,9 +37,9 @@ from invenio_search import current_search, current_search_client
 from mock import patch
 
 from invenio_stats import InvenioStats
+from invenio_stats.aggregations import StatAggregator
 from invenio_stats.proxies import current_stats
-from invenio_stats.tasks import StatAggregator, aggregate_events, \
-    process_events
+from invenio_stats.tasks import aggregate_events, process_events
 
 
 def test_version():

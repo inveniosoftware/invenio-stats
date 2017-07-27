@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 #
 # This file is part of Invenio.
-# Copyright (C) 2016 CERN.
+# Copyright (C) 2017 CERN.
 #
 # Invenio is free software; you can redistribute it
 # and/or modify it under the terms of the GNU General Public License as
@@ -28,8 +28,17 @@ from __future__ import absolute_import, print_function
 
 from datetime import datetime
 
-from .proxies import current_stats
-from .utils import get_user
+from invenio_files_rest.signals import file_downloaded
+from invenio_records_ui.signals import record_viewed
+
+from ..proxies import current_stats
+from ..utils import get_user
+
+
+def register_receivers(app):
+    """Register signal receivers which send events."""
+    file_downloaded.connect(filedownload_receiver, sender=app)
+    record_viewed.connect(recordview_receiver, sender=app)
 
 
 def filedownload_receiver(sender_app, obj=None, **kwargs):

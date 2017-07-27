@@ -36,7 +36,6 @@ from . import config
 from .errors import DuplicateAggregationError, DuplicateEventError, \
     UnknownAggregationError, UnknownEventError
 from .indexer import EventsIndexer
-from .receivers import filedownload_receiver, recordview_receiver
 from .utils import load_or_import_from_config
 
 
@@ -234,12 +233,6 @@ class InvenioStats(object):
         """Flask application initialization."""
         self.init_config(app)
 
-        if app.config['STATS_REGISTER_RECEIVERS']:
-            from invenio_files_rest.signals import file_downloaded
-            from invenio_records_ui.signals import record_viewed
-            file_downloaded.connect(filedownload_receiver, sender=app)
-            record_viewed.connect(recordview_receiver, sender=app)
-
         state = _InvenioStatsState(
             app,
             entry_point_group_events=entry_point_group_events,
@@ -247,6 +240,10 @@ class InvenioStats(object):
             entry_point_group_queries=entry_point_group_queries
         )
         self._state = app.extensions['invenio-stats'] = state
+
+        if app.config['STATS_REGISTER_RECEIVERS']:
+            from .contrib.receivers import register_receivers
+            register_receivers(app)
 
         return state
 

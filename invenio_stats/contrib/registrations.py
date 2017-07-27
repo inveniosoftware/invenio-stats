@@ -25,8 +25,9 @@
 """Registration of contrib events."""
 from invenio_search import current_search_client
 
+from invenio_stats.aggregations import StatAggregator
+from invenio_stats.contrib.queries import FileDownloadsQuery
 from invenio_stats.indexer import EventsIndexer
-from invenio_stats.tasks import StatAggregator
 
 
 def register_events():
@@ -48,3 +49,17 @@ def register_aggregations():
                                   event='file-download',
                                   aggregation_field='file_id',
                                   aggregation_interval='day'))]
+
+
+def register_queries():
+    """Register queries."""
+    return [
+        dict(
+            query_name='file-download',
+            query_class=FileDownloadsQuery,
+            query_config=dict(
+                index='stats-file-download',
+                doc_type='file-download-day-aggregation'
+            )
+        ),
+    ]
