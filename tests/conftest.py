@@ -43,9 +43,11 @@ from invenio_db import InvenioDB
 from invenio_files_rest import InvenioFilesREST
 from invenio_files_rest.models import Bucket, Location, ObjectVersion
 from invenio_pidstore import InvenioPIDStore
+from invenio_pidstore.minters import recid_minter
 from invenio_queues import InvenioQueues
 from invenio_queues.proxies import current_queues
 from invenio_records import InvenioRecords
+from invenio_records.api import Record
 from invenio_records_ui import InvenioRecordsUI
 from invenio_search import InvenioSearch, current_search, current_search_client
 from kombu import Exchange
@@ -127,54 +129,11 @@ def event_queues(app, event_entrypoints):
         current_queues.delete()
 
 
-# @pytest.yield_fixture(scope='session')
-# def instance_path():
-#     """Default instance path."""
-#     path = tempfile.mkdtemp()
-
-#     yield path
-
-#     shutil.rmtree(path)
-
-
-# @pytest.fixture(scope='session')
-# def env_config(instance_path):
-#     """Default instance path."""
-#     os.environ.update(
-#         APP_INSTANCE_PATH=os.environ.get(
-#             'INSTANCE_PATH', instance_path),
-#     )
-
-#     return os.environ
-
-
-# @pytest.fixture(scope='session')
-# def config(request):
-#     """Default configuration."""
-#     # Parameterize application.
-#     return dict(
-#         BROKER_URL=os.environ.get('BROKER_URL', 'memory://'),
-#         CELERY_ALWAYS_EAGER=True,
-#         CELERY_CACHE_BACKEND="memory",
-#         CELERY_EAGER_PROPAGATES_EXCEPTIONS=True,
-#         CELERY_RESULT_BACKEND="cache",
-#         SQLALCHEMY_DATABASE_URI=os.environ.get(
-#             'SQLALCHEMY_DATABASE_URI', 'sqlite:///test.db'),
-#         SQLALCHEMY_TRACK_MODIFICATIONS=True,
-#         TESTING=True,
-#     )
-
-
 @pytest.yield_fixture()
-# def app(env_config, config, instance_path):
-def app():
-    """Flask application fixture."""
-    # app_ = Flask('testapp', instance_path=instance_path)
-    # app_.config.update(**config)
-
+def base_app():
+    """Flask application fixture without InvenioStats."""
     app_ = Flask('testapp')
     app_.config.update(dict(
-        # BROKER_URL=os.environ.get('BROKER_URL', 'memory://'),
         CELERY_ALWAYS_EAGER=True,
         CELERY_TASK_ALWAYS_EAGER=True,
         CELERY_CACHE_BACKEND='memory',
@@ -191,7 +150,8 @@ def app():
             delivery_mode='transient',  # in-memory queue
             durable=True,
         ),
-        STATS_EVENTS=['file-download'],
+        STATS_EVENTS=['file-download'] +
+        ['event_{}'.format(idx) for idx in range(5)],
         STATS_AGGREGATIONS=['file-download-agg']
     ))
     FlaskCeleryExt(app_)
@@ -199,13 +159,18 @@ def app():
     InvenioRecords(app_)
     InvenioRecordsUI(app_)
     InvenioPIDStore(app_)
-    InvenioStats(app_)
     InvenioQueues(app_)
     InvenioFilesREST(app_)
     InvenioSearch(app_, entry_point_group=None)
-    # search.register_mappings('records', 'data')
     with app_.app_context():
         yield app_
+
+
+@pytest.yield_fixture()
+def app(base_app):
+    """Flask application fixture with InvenioStats."""
+    InvenioStats(base_app)
+    yield base_app
 
 
 @pytest.yield_fixture()
@@ -250,27 +215,10 @@ def es(app):
 #     shutil.rmtree(tmppath)
 
 
-# @pytest.fixture()
-# def exchange(app):
-#     """Get queueobject for testing bulk operations."""
-#     return app.config['STATS_MQ_EXCHANGE']
-
-
 @pytest.fixture()
 def celery(app):
     """Get queueobject for testing bulk operations."""
     return app.extensions['flask-celeryext'].celery
-
-
-# @pytest.fixture()
-# def event_queue(app, exchange, celery):
-#     """Get queueobject for testing bulk operations."""
-#     queue = EventQueue(exchange, 'test-event')
-#     with celery.pool.acquire(block=True) as conn:
-#         queue.queue(conn).declare()
-#         queue.queue(conn).purge()
-
-#     return queue
 
 
 @pytest.fixture()
@@ -304,6 +252,18 @@ def dummy_location(db):
     yield loc
 
     shutil.rmtree(tmppath)
+
+
+@pytest.fixture()
+def record(db):
+    """File system location."""
+    return Record.create({})
+
+
+@pytest.fixture()
+def pid(db, record):
+    """File system location."""
+    return recid_minter(record.id, record)
 
 
 @pytest.fixture()

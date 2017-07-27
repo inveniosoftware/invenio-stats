@@ -36,6 +36,7 @@ from . import config
 from .errors import DuplicateAggregationError, DuplicateEventError, \
     UnknownAggregationError, UnknownEventError
 from .indexer import EventsIndexer
+from .receivers import register_receivers
 from .utils import load_or_import_from_config
 
 
@@ -242,8 +243,7 @@ class InvenioStats(object):
         self._state = app.extensions['invenio-stats'] = state
 
         if app.config['STATS_REGISTER_RECEIVERS']:
-            from .contrib.receivers import register_receivers
-            register_receivers(app)
+            register_receivers(app, app.config['STATS_SIGNAL_RECEIVERS'])
 
         return state
 

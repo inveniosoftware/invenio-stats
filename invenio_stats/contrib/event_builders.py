@@ -26,48 +26,36 @@
 
 from __future__ import absolute_import, print_function
 
-from datetime import datetime
-
-from invenio_files_rest.signals import file_downloaded
-from invenio_records_ui.signals import record_viewed
+import datetime
 
 from ..proxies import current_stats
-from ..utils import get_user
+from ..utils import get_user, load_or_import_from_config
 
 
-def register_receivers(app):
-    """Register signal receivers which send events."""
-    file_downloaded.connect(filedownload_receiver, sender=app)
-    record_viewed.connect(recordview_receiver, sender=app)
-
-
-def filedownload_receiver(sender_app, obj=None, **kwargs):
-    """Log that a file was downloaded."""
-    current_stats.publish('file-download', [dict(
+def file_download_event_builder(event, sender_app, obj=None, **kwargs):
+    """Build a file-download event."""
+    event.update(dict(
         # When:
-        timestamp=datetime.utcnow().
-        replace(microsecond=0).isoformat(),
+        timestamp=datetime.datetime.utcnow().isoformat(),
         # What:
         bucket_id=str(obj.bucket_id),
         file_id=str(obj.file_id),
         filename=obj.key,
-        # labels=record.get('communities', []),
         # Who:
         **get_user()
-    )])
+    ))
 
 
-def recordview_receiver(sender_app, pid=None, record=None, **kwargs):
-    """Log that a record was viewed."""
-    current_stats.publish('record-view', [dict(
+def record_view_event_builder(event, sender_app, pid=None, record=None,
+                              **kwargs):
+    """Build a record-view event."""
+    event.update(dict(
         # When:
-        timestamp=datetime.utcnow().
-        replace(microsecond=0).isoformat(),
+        timestamp=datetime.datetime.utcnow().isoformat(),
         # What:
         record_id=str(record.id),
         pid_type=pid.pid_type,
         pid_value=str(pid.pid_value),
-        labels=record.get('communities', []),
         # Who:
         **get_user()
-    )])
+    ))

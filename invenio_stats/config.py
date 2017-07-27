@@ -57,10 +57,32 @@ CELERY_BEAT_SCHEDULE = {
     },
 }
 
-STATS_EVENTS = [
-    'file-download',
-    'record-view'
-]
+STATS_SIGNAL_RECEIVERS = {
+    'file-download': {
+        'signal': 'invenio_files_rest.signals.file_downloaded',
+        'event_builders': [
+            'invenio_stats.contrib.event_builders.file_download_event_builder'
+        ]
+    },
+    'record-view': {
+        'signal': 'invenio_records_ui.signals.record_viewed',
+        'event_builders': [
+            'invenio_stats.contrib.event_builders.record_view_event_builder'
+        ]
+    },
+}
+"""Receiver function which will be connected on a signal and emit events.
+
+The key is the name of the emitted event.
+
+signal:
+    Signal to which the receiver will be connected to.
+
+event_builders:
+    list of functions which will create the event. Each function will receive
+    the event created by the previous function and can update it.
+"""
+
 
 STATS_AGGREGATIONS = [
     'file-download-agg',
