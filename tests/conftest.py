@@ -413,19 +413,12 @@ def generate_events(app, file_number=5, event_number=100,
 
 
 @pytest.yield_fixture()
-def indexed_events(app, mock_user_ctx, request):
+def indexed_events(app, es, mock_user_ctx, request):
     """Parametrized pre indexed sample events."""
     for t in current_search.put_templates(ignore=[400]):
         pass
-    try:
-        generate_events(app=app,
-                        file_number=request.param['file_number'],
-                        event_number=request.param['event_number'],
-                        start_date=request.param['start_date'],
-                        end_date=request.param['end_date'])
-        yield
-    finally:
-        current_search_client.indices.delete(
-            index='events-stats-file-download')
-        current_search_client.indices.delete(
-            index='stats-file-download')
+    generate_events(app=app,
+                    file_number=request.param['file_number'],
+                    event_number=request.param['event_number'],
+                    start_date=request.param['start_date'],
+                    end_date=request.param['end_date'])
