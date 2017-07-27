@@ -121,6 +121,7 @@ def test_overwriting_aggregations(app, es, event_queues, sequential_ids):
     for hit in res['hits']['hits']:
         if hit['_source']['timestamp'] == '2017-06-02T00:00:00':
             assert hit['_version'] == 2
+            assert hit['_source']['count'] == 2
         else:
             assert hit['_version'] == 1
 

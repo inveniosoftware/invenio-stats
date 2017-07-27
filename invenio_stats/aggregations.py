@@ -65,7 +65,8 @@ class StatAggregator(object):
     def __init__(self, client, event,
                  aggregation_field=None,
                  aggregation_interval='month',
-                 index_interval='month'):
+                 index_interval='month', batch_size=7,
+                 subaggregations=[]):
         """Construct aggregator instance."""
         self.client = client
         self.event = event
@@ -84,6 +85,8 @@ class StatAggregator(object):
                              ' shorter than index interval'))
         self.index_name_suffix = self.supported_intervals[index_interval]
         self.doc_id_suffix = self.supported_intervals[aggregation_interval]
+        self.batch_size = batch_size
+        self.subaggregations = subaggregations
 
     def get_bookmark(self):
         """Get last aggregation date."""
@@ -92,8 +95,10 @@ class StatAggregator(object):
             if not Index('events-stats-{}'.format(self.event),
                          using=self.client).exists():
                 return datetime.date.today()
-            oldest_index = self.get_first_index_with_alias('events-stats-{}'.
-                                                           format(self.event))
+            indices = self.get_indices_with_alias('events-stats-{}'.
+                                                  format(self.event))
+            indices.sort()
+            oldest_index = indices[0]
             return datetime.datetime.strptime(oldest_index,
                                               'events-stats-{}-%Y-%m-%d'.
                                               format(self.event))
@@ -104,8 +109,7 @@ class StatAggregator(object):
         bookmark = query_bookmark.execute()[0]
         # change it to doc_id_suffix
         bookmark = datetime.datetime.strptime(bookmark.date,
-                                              self.supported_intervals[
-                                                  self.aggregation_interval])
+                                              self.doc_id_suffix)
         return bookmark
 
     def set_bookmark(self):
@@ -115,8 +119,7 @@ class StatAggregator(object):
         def _success_date():
             bookmark = {
                 'date': self.new_bookmark or datetime.datetime.utcnow().
-                strftime(self.supported_intervals[
-                    self.aggregation_interval])
+                strftime(self.doc_id_suffix)
             }
 
             yield dict(_index=self.last_index_written,
@@ -127,21 +130,24 @@ class StatAggregator(object):
                  _success_date(),
                  stats_only=True)
 
-    def agg_iter(self):
+    def agg_iter(self, lower_limit=None,
+                 upper_limit=datetime.datetime.utcnow().replace(microsecond=0).
+                 isoformat()):
         """Aggregate and return dictionary to be indexed in ES."""
+        if lower_limit is None:
+            lower_limit = self.get_bookmark().isoformat()
         aggregation_data = {}
         self.agg_query = Search(using=self.client,
                                 index='events-stats-{}'.format(self.event)).\
-            filter('range', timestamp={'gte': self.get_bookmark().isoformat(),
-                                       'lte': datetime.datetime.utcnow().
-                                       replace(microsecond=0).isoformat()})
+            filter('range', timestamp={'gte': lower_limit,
+                                       'lte': upper_limit})
         self.agg_query.aggs.bucket('per_{}'.format(self.aggregation_interval),
                                    'date_histogram',
                                    field='timestamp',
                                    interval=self.aggregation_interval)
         self.agg_query.aggs['per_{}'.format(self.aggregation_interval)].\
             bucket('per_{}'.format(self.aggregation_field),
-                   'terms', field='file_id', size=0)
+                   'terms', field=self.aggregation_field, size=0)
         results = self.agg_query.execute()
         index_name = None
         for interval in results.aggregations[
@@ -170,16 +176,6 @@ class StatAggregator(object):
                            _source=aggregation_data)
         self.last_index_written = index_name
 
-    def get_first_index_with_alias(self, alias_name):
-        """Get all indices under an alias."""
-        result = []
-        all_indices = self.client.indices.get_aliases()
-        for index in all_indices:
-            if alias_name in all_indices[index]['aliases']:
-                result.append(index)
-        result.sort()
-        return result[0]
-
     def get_indices_with_alias(self, alias_name):
         """Return list of indices with given alias."""
         result = []
@@ -191,10 +187,22 @@ class StatAggregator(object):
 
     def run(self):
         """Calculate statistics aggregations."""
-        self.new_bookmark = (datetime.datetime.utcnow() -
-                             datetime.timedelta(hours=1)).\
-            strftime(self.doc_id_suffix)
-        bulk(self.client,
-             self.agg_iter(),
-             stats_only=True)
-        self.set_bookmark()
+        lower_limit = self.get_bookmark()
+        upper_limit = min(datetime.datetime.utcnow().
+                          replace(microsecond=0),
+                          lower_limit +
+                          datetime.timedelta(self.batch_size))
+        while upper_limit <= datetime.datetime.utcnow():
+            self.new_bookmark = upper_limit.strftime(self.doc_id_suffix)
+            bulk(self.client,
+                 self.agg_iter(lower_limit, upper_limit),
+                 stats_only=True)
+            current_search_client.indices.flush(index='*')
+            self.set_bookmark()
+            lower_limit = lower_limit + datetime.timedelta(self.batch_size)
+            upper_limit = min(datetime.datetime.utcnow().
+                              replace(microsecond=0),
+                              lower_limit +
+                              datetime.timedelta(self.batch_size))
+            if lower_limit > upper_limit:
+                break
