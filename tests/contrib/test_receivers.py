@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 #
 # This file is part of Invenio.
-# Copyright (C) 2016 CERN.
+# Copyright (C) 2017 CERN.
 #
 # Invenio is free software; you can redistribute it
 # and/or modify it under the terms of the GNU General Public License as
@@ -22,23 +22,23 @@
 # waive the privileges and immunities granted to it by virtue of its status
 # as an Intergovernmental Organization or submit itself to any jurisdiction.
 
-"""Test celery tasks."""
+"""Signal receivers tests."""
 
-from __future__ import absolute_import, print_function
+from invenio_files_rest.signals import file_downloaded
 
-import datetime
-import uuid
-
-from elasticsearch_dsl import Search
-from invenio_search import current_search, current_search_client
-
-from invenio_stats import current_stats
 from invenio_stats.tasks import aggregate_events, process_events
 
-
-def test_process_events(app, es, event_queues):
-    """Test process event."""
-    current_stats.publish('file-download', [dict(data='val')])
-    process_events.delay(['file-download'])
-    # FIXME: no need to publish events. We should just mock "consume" and test
-    # that the events are properly received and processed.
+# def test_file_download_receiver(app, mock_user_ctx, sequential_ids, objects):
+#     """Test the file-download event emitter and signal receiver."""
+#     for j in range(len(objects)):
+#         file_obj = objects[0]
+#         file_obj.bucket_id = sequential_ids[0]
+#         with app.test_request_context(
+#             headers={'USER_AGENT':
+#                      'Mozilla/5.0 (Windows NT 6.1; WOW64) '
+#                      'AppleWebKit/537.36 (KHTML, like Gecko)'
+#                      'Chrome/45.0.2454.101 Safari/537.36'}):
+#             file_downloaded.send(app, obj=file_obj)
+#             process_events(['file-download'])
+#             # FIXME: no need to process the events. We should instead thest
+#             # that the events are sent to the queue, i.e. consume them.

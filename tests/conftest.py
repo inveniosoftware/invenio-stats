@@ -103,10 +103,7 @@ def event_entrypoints():
 
     with patch('invenio_stats.ext.iter_entry_points',
                entrypoints):
-        try:
-            yield result
-        finally:
-            current_queues.delete()
+        yield result
 
 
 def date_range(start_date, end_date):
@@ -120,9 +117,14 @@ def date_range(start_date, end_date):
 
 
 @pytest.yield_fixture()
-def event_queues(app, event_queues_entrypoints):
-    """Declare test queues."""
-    current_queues.declare()
+def event_queues(app, event_entrypoints):
+    """Delete and declare test queues."""
+    current_queues.delete()
+    try:
+        current_queues.declare()
+        yield
+    finally:
+        current_queues.delete()
 
 
 # @pytest.yield_fixture(scope='session')
@@ -174,8 +176,10 @@ def app():
     app_.config.update(dict(
         # BROKER_URL=os.environ.get('BROKER_URL', 'memory://'),
         CELERY_ALWAYS_EAGER=True,
+        CELERY_TASK_ALWAYS_EAGER=True,
         CELERY_CACHE_BACKEND='memory',
         CELERY_EAGER_PROPAGATES_EXCEPTIONS=True,
+        CELERY_TASK_EAGER_PROPAGATES=True,
         CELERY_RESULT_BACKEND='cache',
         SQLALCHEMY_DATABASE_URI=os.environ.get(
             'SQLALCHEMY_DATABASE_URI', 'sqlite://'),
@@ -217,15 +221,15 @@ def db(app):
 
 @pytest.yield_fixture()
 def es(app):
-    """Provide elasticsearch access."""
+    """Provide elasticsearch access, create and clean indices."""
+    current_search_client.indices.delete(index='*')
+    current_search_client.indices.delete_template('*')
+    list(current_search.create())
     try:
-        list(current_search.create())
-    except RequestError:
-        list(current_search.delete(ignore=[400, 404]))
-        list(current_search.create())
-    current_search_client.indices.refresh()
-    yield current_search_client
-    list(current_search.delete(ignore=[404]))
+        yield current_search_client
+    finally:
+        current_search_client.indices.delete(index='*')
+        current_search_client.indices.delete_template('*')
 
 
 # @pytest.yield_fixture()
