@@ -96,7 +96,7 @@ def publish_filedownload(nb_events, user_id, filename,
 def events():
     # Create events
     nb_days = 20
-    day = datetime(2016, 12, 1, 10, 11, 12, 123)
+    day = datetime(2016, 12, 1, 10, 11, 12)
     max_events = 10
     random.seed(42)
     for _ in range(nb_days):
