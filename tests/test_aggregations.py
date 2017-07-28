@@ -33,15 +33,16 @@ from invenio_queues.proxies import current_queues
 from invenio_search import current_search, current_search_client
 from mock import patch
 
-from invenio_stats.aggregations import StatAggregator
+from invenio_stats.aggregations import StatAggregator, filter_robots
 from invenio_stats.proxies import current_stats
 from invenio_stats.tasks import aggregate_events, process_events
 
 
 def test_wrong_intervals(app):
-    """Test wrong interval error."""
+    """Test aggregation with aggregation_interval > index_interval."""
     with pytest.raises(ValueError):
-        StatAggregator(current_search_client, 'test', 'test', 'month', 'day')
+        StatAggregator(current_search_client, 'test',
+                       aggregation_interval='month', index_interval='day')
 
 
 def _create_file_download_event(timestamp,
@@ -142,3 +143,34 @@ def test_date_range(app, es, event_queues, indexed_events):
     for result in results:
         if 'file_id' in result:
             assert result.count == 50
+
+
+@pytest.mark.parametrize('indexed_events',
+                         [dict(file_number=1,
+                               event_number=2,
+                               robot_event_number=3,
+                               start_date=datetime.date(2015, 1, 28),
+                               end_date=datetime.date(2015, 1, 30))],
+                         indirect=['indexed_events'])
+@pytest.mark.parametrize("with_robots", [(True), (False)])
+def test_filter_robots(app, es, event_queues, indexed_events, with_robots):
+    """Test the filter_robots query modifier."""
+    query_modifiers = []
+    if not with_robots:
+        query_modifiers = [filter_robots]
+    StatAggregator(client=current_search_client,
+                   event='file-download',
+                   aggregation_field='file_id',
+                   aggregation_interval='day',
+                   query_modifiers=query_modifiers).run()
+    current_search_client.indices.flush(index='*')
+    query = Search(
+        using=current_search_client,
+        index='stats-file-download',
+        doc_type='file-download-day-aggregation'
+    )[0:30].sort('file_id')
+    results = query.execute()
+    assert len(results) == 3
+    for result in results:
+        if 'file_id' in result:
+            assert result.count == (5 if with_robots else 2)

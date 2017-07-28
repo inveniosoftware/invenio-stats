@@ -365,7 +365,7 @@ def mock_event_queue(app, mock_datetime, request_headers, objects,
     return mock_queue
 
 
-def generate_events(app, file_number=5, event_number=100,
+def generate_events(app, file_number=5, event_number=100, robot_event_number=0,
                     start_date=datetime.date(2017, 1, 1),
                     end_date=datetime.date(2017, 1, 7)):
     """Queued events for processing tests."""
@@ -381,15 +381,21 @@ def generate_events(app, file_number=5, event_number=100,
                     entry_date, datetime.time())
                 file_id = '{0}-{1}'.format(entry_date.strftime('%Y-%m-%d'),
                                            file_idx)
-                for event_idx in range(event_number):
-                    msg = dict(
+
+                def build_event(is_robot=False):
+                    return dict(
                         timestamp=entry_date.isoformat(),
                         bucket_id=file_id,
                         file_id=file_id,
                         filename='test.pdf',
                         visitor_id=100,
+                        is_robot=is_robot
                     )
-                    yield msg
+
+                for event_idx in range(event_number):
+                    yield build_event()
+                for event_idx in range(robot_event_number):
+                    yield build_event(True)
 
     mock_queue = Mock()
     mock_queue.consume.return_value = generator_list()
@@ -398,7 +404,8 @@ def generate_events(app, file_number=5, event_number=100,
     mock_processor.run = EventsIndexer(mock_queue,
                                        'events',
                                        '%Y-%m-%d',
-                                       current_search_client).run
+                                       current_search_client,
+                                       preprocessors=[]).run
     mock_processor.actionsiter = EventsIndexer.actionsiter
     mock_cfg = MagicMock()
     mock_cfg.processor = mock_processor
@@ -417,8 +424,11 @@ def indexed_events(app, es, mock_user_ctx, request):
     """Parametrized pre indexed sample events."""
     for t in current_search.put_templates(ignore=[400]):
         pass
-    generate_events(app=app,
-                    file_number=request.param['file_number'],
-                    event_number=request.param['event_number'],
-                    start_date=request.param['start_date'],
-                    end_date=request.param['end_date'])
+    try:
+        generate_events(app=app, **request.param)
+        yield
+    finally:
+        current_search_client.indices.delete(
+            index='events-stats-file-download')
+        current_search_client.indices.delete(
+            index='stats-file-download')
