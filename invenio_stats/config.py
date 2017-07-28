@@ -57,7 +57,7 @@ CELERY_BEAT_SCHEDULE = {
     },
 }
 
-STATS_SIGNAL_RECEIVERS = {
+STATS_EVENTS = {
     'file-download': {
         'signal': 'invenio_files_rest.signals.file_downloaded',
         'event_builders': [
@@ -71,7 +71,11 @@ STATS_SIGNAL_RECEIVERS = {
         ]
     },
 }
-"""Receiver function which will be connected on a signal and emit events.
+"""Enabled Events. A queue will be created for each key.
+
+If the dict of an event contains the 'signal' key, a signal receiver will
+be registered. Receiver function which will be connected on a signal and
+emit events.
 
 The key is the name of the emitted event.
 

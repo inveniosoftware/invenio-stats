@@ -46,7 +46,7 @@ def test_register_receivers(base_app, event_entrypoints):
             return event
 
         base_app.config.update(dict(
-            STATS_SIGNAL_RECEIVERS=dict(
+            STATS_EVENTS=dict(
                 event_0=dict(
                     signal=my_signal,
                     event_builders=[event_builder1, event_builder2]

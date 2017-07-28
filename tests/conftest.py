@@ -134,7 +134,10 @@ def event_queues(app, event_entrypoints):
 @pytest.yield_fixture()
 def base_app():
     """Flask application fixture without InvenioStats."""
+    from invenio_stats.config import STATS_EVENTS
     app_ = Flask('testapp')
+    stats_events = {'file-download': deepcopy(STATS_EVENTS['file-download'])}
+    stats_events.update({'event_{}'.format(idx): {} for idx in range(5)})
     app_.config.update(dict(
         CELERY_ALWAYS_EAGER=True,
         CELERY_TASK_ALWAYS_EAGER=True,
@@ -152,8 +155,7 @@ def base_app():
             delivery_mode='transient',  # in-memory queue
             durable=True,
         ),
-        STATS_EVENTS=['file-download'] +
-        ['event_{}'.format(idx) for idx in range(5)],
+        STATS_EVENTS=stats_events,
         STATS_AGGREGATIONS=['file-download-agg']
     ))
     FlaskCeleryExt(app_)

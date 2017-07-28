@@ -234,7 +234,10 @@ class InvenioStats(object):
         self._state = app.extensions['invenio-stats'] = state
 
         if app.config['STATS_REGISTER_RECEIVERS']:
-            register_receivers(app, app.config['STATS_SIGNAL_RECEIVERS'])
+            signal_receivers = {key: value for key, value in
+                                app.config.get('STATS_EVENTS', {}).items()
+                                if 'signal' in value}
+            register_receivers(app, signal_receivers)
 
         return state
 
