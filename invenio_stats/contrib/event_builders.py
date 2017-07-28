@@ -44,6 +44,7 @@ def file_download_event_builder(event, sender_app, obj=None, **kwargs):
         # Who:
         **get_user()
     ))
+    return event
 
 
 def record_view_event_builder(event, sender_app, pid=None, record=None,
@@ -59,3 +60,4 @@ def record_view_event_builder(event, sender_app, pid=None, record=None,
         # Who:
         **get_user()
     ))
+    return event
