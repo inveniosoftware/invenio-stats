@@ -34,6 +34,11 @@ from elasticsearch_dsl import Index, Search
 from invenio_search import current_search_client
 
 
+def filter_robots(query):
+    """Modify an elasticsearch query so that robot events are filtered out."""
+    return query.filter('term', is_robot=False)
+
+
 class StatAggregator(object):
     """Generic aggregation class.
 
@@ -64,6 +69,7 @@ class StatAggregator(object):
 
     def __init__(self, client, event,
                  aggregation_field=None,
+                 query_modifiers=None,
                  aggregation_interval='month',
                  index_interval='month', batch_size=7,
                  subaggregations=[]):
@@ -74,6 +80,8 @@ class StatAggregator(object):
         self.aggregation_field = aggregation_field
         self.aggregation_interval = aggregation_interval
         self.index_interval = index_interval
+        self.query_modifiers = (query_modifiers if query_modifiers is not None
+                                else [filter_robots])
         self.supported_intervals = OrderedDict([('hour', '%Y-%m-%dT%H'),
                                                 ('day', '%Y-%m-%d'),
                                                 ('month', '%Y-%m'),
@@ -141,6 +149,10 @@ class StatAggregator(object):
                                 index='events-stats-{}'.format(self.event)).\
             filter('range', timestamp={'gte': lower_limit,
                                        'lte': upper_limit})
+        # apply query modifiers
+        for modifier in self.query_modifiers:
+            self.agg_query = modifier(self.agg_query)
+
         self.agg_query.aggs.bucket('per_{}'.format(self.aggregation_interval),
                                    'date_histogram',
                                    field='timestamp',
