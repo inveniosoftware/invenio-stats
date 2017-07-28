@@ -58,7 +58,7 @@ from sqlalchemy_utils.functions import create_database, database_exists
 
 from invenio_stats import InvenioStats
 from invenio_stats.contrib.event_builders import file_download_event_builder
-from invenio_stats.indexer import EventsIndexer
+from invenio_stats.processors import EventsIndexer
 from invenio_stats.tasks import process_events
 
 

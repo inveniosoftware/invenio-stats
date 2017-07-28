@@ -28,7 +28,7 @@ from invenio_queues.proxies import current_queues
 from mock import patch
 
 from invenio_stats.contrib.event_builders import file_download_event_builder
-from invenio_stats.indexer import EventsIndexer, anonymize_user, flag_robots
+from invenio_stats.processors import EventsIndexer, anonymize_user, flag_robots
 from invenio_stats.proxies import current_stats
 from invenio_stats.tasks import process_events
 

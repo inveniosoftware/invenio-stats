@@ -27,7 +27,7 @@ from invenio_search import current_search_client
 
 from invenio_stats.aggregations import StatAggregator
 from invenio_stats.contrib.queries import FileDownloadsQuery
-from invenio_stats.indexer import EventsIndexer
+from invenio_stats.processors import EventsIndexer
 
 
 def register_events():

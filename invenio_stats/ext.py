@@ -35,7 +35,6 @@ from werkzeug.utils import cached_property
 from . import config
 from .errors import DuplicateAggregationError, DuplicateEventError, \
     UnknownAggregationError, UnknownEventError
-from .indexer import EventsIndexer
 from .receivers import register_receivers
 from .utils import load_or_import_from_config
 
@@ -186,14 +185,6 @@ class _InvenioStatsState(object):
         """Load default permission factory for Buckets collections."""
         return load_or_import_from_config(
             'STATS_PERMISSION_FACTORY', app=self.app
-        )
-
-    def indexer(self, event_type):
-        # TODO: Allow customization of indexer and suffix
-        return EventsIndexer(
-            current_queues.queues['stats-{}'.format(event_type)],
-            prefix=self.app.config['STATS_INDICES_PREFIX'],
-            suffix=self.suffix
         )
 
     def publish(self, event_type, events):
