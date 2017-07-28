@@ -32,6 +32,7 @@ import shutil
 import tempfile
 import uuid
 from contextlib import contextmanager
+from copy import deepcopy
 
 import pytest
 from elasticsearch.exceptions import RequestError
@@ -56,6 +57,7 @@ from six import BytesIO
 from sqlalchemy_utils.functions import create_database, database_exists
 
 from invenio_stats import InvenioStats
+from invenio_stats.contrib.event_builders import file_download_event_builder
 from invenio_stats.indexer import EventsIndexer
 from invenio_stats.tasks import process_events
 
@@ -197,24 +199,6 @@ def es(app):
         current_search_client.indices.delete_template('*')
 
 
-# @pytest.yield_fixture()
-# def location(db):
-#     """File system location."""
-#     tmppath = tempfile.mkdtemp()
-
-#     loc = Location(
-#         name='testloc',
-#         uri=tmppath,
-#         default=True
-#     )
-#     db.session.add(loc)
-#     db.session.commit()
-
-#     yield loc
-
-#     shutil.rmtree(tmppath)
-
-
 @pytest.fixture()
 def celery(app):
     """Get queueobject for testing bulk operations."""
@@ -308,14 +292,75 @@ def sequential_ids():
     yield ids
 
 
+@pytest.fixture()
+def mock_users():
+    """Create mock users."""
+    mock_auth_user = Mock()
+    mock_auth_user.get_id = lambda: '123'
+    mock_auth_user.is_authenticated = True
+
+    mock_anon_user = Mock()
+    mock_anon_user.is_authenticated = False
+    return {
+        'anonymous': mock_anon_user,
+        'authenticated': mock_auth_user
+    }
+
+
 @pytest.yield_fixture()
-def mock_user_ctx():
-    """Create mock user context."""
-    mock_user = Mock()
-    mock_user.get_id = lambda: '123'
-    mock_user.is_authenticated = True
-    with patch('invenio_stats.utils.current_user', mock_user):
+def mock_user_ctx(mock_users):
+    """Run in a mock authenticated user context."""
+    with patch('invenio_stats.utils.current_user',
+               mock_users['authenticated']):
         yield
+
+
+@pytest.fixture()
+def request_headers():
+    """Return request headers for normal user and bot."""
+    return dict(
+        user={'USER_AGENT':
+              'Mozilla/5.0 (Windows NT 6.1; WOW64) '
+              'AppleWebKit/537.36 (KHTML, like Gecko)'
+              'Chrome/45.0.2454.101 Safari/537.36'},
+        robot={'USER_AGENT': 'googlebot'}
+    )
+
+
+@pytest.yield_fixture()
+def mock_datetime():
+    """Mock datetime.datetime.
+
+    Use set_utcnow to set the current utcnow time.
+    """
+    class NewDate(datetime.datetime):
+        _utcnow = (2017, 1, 1)
+
+        @classmethod
+        def set_utcnow(cls, value):
+            cls._utcnow = value
+
+        @classmethod
+        def utcnow(cls):
+            return cls(*cls._utcnow)
+
+    yield NewDate
+
+
+@pytest.yield_fixture()
+def mock_event_queue(app, mock_datetime, request_headers, objects,
+                     event_entrypoints, mock_user_ctx):
+    """Create a mock queue containing a few file download events."""
+    mock_queue = Mock()
+    mock_queue.routing_key = 'stats-file-download'
+    with patch('datetime.datetime', mock_datetime), \
+            app.test_request_context(headers=request_headers['user']):
+        events = [file_download_event_builder({}, app, objects[0]) for idx
+                  in range(100)]
+        mock_queue.consume.return_value = iter(events)
+    # Save the queued events for later tests
+    mock_queue.queued_events = deepcopy(events)
+    return mock_queue
 
 
 def generate_events(app, file_number=5, event_number=100,
@@ -353,7 +398,6 @@ def generate_events(app, file_number=5, event_number=100,
                                        '%Y-%m-%d',
                                        current_search_client).run
     mock_processor.actionsiter = EventsIndexer.actionsiter
-    mock_processor.process_event = EventsIndexer.process_event
     mock_cfg = MagicMock()
     mock_cfg.processor = mock_processor
     mock_events_dict = {'file-download': mock_cfg}

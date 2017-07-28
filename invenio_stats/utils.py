@@ -26,8 +26,6 @@
 
 from __future__ import absolute_import, print_function
 
-import hashlib
-
 import six
 from flask import request
 from flask_login import current_user
@@ -42,33 +40,6 @@ def get_geoip(ip):
     if ip_data is not None:
         return dict(country=ip_data.country)
     return {}
-
-
-def anonimize_user(doc):
-    """Process user information."""
-    ip = doc.pop('ip_address', None)
-    if ip:
-        doc.update(get_geoip(ip))
-
-    uid = doc.pop('user_id', '')
-    ua = doc.pop('user_agent', '')
-
-    m = hashlib.sha224()
-    # TODO: include random salt here, that changes once a day.
-    # m.update(random_salt)
-    if uid:
-        m.update(uid.encode('utf-8'))
-    elif ua:
-        m.update(ua)
-    else:
-        # TODO: add random data?
-        pass
-
-    doc.update(dict(
-        visitor_id=m.hexdigest()
-    ))
-
-    return doc
 
 
 def get_user():
@@ -86,7 +57,6 @@ def get_user():
 
        The information is then discarded.
     """
-    # TODO: Take proxy into account
     return dict(
         ip_address=request.remote_addr,
         user_agent=request.user_agent.string,
