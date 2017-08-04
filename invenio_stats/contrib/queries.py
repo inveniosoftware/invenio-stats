@@ -27,6 +27,7 @@
 from datetime import datetime
 
 import dateutil.parser
+import six
 from elasticsearch_dsl import Search
 
 from ..queries import ESQuery
@@ -55,7 +56,7 @@ def extract_date(date):
 
     :returns: the extracted date.
     """
-    if isinstance(date, str):
+    if isinstance(date, six.string_types):
         try:
             date = dateutil.parser.parse(date)
         except ValueError:
@@ -106,6 +107,4 @@ class FileDownloadsQuery(ESQuery):
             del agg['doc_count']
         return dict(
             aggregations=query_result['aggregations'],
-            start_date=start_date,
-            timerange=time_range
         )
