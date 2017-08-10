@@ -57,8 +57,9 @@ from six import BytesIO
 from sqlalchemy_utils.functions import create_database, database_exists
 
 from invenio_stats import InvenioStats
-from invenio_stats.contrib.event_builders import file_download_event_builder
-from invenio_stats.processors import EventsIndexer
+from invenio_stats.contrib.event_builders import build_file_unique_id, \
+    file_download_event_builder
+from invenio_stats.processors import EventsIndexer, anonymize_user, flag_robots
 from invenio_stats.tasks import process_events
 
 
@@ -89,7 +90,7 @@ def event_entrypoints():
         from pkg_resources import EntryPoint
         entrypoint = EntryPoint(event_type_name, event_type_name)
         conf = dict(event_type=event_type_name, templates='/',
-                    processor=EventsIndexer)
+                    processor_class=EventsIndexer)
         entrypoint.load = lambda conf=conf: (lambda: [conf])
         data.append(entrypoint)
         result.append(conf)
@@ -99,7 +100,7 @@ def event_entrypoints():
     from pkg_resources import EntryPoint
     entrypoint = EntryPoint('invenio_files_rest', 'test_dir')
     conf = dict(event_type=event_type_name, templates='contrib/file-download',
-                processor=EventsIndexer)
+                processor_class=EventsIndexer)
     entrypoint.load = lambda conf=conf: (lambda: [conf])
     data.append(entrypoint)
 
@@ -387,7 +388,7 @@ def generate_events(app, file_number=5, event_number=100, robot_event_number=0,
                         timestamp=entry_date.isoformat(),
                         bucket_id=file_id,
                         file_id=file_id,
-                        filename='test.pdf',
+                        file_key='test.pdf',
                         visitor_id=100,
                         is_robot=is_robot
                     )
@@ -400,23 +401,14 @@ def generate_events(app, file_number=5, event_number=100, robot_event_number=0,
     mock_queue = Mock()
     mock_queue.consume.return_value = generator_list()
     mock_queue.routing_key = 'stats-file-download'
-    mock_processor = MagicMock()
-    mock_processor.run = EventsIndexer(mock_queue,
-                                       'events',
-                                       '%Y-%m-%d',
-                                       current_search_client,
-                                       preprocessors=[]).run
-    mock_processor.actionsiter = EventsIndexer.actionsiter
-    mock_cfg = MagicMock()
-    mock_cfg.processor = mock_processor
-    mock_events_dict = {'file-download': mock_cfg}
-    mock_events = MagicMock()
-    mock_events.__getitem__.side_effect = \
-        mock_events_dict.__getitem__
-    with patch('invenio_stats.ext._InvenioStatsState.events',
-               mock_events):
-        process_events(['file-download'])
-        current_search_client.indices.flush(index='*')
+
+    EventsIndexer(
+        mock_queue,
+        preprocessors=[
+            build_file_unique_id
+        ]
+    ).run()
+    current_search_client.indices.flush(index='*')
 
 
 @pytest.yield_fixture()
@@ -424,11 +416,5 @@ def indexed_events(app, es, mock_user_ctx, request):
     """Parametrized pre indexed sample events."""
     for t in current_search.put_templates(ignore=[400]):
         pass
-    try:
-        generate_events(app=app, **request.param)
-        yield
-    finally:
-        current_search_client.indices.delete(
-            index='events-stats-file-download')
-        current_search_client.indices.delete(
-            index='stats-file-download')
+    generate_events(app=app, **request.param)
+    yield

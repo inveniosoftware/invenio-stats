@@ -36,9 +36,6 @@ blueprint = Blueprint(
     url_prefix='/stats',
 )
 
-# def serializer(data, *args, **kwargs):
-#     return jsonify(data)
-
 
 class StatsQueryResource(ContentNegotiatedMethodView):
     """REST API resource providing access to statistics."""
@@ -60,34 +57,38 @@ class StatsQueryResource(ContentNegotiatedMethodView):
 
     def get(self, **kwargs):
         """Get a community's metadata."""
-        config = request.get_json(force=False)
-        if config is None:
-            config = {}
-        if config is None or not isinstance(config, dict):
-            raise InvalidRequestInputError(
-                'Invalid Input. It should be of the form '
-                '\{ STATISTIC_NAME: \{ PARAMETERS \}\}'
-            )
+        data = request.get_json(force=False)
+        if data is None:
+            data = {}
         result = {}
-        for query_name, params in config.items():
+        for query_name, config in data.items():
+            if config is None or not isinstance(config, dict) \
+                    or (config.keys() != {'stat', 'params'} and
+                        config.keys() != {'stat'}):
+                raise InvalidRequestInputError(
+                    'Invalid Input. It should be of the form '
+                    '{ STATISTIC_NAME: { "stat": STAT_TYPE, '
+                    '"params": STAT_PARAMS \}}'
+                )
+            stat = config['stat']
+            params = config.get('params', {})
             try:
-                query_cfg = current_stats.queries[query_name]
+                query_cfg = current_stats.queries[stat]
             except KeyError:
-                raise UnknownQueryError(query_name)
+                raise UnknownQueryError(stat)
 
             # Check that the user is allowed to ask for this statistic
-            permission = current_stats.permission_factory(query_name, params)
+            permission = current_stats.permission_factory(stat, params)
             if permission is not None and not permission.can():
                 message = ('You do not have a permission to query the '
                            'statistic "{}" with those '
-                           'parameters'.format(query_name))
+                           'parameters'.format(stat))
                 if current_user.is_authenticated:
                     abort(403, message)
                 abort(401, message)
             try:
-                result[query_name] = query_cfg.query_class(
-                    query_name=query_name, **query_cfg.query_config
-                ).run(**params)
+                query = query_cfg.query_class(**query_cfg.query_config)
+                result[query_name] = query.run(**params)
                 pass
             except ValueError as e:
                 raise InvalidRequestInputError(e.args[0])

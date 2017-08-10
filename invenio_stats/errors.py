@@ -66,6 +66,11 @@ class InvalidRequestInputError(RESTException):
 
     code = 400
 
+    def __init__(self, description, **kwargs):
+        """Initialize exception."""
+        super(RESTException, self).__init__(**kwargs)
+        self.description = description
+
 
 class UnknownQueryError(RESTException):
     """Error raised when the request input is invalid."""
@@ -77,5 +82,5 @@ class UnknownQueryError(RESTException):
         """
         super(RESTException, self).__init__()
         self.query_name = query_name
-        self.description = 'Unknown statistic "{}"'.format(query_name)
+        self.description = 'Unknown statistic \'{}\''.format(query_name)
     code = 400

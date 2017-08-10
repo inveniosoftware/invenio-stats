@@ -93,7 +93,8 @@ STATS_AGGREGATIONS = [
 ]
 
 STATS_QUERIES = [
-    'file-download'
+    'bucket-file-download-histogram',
+    'bucket-file-download-total',
 ]
 
 STATS_PERMISSION_FACTORY = default_permission_factory

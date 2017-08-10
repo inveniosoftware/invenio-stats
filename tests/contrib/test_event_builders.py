@@ -61,7 +61,7 @@ def test_file_download_event_builder(app, mock_user_ctx,
             # What:
             bucket_id=str(file_obj.bucket_id),
             file_id=str(file_obj.file_id),
-            filename=file_obj.key,
+            file_key=file_obj.key,
             # Who:
             **get_user()
         )

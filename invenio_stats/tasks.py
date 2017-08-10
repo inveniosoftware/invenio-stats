@@ -36,7 +36,9 @@ def process_events(event_types):
     """Index statistics events."""
     results = []
     for e in event_types:
-        results.append((e, current_stats.events[e].processor.run()))
+        processor = current_stats.events[e].processor_class(
+            **current_stats.events[e].processor_config)
+        results.append((e, processor.run()))
     return results
 
 
@@ -45,7 +47,7 @@ def aggregate_events(aggregations):
     """Aggregate indexed events."""
     results = []
     for a in aggregations:
-        aggregator = current_stats.aggregations[a].aggregator(
-            **current_stats.aggregations[a].call_params)
+        aggregator = current_stats.aggregations[a].aggregator_class(
+            **current_stats.aggregations[a].aggregator_config)
         results.append(aggregator.run())
     return results

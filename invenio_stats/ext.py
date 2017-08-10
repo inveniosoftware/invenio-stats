@@ -76,8 +76,8 @@ class _InvenioStatsState(object):
     @cached_property
     def events(self):
         EventConfig = namedtuple('EventConfig',
-                                 ['queue', 'config',
-                                  'templates', 'processor'])
+                                 ['queue', 'config', 'templates',
+                                  'processor_class', 'processor_config'])
         # import iter_entry_points here so that it can be mocked in tests
         result = {}
         config = self._events_config
@@ -94,7 +94,10 @@ class _InvenioStatsState(object):
                 queue=queue,
                 config=cfg,
                 templates=cfg['templates'],
-                processor=cfg['processor'](queue)
+                processor_class=cfg['processor_class'],
+                processor_config=dict(
+                    queue=queue, **cfg.get('processor_config', {})
+                )
             )
         return result
 
@@ -116,9 +119,10 @@ class _InvenioStatsState(object):
 
     @cached_property
     def aggregations(self):
-        AggregationConfig = namedtuple('AggregationConfig',
-                                       ['config', 'templates',
-                                        'aggregator', 'call_params'])
+        AggregationConfig = namedtuple(
+            'AggregationConfig',
+            ['config', 'templates', 'aggregator_class', 'aggregator_config']
+        )
         result = {}
         config = self._aggregations_config
 
@@ -131,15 +135,11 @@ class _InvenioStatsState(object):
             result[cfg['aggregation_name']] = AggregationConfig(
                 config=cfg,
                 templates=cfg['templates'],
-                aggregator=cfg['aggregator'],
-                call_params=cfg['call_params']
+                aggregator_class=cfg['aggregator_class'],
+                aggregator_config=cfg.get('aggregator_config', {})
             )
         return result
 
-    # def __init__(self, app, entry_point_group):
-    #     self.app = app
-    #     self.event_types = []
-    #     # self.queues = dict(app.extensions['invenio-queues'].queues
     @cached_property
     def _queries_config(self):
         """Load queries configuration."""
@@ -159,7 +159,7 @@ class _InvenioStatsState(object):
     def queries(self):
         QueryConfig = namedtuple(
             'QueryConfig',
-            ['query_class', 'permission_factory', 'query_config', 'config']
+            ['query_class', 'query_config', 'permission_factory', 'config']
         )
         result = {}
         config = self._queries_config
@@ -170,12 +170,13 @@ class _InvenioStatsState(object):
                     'Unknown query {0} '.format(query))
 
         for cfg in config.values():
-            queue = current_queues.queues[
-                'stats-{}'.format(cfg['query_name'])]
             result[cfg['query_name']] = QueryConfig(
                 config=cfg,
                 query_class=cfg['query_class'],
-                query_config=cfg.get('query_config', {}),
+                query_config=dict(
+                    query_name=cfg['query_name'],
+                    **cfg.get('query_config', {})
+                ),
                 permission_factory=cfg.get('permission_factory')
             )
         return result
@@ -197,17 +198,6 @@ class _InvenioStatsState(object):
         assert event_type in self.events
         return current_queues.queues['stats-{}'.format(event_type)].consume(
             payload=payload)
-
-    # def register_eventtype(self, event_type, package_name):
-    #     """Register an event type."""
-    #     if event_type in self.event_types:
-    #         raise RuntimeError('Event type already registered.')
-    #     self.event_types.append(event_type)
-
-    # def load_entry_point_group(self, entry_point_group):
-    #     """Load actions from an entry point group."""
-    #     for ep in iter_entry_points(group=entry_point_group):
-    #         self.register_eventtype(ep.name, ep.module_name)
 
 
 class InvenioStats(object):

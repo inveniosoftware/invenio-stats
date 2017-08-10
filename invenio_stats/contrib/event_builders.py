@@ -40,11 +40,17 @@ def file_download_event_builder(event, sender_app, obj=None, **kwargs):
         # What:
         bucket_id=str(obj.bucket_id),
         file_id=str(obj.file_id),
-        filename=obj.key,
+        file_key=obj.key,
         # Who:
         **get_user()
     ))
     return event
+
+
+def build_file_unique_id(doc):
+    """Build file unique identifier."""
+    doc['unique_id'] = '{0}_{1}'.format(doc['bucket_id'], doc['file_id'])
+    return doc
 
 
 def record_view_event_builder(event, sender_app, pid=None, record=None,

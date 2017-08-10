@@ -34,6 +34,7 @@ from invenio_search import current_search, current_search_client
 from mock import patch
 
 from invenio_stats.aggregations import StatAggregator, filter_robots
+from invenio_stats.contrib.event_builders import build_file_unique_id
 from invenio_stats.proxies import current_stats
 from invenio_stats.tasks import aggregate_events, process_events
 
@@ -48,16 +49,17 @@ def test_wrong_intervals(app):
 def _create_file_download_event(timestamp,
                                 bucket_id='B0000000000000000000000000000001',
                                 file_id='F0000000000000000000000000000001',
-                                filename='test.pdf', visitor_id=100):
+                                file_key='test.pdf', visitor_id=100):
     """Create a file_download event content."""
-    return dict(
+    doc = dict(
         timestamp=datetime.datetime(*timestamp).isoformat(),
         # What:
         bucket_id=str(bucket_id),
         file_id=str(file_id),
-        filename='test.pdf',
+        file_key=file_key,
         visitor_id=100
     )
+    return build_file_unique_id(doc)
 
 
 def test_overwriting_aggregations(app, es, event_queues, sequential_ids):
@@ -140,6 +142,7 @@ def test_date_range(app, es, event_queues, indexed_events):
     query = Search(using=current_search_client,
                    index='stats-file-download')[0:30].sort('file_id')
     results = query.execute()
+
     for result in results:
         if 'file_id' in result:
             assert result.count == 50

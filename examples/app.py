@@ -78,30 +78,34 @@ def fixtures():
     """Command for working with test data."""
 
 
-def publish_filedownload(nb_events, user_id, filename,
+def publish_filedownload(nb_events, user_id, file_key,
                          file_id, bucket_id, date):
     current_stats.publish('file-download', [dict(
         # When:
-        timestamp=date.isoformat(),
+        timestamp=(
+            date + timedelta(minutes=idx)
+        ).isoformat(),
         # What:
         bucket_id=str(bucket_id),
-        file_id=str(file_id),
-        filename=filename,
+        file_key=file_key,
+        file_id=file_id,
         # Who:
         user_id=str(user_id)
-    )] * nb_events)
+    ) for idx in range(nb_events)])
 
 
 @fixtures.command()
 def events():
     # Create events
     nb_days = 20
-    day = datetime(2016, 12, 1, 10, 11, 12)
+    day = datetime(2016, 12, 1, 0, 0, 0)
     max_events = 10
     random.seed(42)
     for _ in range(nb_days):
         publish_filedownload(random.randrange(1, max_events),
-                             1, 'test.txt', 10, 20, day)
+                             1, 'file1.txt', 1, 20, day)
+        publish_filedownload(random.randrange(1, max_events),
+                             1, 'file2.txt', 2, 20, day)
         day = day + timedelta(days=1)
 
     process_events(['file-download'])
