@@ -37,7 +37,7 @@ recursive-include docs *.py
 recursive-include docs *.rst
 recursive-include docs *.txt
 recursive-include docs Makefile
-recursive-include examples *.py
+recursive-include examples *.py *.sh
 recursive-include invenio_stats *.html
 recursive-include invenio_stats *.po *.pot *.mo
 recursive-include invenio_stats *.json

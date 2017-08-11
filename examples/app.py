@@ -48,6 +48,50 @@ from invenio_stats.proxies import current_stats
 from invenio_stats.tasks import aggregate_events, process_events
 from invenio_stats.views import blueprint
 
+"""Minimal Flask application example for development.
+
+SPHINX-START
+
+This example requires that you have an elasticsearch server running
+on localost:9200.
+WARNING: This will remove all data from your elasticsearch server.
+
+You should also have the `Redis` running on your machine. To know how to
+install and run `redis`, please refer to the
+`redis website <https://redis.io/>`_.
+
+First install Invenio-stats, setup the application and load fixture data by
+running:
+
+.. code-block:: console
+   $ pip install -e .[all]
+   $ cd examples
+   $ export FLASK_APP=app.py
+   $ ./app-setup.sh
+   $ ./app-fixtures.sh
+
+Next, start the development server:
+
+.. code-block:: console
+   $ flask run -p 5000
+
+You can now query the generated statistics.
+
+Request a histogram of the number of downloads for a file:
+.. code-block:: console
+    $ curl -XGET localhost:5000/stats -H "Content-Type: application/json" -d '{"mystat": {"stat": "bucket-file-download-histogram", "params": {"start_date":"2016-12-18", "end_date":"2016-12-19", "interval": "day", "bucket_id": 20, "file_key": "file1.txt"}}}'
+
+Request a histogram of the number of downloads for a file:
+.. code-block:: console
+    $ curl -v -XGET localhost:5000/stats -H "Content-Type: application/json" -d '{"mystat": {"stat": "bucket-file-download-total", "params": {"start_date":"2016-12-18", "end_date":"2016-12-19", "bucket_id": 20}}}'
+
+To remove the example application data run:
+.. code-block:: console
+    $ ./app-teardown.sh
+
+SPHINX-END
+"""
+
 # Create Flask application
 # TODO
 app = Flask(__name__)
