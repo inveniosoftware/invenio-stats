@@ -24,6 +24,7 @@
 
 """Events tests."""
 
+from conftest import _create_file_download_event
 from invenio_queues.proxies import current_queues
 from mock import patch
 
@@ -87,6 +88,7 @@ def test_events_indexer_preprocessors(app, mock_event_queue):
         event = test_preprocessor1(event)
         event = test_preprocessor2(event)
         expected_docs.append(dict(
+            _id='None-None-2017-01-01T00:00:00',
             _op_type='index',
             _index='events-stats-file-download-2017-01-01',
             _type='stats-file-download',
@@ -117,3 +119,21 @@ def test_flag_robots(app, mock_user_ctx, request_headers, objects):
 
     assert build_event(request_headers['user'])['is_robot'] is False
     assert build_event(request_headers['robot'])['is_robot'] is True
+
+
+def test_double_clicks(app, mock_event_queue, es):
+    """Test that events occurring within a time window are counted as 1."""
+    event_type = 'file-download'
+    events = [_create_file_download_event(date) for date in
+              [(2000, 6, 1, 10, 0, 10),
+               (2000, 6, 1, 10, 0, 11),
+               (2000, 6, 1, 10, 0, 19),
+               (2000, 6, 1, 10, 0, 22)]]
+    current_queues.declare()
+    current_stats.publish(event_type, events)
+    process_events(['file-download'])
+    es.indices.flush(index='*')
+    res = es.search(
+        index='events-stats-file-download-2000-06-01',
+    )
+    assert res['hits']['total'] == 2

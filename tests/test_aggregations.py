@@ -25,16 +25,15 @@
 """Aggregation tests."""
 
 import datetime
-import uuid
 
 import pytest
+from conftest import _create_file_download_event
 from elasticsearch_dsl import Search
 from invenio_queues.proxies import current_queues
 from invenio_search import current_search, current_search_client
 from mock import patch
 
 from invenio_stats.aggregations import StatAggregator, filter_robots
-from invenio_stats.contrib.event_builders import build_file_unique_id
 from invenio_stats.proxies import current_stats
 from invenio_stats.tasks import aggregate_events, process_events
 
@@ -44,22 +43,6 @@ def test_wrong_intervals(app):
     with pytest.raises(ValueError):
         StatAggregator(current_search_client, 'test',
                        aggregation_interval='month', index_interval='day')
-
-
-def _create_file_download_event(timestamp,
-                                bucket_id='B0000000000000000000000000000001',
-                                file_id='F0000000000000000000000000000001',
-                                file_key='test.pdf', visitor_id=100):
-    """Create a file_download event content."""
-    doc = dict(
-        timestamp=datetime.datetime(*timestamp).isoformat(),
-        # What:
-        bucket_id=str(bucket_id),
-        file_id=str(file_id),
-        file_key=file_key,
-        visitor_id=100
-    )
-    return build_file_unique_id(doc)
 
 
 def test_overwriting_aggregations(app, es, event_queues, sequential_ids):
@@ -131,7 +114,7 @@ def test_overwriting_aggregations(app, es, event_queues, sequential_ids):
 
 @pytest.mark.parametrize('indexed_events',
                          [dict(file_number=5,
-                               event_number=50,
+                               event_number=1,  # due to _id overwriting
                                start_date=datetime.date(2015, 1, 28),
                                end_date=datetime.date(2015, 2, 3))],
                          indirect=['indexed_events'])
@@ -143,14 +126,16 @@ def test_date_range(app, es, event_queues, indexed_events):
                    index='stats-file-download')[0:30].sort('file_id')
     results = query.execute()
 
+    total_count = 0
     for result in results:
         if 'file_id' in result:
-            assert result.count == 50
+            total_count += result.count
+    assert total_count == 30
 
 
 @pytest.mark.parametrize('indexed_events',
                          [dict(file_number=1,
-                               event_number=2,
+                               event_number=2,  # could timestamps clash?
                                robot_event_number=3,
                                start_date=datetime.date(2015, 1, 28),
                                end_date=datetime.date(2015, 1, 30))],
