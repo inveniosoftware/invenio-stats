@@ -42,10 +42,10 @@ services:
   - rabbitmq
 
 env:
-  - REQUIREMENTS=lowest BROKER_URL=redis://localhost:6379/0
-  - REQUIREMENTS=lowest BROKER_URL=amqp://localhost:5672//
-  - REQUIREMENTS=release BROKER_URL=redis://localhost:6379/0
-  - REQUIREMENTS=release BROKER_URL=amqp://localhost:5672// $DEPLOY = true
+  - REQUIREMENTS=lowest BROKER_URL=redis://localhost:6379/0 ES_URL="https://download.elastic.co/elasticsearch/release/org/elasticsearch/distribution/tar/elasticsearch/2.4.5/elasticsearch-2.4.5.tar.gz"
+  - REQUIREMENTS=lowest BROKER_URL=amqp://localhost:5672// ES_URL="https://download.elastic.co/elasticsearch/release/org/elasticsearch/distribution/tar/elasticsearch/2.4.5/elasticsearch-2.4.5.tar.gz"
+  - REQUIREMENTS=release BROKER_URL=redis://localhost:6379/0 ES_URL="https://download.elastic.co/elasticsearch/release/org/elasticsearch/distribution/tar/elasticsearch/2.4.5/elasticsearch-2.4.5.tar.gz"
+  - REQUIREMENTS=release BROKER_URL=amqp://localhost:5672// $DEPLOY=true ES_URL="https://download.elastic.co/elasticsearch/release/org/elasticsearch/distribution/tar/elasticsearch/2.4.5/elasticsearch-2.4.5.tar.gz"
   - REQUIREMENTS=devel ES_HOST=127.0.0.1 ES_URL="https://download.elastic.co/elasticsearch/release/org/elasticsearch/distribution/tar/elasticsearch/2.4.5/elasticsearch-2.4.5.tar.gz" BROKER_URL=redis://localhost:6379/0
   - REQUIREMENTS=devel ES_HOST=127.0.0.1 ES_URL="https://download.elastic.co/elasticsearch/release/org/elasticsearch/distribution/tar/elasticsearch/2.4.5/elasticsearch-2.4.5.tar.gz" BROKER_URL=amqp://localhost:5672//
 
@@ -98,4 +98,4 @@ deploy:
     tags: true
     python: "2.7"
     repo: inveniosoftware/invenio-stats
-    condition: $DEPLOY = true
+    condition: $DEPLOY=true
