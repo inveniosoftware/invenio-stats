@@ -2,7 +2,7 @@
  Invenio-Stats v1.0.0a1
 ======================
 
-Invenio-Stats v1.0.0a1 was released on TBD, 2017.
+Invenio-Stats v1.0.0a1 was released on August 21, 2017.
 
 About
 -----
