@@ -45,7 +45,7 @@ env:
   - REQUIREMENTS=lowest ES_URL="https://download.elastic.co/elasticsearch/release/org/elasticsearch/distribution/tar/elasticsearch/2.4.5/elasticsearch-2.4.5.tar.gz" BROKER_URL=redis://localhost:6379/0
   - REQUIREMENTS=lowest ES_URL="https://download.elastic.co/elasticsearch/release/org/elasticsearch/distribution/tar/elasticsearch/2.4.5/elasticsearch-2.4.5.tar.gz" BROKER_URL=amqp://localhost:5672//
   - REQUIREMENTS=release ES_URL="https://download.elastic.co/elasticsearch/release/org/elasticsearch/distribution/tar/elasticsearch/2.4.5/elasticsearch-2.4.5.tar.gz" BROKER_URL=redis://localhost:6379/0
-  - REQUIREMENTS=release ES_URL="https://download.elastic.co/elasticsearch/release/org/elasticsearch/distribution/tar/elasticsearch/2.4.5/elasticsearch-2.4.5.tar.gz" BROKER_URL=amqp://localhost:5672// $DEPLOY = true
+  - REQUIREMENTS=release ES_URL="https://download.elastic.co/elasticsearch/release/org/elasticsearch/distribution/tar/elasticsearch/2.4.5/elasticsearch-2.4.5.tar.gz" BROKER_URL=amqp://localhost:5672// DEPLOY=true
   - REQUIREMENTS=devel ES_HOST=127.0.0.1 ES_URL="https://download.elastic.co/elasticsearch/release/org/elasticsearch/distribution/tar/elasticsearch/2.4.5/elasticsearch-2.4.5.tar.gz" BROKER_URL=redis://localhost:6379/0
   - REQUIREMENTS=devel ES_HOST=127.0.0.1 ES_URL="https://download.elastic.co/elasticsearch/release/org/elasticsearch/distribution/tar/elasticsearch/2.4.5/elasticsearch-2.4.5.tar.gz" BROKER_URL=amqp://localhost:5672//
 
@@ -85,7 +85,7 @@ deploy:
   user: inveniosoftware
   password:
     secure: "RRcN5f/ptu5s+scIJOoo3iNIkiMw5qOSlxeEOzUJ07shUAR/Jx5TFUHPKw0kJ8btJsr4Tk8LS54HStTE4UFZPTnccodegHoTwMNMTcgnOkpaxqNveiZ4h0Ky4v6/m8x2OraBnnCCgFE64XkfSgLWAPjIbbULfwM2fgcUTL2OdFo5JjxUWXQWdZ7qoGbiYL8Nxx41Mm3Lzy4M4WJq1v4IBDSPI+fwiAmNuQ/6nrzQ0eLZi/jPgVAl7MqPc3OSIBoAzEpzXI00w8W/h9XfwIZ0rv4KVpRbkuhWuYsBX1WMGk3PhTxkAizFeWfMZEnaw4uEdPYT8O2rhuc6bIPBZIXRRU9GYtUtU7QE7rV2NmzJym5DXi8jma8To/TG9I7G2JmfyH6hnLZO48GoHfKOr9pVfSzg+4NA6ij9JHQz1Gr6V8gWn3/t4Ictd4X1j0Py/WRGfkcj8Yo1WpNUp6iej5AVsduq6k7AE1hRrD4TK6svyTso106xnB7MlEL/VxX118v/n/qPmdLlwYr11+eS00enYnhU1s6ceNlQDpSkrECJfSm3Ug6cBOpMGsC3fzZ+XgRCI5Lbt3LR3wD0+3yKPHenBMHdlZR9sAE1NWkZKQm0wkoDhDVc/0/aT+dqTH2MLG6AdzPnm5mxSO+M9RfjVZuPwLGaqYgb9LE6OYdRxkZ/F/A="
-  distributions: "compile_catalog sdist bdist_wheel"
+  distributions: "sdist bdist_wheel"
   on:
     tags: true
     python: "2.7"
