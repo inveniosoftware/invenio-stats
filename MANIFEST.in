@@ -28,7 +28,6 @@ include *.txt
 include .dockerignore
 include .editorconfig
 include .tx/config
-include babel.ini
 include LICENSE
 include pytest.ini
 prune docs/_build
