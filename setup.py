@@ -53,7 +53,10 @@ extras_require = {
     'tests': tests_require,
 }
 
-extras_require['all'] = []
+extras_require['all'] = [
+    'invenio-records-ui>=1.0.0a9',
+]
+
 for reqs in extras_require.values():
     extras_require['all'].extend(reqs)
 
@@ -65,7 +68,6 @@ install_requires = [
     'arrow>=0.7.0',
     'Flask>=0.11',
     'invenio-files-rest>=1.0.0a16',
-    'invenio-records-ui>=1.0.0a9',  # FIXME: this is an optional dependency.
     'invenio-search>=1.0.0a10',
     'invenio-queues>=1.0.0a1',
     'python-geoip>=1.2',
