@@ -49,7 +49,6 @@ from invenio_queues import InvenioQueues
 from invenio_queues.proxies import current_queues
 from invenio_records import InvenioRecords
 from invenio_records.api import Record
-from invenio_records_ui import InvenioRecordsUI
 from invenio_search import InvenioSearch, current_search, current_search_client
 from kombu import Exchange
 from mock import MagicMock, Mock, patch
@@ -162,7 +161,6 @@ def base_app():
     FlaskCeleryExt(app_)
     InvenioDB(app_)
     InvenioRecords(app_)
-    InvenioRecordsUI(app_)
     InvenioPIDStore(app_)
     InvenioQueues(app_)
     InvenioFilesREST(app_)
