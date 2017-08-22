@@ -33,6 +33,7 @@ import tempfile
 import uuid
 from contextlib import contextmanager
 from copy import deepcopy
+from random import randrange
 
 import pytest
 from elasticsearch.exceptions import RequestError
@@ -376,14 +377,16 @@ def generate_events(app, file_number=5, event_number=100, robot_event_number=0,
     def generator_list():
         for file_idx in range(file_number):
             for entry_date in date_range(start_date, end_date):
-                entry_date = datetime.datetime.combine(
-                    entry_date, datetime.time())
                 file_id = '{0}-{1}'.format(entry_date.strftime('%Y-%m-%d'),
                                            file_idx)
 
                 def build_event(is_robot=False):
                     return dict(
-                        timestamp=entry_date.isoformat(),
+                        timestamp=datetime.datetime.combine(
+                            entry_date,
+                            datetime.time(minute=randrange(60),
+                                          second=randrange(60))).
+                        isoformat(),
                         bucket_id=file_id,
                         file_id=file_id,
                         file_key='test.pdf',
@@ -404,7 +407,8 @@ def generate_events(app, file_number=5, event_number=100, robot_event_number=0,
         mock_queue,
         preprocessors=[
             build_file_unique_id
-        ]
+        ],
+        double_click_window=0
     ).run()
     current_search_client.indices.flush(index='*')
 
@@ -416,3 +420,26 @@ def indexed_events(app, es, mock_user_ctx, request):
         pass
     generate_events(app=app, **request.param)
     yield
+
+
+def get_deleted_docs(index):
+    """Get all deleted docs from an ES index."""
+    return current_search_client.indices.stats()[
+        'indices'][index]['total']['docs'][
+        'deleted']
+
+
+def _create_file_download_event(timestamp,
+                                bucket_id='B0000000000000000000000000000001',
+                                file_id='F0000000000000000000000000000001',
+                                file_key='test.pdf', visitor_id=100):
+    """Create a file_download event content."""
+    doc = dict(
+        timestamp=datetime.datetime(*timestamp).isoformat(),
+        # What:
+        bucket_id=str(bucket_id),
+        file_id=str(file_id),
+        file_key=file_key,
+        visitor_id=100
+    )
+    return build_file_unique_id(doc)

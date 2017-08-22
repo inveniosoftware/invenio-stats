@@ -26,11 +26,7 @@
 
 from __future__ import absolute_import, print_function
 
-import datetime
-import uuid
-
-from elasticsearch_dsl import Search
-from invenio_search import current_search, current_search_client
+from datetime import datetime
 
 from invenio_stats import current_stats
 from invenio_stats.tasks import aggregate_events, process_events
@@ -38,7 +34,9 @@ from invenio_stats.tasks import aggregate_events, process_events
 
 def test_process_events(app, es, event_queues):
     """Test process event."""
-    current_stats.publish('file-download', [dict(data='val')])
+    current_stats.publish('file-download',
+                          [dict(timestamp='2017-01-01T00:00:00',
+                                data='val')])
     process_events.delay(['file-download'])
     # FIXME: no need to publish events. We should just mock "consume" and test
     # that the events are properly received and processed.

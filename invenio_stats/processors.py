@@ -27,6 +27,7 @@
 from __future__ import absolute_import, print_function
 
 import hashlib
+from datetime import datetime
 
 import arrow
 import elasticsearch
@@ -34,7 +35,7 @@ from flask import current_app
 from invenio_search import current_search_client
 from robot_detection import is_robot
 
-from .utils import obj_or_import_string
+from .utils import get_geoip, obj_or_import_string
 
 
 def anonymize_user(doc):
@@ -80,7 +81,7 @@ class EventsIndexer(object):
     """Default preprocessors ran on every event."""
 
     def __init__(self, queue, prefix='events', suffix='%Y-%m-%d', client=None,
-                 preprocessors=None):
+                 preprocessors=None, double_click_window=10):
         """Initialize indexer.
 
         :param preprocessors: a list of functions which are called on every
@@ -97,6 +98,7 @@ class EventsIndexer(object):
         self.preprocessors = [
             obj_or_import_string(preproc) for preproc in preprocessors
         ] if preprocessors is not None else self.default_preprocessors
+        self.double_click_window = double_click_window
 
     def actionsiter(self):
         """Iterator."""
@@ -108,7 +110,16 @@ class EventsIndexer(object):
             if msg is None:
                 continue
             suffix = arrow.get(msg.get('timestamp')).strftime(self.suffix)
+            ts = datetime.strptime(msg.get('timestamp'),
+                                   '%Y-%m-%dT%H:%M:%S')
+            if self.double_click_window > 0:
+                ts = ts.replace(second=self.double_click_window *
+                                (ts.second // self.double_click_window))
+            _id = '{0}-{1}-{2}'.format(msg.get('unique_id'),
+                                       str(msg.get('visitor_id')),
+                                       ts.isoformat())
             yield dict(
+                _id=_id,
                 _op_type='index',
                 _index='{0}-{1}'.format(self.index, suffix),
                 _type=self.doctype,
