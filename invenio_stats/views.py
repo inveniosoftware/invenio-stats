@@ -56,7 +56,7 @@ class StatsQueryResource(ContentNegotiatedMethodView):
             **kwargs)
 
     def get(self, **kwargs):
-        """Get a community's metadata."""
+        """Get statistics."""
         data = request.get_json(force=False)
         if data is None:
             data = {}
@@ -93,6 +93,10 @@ class StatsQueryResource(ContentNegotiatedMethodView):
             except ValueError as e:
                 raise InvalidRequestInputError(e.args[0])
         return self.make_response(result)
+
+    def post(self, **kwargs):
+        """Get statistics."""
+        return self.get(**kwargs)
 
 
 stats_view = StatsQueryResource.as_view(
