@@ -24,6 +24,7 @@
 
 """InvenioStats views."""
 
+from elasticsearch.exceptions import NotFoundError
 from flask import Blueprint, jsonify, request
 from invenio_rest.views import ContentNegotiatedMethodView
 
@@ -89,9 +90,10 @@ class StatsQueryResource(ContentNegotiatedMethodView):
             try:
                 query = query_cfg.query_class(**query_cfg.query_config)
                 result[query_name] = query.run(**params)
-                pass
             except ValueError as e:
                 raise InvalidRequestInputError(e.args[0])
+            except NotFoundError as e:
+                return None
         return self.make_response(result)
 
     def post(self, **kwargs):
