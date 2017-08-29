@@ -23,13 +23,14 @@
 # as an Intergovernmental Organization or submit itself to any jurisdiction.
 
 """Events tests."""
-
+from uuid import uuid1
 from conftest import _create_file_download_event
 from invenio_queues.proxies import current_queues
-from mock import patch
+from mock import patch, Mock
 
 from invenio_stats.contrib.event_builders import file_download_event_builder
-from invenio_stats.processors import EventsIndexer, anonymize_user, flag_robots
+from invenio_stats.processors import EventsIndexer, anonymize_user, \
+    flag_robots, skip_deposit
 from invenio_stats.proxies import current_stats
 from invenio_stats.tasks import process_events
 
@@ -137,3 +138,49 @@ def test_double_clicks(app, mock_event_queue, es):
         index='events-stats-file-download-2000-06-01',
     )
     assert res['hits']['total'] == 2
+
+
+def test_deposits_are_skipped(app, mock_user_ctx,
+                              request_headers, objects, dummy_location):
+    """Test that events coming from deposits are skipped."""
+    def build_event(obj):
+        with app.test_request_context(headers=request_headers['user']):
+            event = file_download_event_builder({}, app, obj)
+        return skip_deposit(event)
+
+    from invenio_records_files.models import RecordsBuckets
+    from invenio_records.models import RecordMetadata
+    from invenio_files_rest.models import Bucket
+    from invenio_db import db
+
+    rec_uuid1 = uuid1(1)
+    buck_uuid1 = uuid1(2)
+    dep_uuid1 = uuid1(3)
+    buck_uuid2 = uuid1(4)
+    rec_buck1 = RecordsBuckets(record_id=str(rec_uuid1),
+                               bucket_id=str(buck_uuid1))
+    rec_meta1 = RecordMetadata(
+        id=str(rec_uuid1),
+        json={'$schema': 'http://localhost:5000/.../json_schema'})
+    rec_buck2 = RecordsBuckets(record_id=str(dep_uuid1),
+                               bucket_id=str(buck_uuid2))
+    rec_meta2 = RecordMetadata(id=str(dep_uuid1),
+                               json={'$schema': '#/draft_json_schema'})
+    buck1 = Bucket.create(id=buck_uuid1)
+    buck2 = Bucket.create(id=buck_uuid2)
+    db.session.add(rec_meta1)
+    db.session.add(rec_meta2)
+    db.session.add(buck1)
+    db.session.add(buck2)
+    db.session.add(rec_buck1)
+    db.session.add(rec_buck2)
+    db.session.commit()
+
+    rec = Mock()
+    rec.bucket_id = buck_uuid1
+    dep = Mock()
+    dep.bucket_id = buck_uuid2
+    print(build_event(dep))
+    assert build_event(dep) is None
+    print(build_event(rec))
+    assert build_event(rec) is not None
