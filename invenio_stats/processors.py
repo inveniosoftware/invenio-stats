@@ -33,6 +33,8 @@ import arrow
 import elasticsearch
 from flask import current_app
 from invenio_search import current_search_client
+from invenio_records_files.models import RecordsBuckets
+from invenio_records.models import RecordMetadata
 from robot_detection import is_robot
 
 from .utils import get_geoip, obj_or_import_string
@@ -53,7 +55,7 @@ def anonymize_user(doc):
     if uid:
         m.update(uid.encode('utf-8'))
     elif ua:
-        m.update(ua)
+        m.update(ua.encode('utf-8'))
     else:
         # TODO: add random data?
         pass
@@ -71,13 +73,22 @@ def flag_robots(doc):
     return doc
 
 
+def skip_deposit(doc):
+    """Check if event is coming from deposit file and skip."""
+    rb = RecordsBuckets.query.filter_by(bucket_id=doc['bucket_id']).first()
+    record = RecordMetadata.query.filter_by(id=rb.record_id).first()
+    if record.json['$schema'].endswith('#/draft_json_schema'):
+        return None
+    return doc
+
+
 class EventsIndexer(object):
     """Simple events indexer.
 
     Subclass this class in order to provide custom indexing behaviour.
     """
 
-    default_preprocessors = [flag_robots, anonymize_user]
+    default_preprocessors = [skip_deposit, flag_robots, anonymize_user]
     """Default preprocessors ran on every event."""
 
     def __init__(self, queue, prefix='events', suffix='%Y-%m-%d', client=None,
@@ -98,6 +109,7 @@ class EventsIndexer(object):
         self.preprocessors = [
             obj_or_import_string(preproc) for preproc in preprocessors
         ] if preprocessors is not None else self.default_preprocessors
+        print(self.preprocessors)
         self.double_click_window = double_click_window
 
     def actionsiter(self):
