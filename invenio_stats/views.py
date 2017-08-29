@@ -56,7 +56,7 @@ class StatsQueryResource(ContentNegotiatedMethodView):
             default_media_type='application/json',
             **kwargs)
 
-    def get(self, **kwargs):
+    def post(self, **kwargs):
         """Get statistics."""
         data = request.get_json(force=False)
         if data is None:
@@ -95,10 +95,6 @@ class StatsQueryResource(ContentNegotiatedMethodView):
             except NotFoundError as e:
                 return None
         return self.make_response(result)
-
-    def post(self, **kwargs):
-        """Get statistics."""
-        return self.get(**kwargs)
 
 
 stats_view = StatsQueryResource.as_view(
