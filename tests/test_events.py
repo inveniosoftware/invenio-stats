@@ -23,13 +23,14 @@
 # as an Intergovernmental Organization or submit itself to any jurisdiction.
 
 """Events tests."""
-
 from conftest import _create_file_download_event
 from invenio_queues.proxies import current_queues
 from mock import patch
 
-from invenio_stats.contrib.event_builders import file_download_event_builder
-from invenio_stats.processors import EventsIndexer, anonymize_user, flag_robots
+from invenio_stats.contrib.event_builders import build_file_unique_id, \
+    file_download_event_builder
+from invenio_stats.processors import EventsIndexer, anonymize_user, \
+    flag_robots, hash_id
 from invenio_stats.proxies import current_stats
 from invenio_stats.tasks import process_events
 
@@ -62,6 +63,7 @@ def test_events_indexer_preprocessors(app, mock_event_queue):
     """Check that EventsIndexer calls properly the preprocessors."""
     def test_preprocessor1(event):
         event['test1'] = 42
+        event['visitor_id'] = 'testuser1'
         return event
 
     def test_preprocessor2(event):
@@ -70,7 +72,9 @@ def test_events_indexer_preprocessors(app, mock_event_queue):
 
     indexer = EventsIndexer(
         mock_event_queue,
-        preprocessors=[test_preprocessor1, test_preprocessor2]
+        preprocessors=[build_file_unique_id,
+                       test_preprocessor1,
+                       test_preprocessor2]
     )
 
     # Generate the events
@@ -85,10 +89,12 @@ def test_events_indexer_preprocessors(app, mock_event_queue):
     # Process the events as we expect them to be
     expected_docs = []
     for event in mock_event_queue.queued_events:
+        event = build_file_unique_id(event)
         event = test_preprocessor1(event)
         event = test_preprocessor2(event)
+        _id = hash_id('2017-01-01T00:00:00', event)
         expected_docs.append(dict(
-            _id='None-None-2017-01-01T00:00:00',
+            _id=_id,
             _op_type='index',
             _index='events-stats-file-download-2017-01-01',
             _type='stats-file-download',
