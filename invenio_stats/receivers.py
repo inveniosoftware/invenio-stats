@@ -45,7 +45,8 @@ def register_receivers(app, config):
                 event = {}
                 for builder in event_builders:
                     event = builder(event, *args, **kwargs)
-                current_stats.publish(event_name, [event])
+                if event:
+                    current_stats.publish(event_name, [event])
         # Connect the receiver to the signal
         obj_or_import_string(
             event_config['signal']

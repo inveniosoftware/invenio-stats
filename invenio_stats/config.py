@@ -82,13 +82,13 @@ event_builders:
 """
 
 
-STATS_AGGREGATIONS = [
-    'file-download-agg',
-]
+STATS_AGGREGATIONS = {
+    'file-download-agg': {},
+}
 
-STATS_QUERIES = [
-    'bucket-file-download-histogram',
-    'bucket-file-download-total',
-]
+STATS_QUERIES = {
+    'bucket-file-download-histogram': {},
+    'bucket-file-download-total': {},
+}
 
 STATS_PERMISSION_FACTORY = default_permission_factory
