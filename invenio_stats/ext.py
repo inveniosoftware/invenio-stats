@@ -70,6 +70,10 @@ class _InvenioStatsState(object):
                     raise DuplicateEventError(
                         'Duplicate event {0} in entry point '
                         '{1}'.format(cfg['event_type'], ep.name))
+                # Update the default configuration with env/overlay config.
+                cfg.update(
+                    self.enabled_events[cfg['event_type']] or {}
+                )
                 result[cfg['event_type']] = cfg
         return result
 
@@ -114,6 +118,10 @@ class _InvenioStatsState(object):
                     raise DuplicateAggregationError(
                         'Duplicate aggregation {0} in entry point '
                         '{1}'.format(cfg['event_type'], ep.name))
+                # Update the default configuration with env/overlay config.
+                cfg.update(
+                    self.enabled_aggregations[cfg['aggregation_name']] or {}
+                )
                 result[cfg['aggregation_name']] = cfg
         return result
 
@@ -152,6 +160,10 @@ class _InvenioStatsState(object):
                     raise DuplicateQueryError(
                         'Duplicate query {0} in entry point '
                         '{1}'.format(cfg['query'], ep.name))
+                # Update the default configuration with env/overlay config.
+                cfg.update(
+                    self.enabled_queries[cfg['query_name']] or {}
+                )
                 result[cfg['query_name']] = cfg
         return result
 

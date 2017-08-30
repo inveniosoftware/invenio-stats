@@ -158,7 +158,7 @@ def base_app():
             durable=True,
         ),
         STATS_EVENTS=stats_events,
-        STATS_AGGREGATIONS=['file-download-agg']
+        STATS_AGGREGATIONS={'file-download-agg': {}}
     ))
     FlaskCeleryExt(app_)
     InvenioDB(app_)
