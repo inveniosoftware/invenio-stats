@@ -29,6 +29,7 @@ from __future__ import absolute_import, print_function
 import datetime
 import os
 import shutil
+import sys
 import tempfile
 import uuid
 from contextlib import contextmanager
@@ -374,18 +375,26 @@ def generate_events(app, file_number=5, event_number=100, robot_event_number=0,
     for t in current_search.put_templates(ignore=[400]):
         pass
 
+    def _unique_ts_gen():
+        ts = 0
+        while True:
+            ts += 1
+            yield ts
+
     def generator_list():
+        unique_ts = _unique_ts_gen()
         for file_idx in range(file_number):
             for entry_date in date_range(start_date, end_date):
                 file_id = '{0}-{1}'.format(entry_date.strftime('%Y-%m-%d'),
                                            file_idx)
 
                 def build_event(is_robot=False):
+                    ts = next(unique_ts)
                     return dict(
                         timestamp=datetime.datetime.combine(
                             entry_date,
-                            datetime.time(minute=randrange(60),
-                                          second=randrange(60))).
+                            datetime.time(minute=ts % 60,
+                                          second=ts % 60)).
                         isoformat(),
                         bucket_id=file_id,
                         file_id=file_id,
