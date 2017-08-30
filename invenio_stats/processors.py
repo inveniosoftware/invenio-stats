@@ -71,6 +71,16 @@ def flag_robots(doc):
     return doc
 
 
+def hash_id(iso_timestamp, msg):
+    """Generate event id, optimized for ES."""
+    return '{0}-{1}'.format(iso_timestamp,
+                            hashlib.sha1(
+                                msg.get('unique_id').encode('utf-8') +
+                                str(msg.get('visitor_id')).
+                                encode('utf-8')).
+                            hexdigest())
+
+
 class EventsIndexer(object):
     """Simple events indexer.
 
@@ -115,11 +125,9 @@ class EventsIndexer(object):
             if self.double_click_window > 0:
                 ts = ts.replace(second=self.double_click_window *
                                 (ts.second // self.double_click_window))
-            _id = '{0}-{1}-{2}'.format(msg.get('unique_id'),
-                                       str(msg.get('visitor_id')),
-                                       ts.isoformat())
+
             yield dict(
-                _id=_id,
+                _id=hash_id(ts.isoformat(), msg),
                 _op_type='index',
                 _index='{0}-{1}'.format(self.index, suffix),
                 _type=self.doctype,
