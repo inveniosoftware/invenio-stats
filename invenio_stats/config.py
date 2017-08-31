@@ -53,7 +53,7 @@ SQLALCHEMY_TRACK_MODIFICATIONS = False
 CELERY_BEAT_SCHEDULE = {
     'indexer': {
         'task': 'invenio_stats.tasks.index_events',
-        'schedule': timedelta(seconds=5),
+        'schedule': timedelta(hours=3),
     },
 }
 
