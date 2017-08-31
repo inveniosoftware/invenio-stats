@@ -419,7 +419,7 @@ def generate_events(app, file_number=5, event_number=100, robot_event_number=0,
         ],
         double_click_window=0
     ).run()
-    current_search_client.indices.flush(index='*')
+    current_search_client.indices.refresh(index='*')
 
 
 @pytest.yield_fixture()
