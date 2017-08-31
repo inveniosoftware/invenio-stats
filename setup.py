@@ -37,7 +37,8 @@ tests_require = [
     'elasticsearch<5,>=2.0.0',
     'elasticsearch-dsl<5,>=2.0.0',
     'invenio-db>=1.0.0b5',
-    'isort>=4.2.2',
+    'isort>=4.2.15',
+    'mock>=1.0.0',
     'pydocstyle>=1.0.0',
     'pytest-cache>=1.0',
     'pytest-cov>=1.8.0',
@@ -73,7 +74,7 @@ install_requires = [
     'python-geoip>=1.2',
     'maxminddb-geolite2>=2017.0404',
     # 'python-geoip-geolite2>=2015.0303',
-    'robot-detection>=0.3',
+    'robot-detection>=0.4',
 ]
 
 packages = find_packages()
