@@ -169,7 +169,7 @@ def test_double_clicks(app, mock_event_queue, es):
     current_queues.declare()
     current_stats.publish(event_type, events)
     process_events(['file-download'])
-    es.indices.flush(index='*')
+    es.indices.refresh(index='*')
     res = es.search(
         index='events-stats-file-download-2000-06-01',
     )

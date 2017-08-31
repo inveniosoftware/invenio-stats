@@ -125,8 +125,6 @@ class StatAggregator(object):
 
     def set_bookmark(self):
         """Set bookmark for starting next aggregation."""
-        current_search_client.indices.flush(index='*')
-
         def _success_date():
             bookmark = {
                 'date': self.new_bookmark or datetime.datetime.utcnow().
@@ -193,14 +191,12 @@ class StatAggregator(object):
                              format(self.event,
                                     interval_date.strftime(
                                         self.index_name_suffix))
+                self.indices.add(index_name)
                 yield dict(_id='{0}-{1}'.
                            format(aggregation['key'],
                                   interval_date.strftime(
                                       self.doc_id_suffix)),
-                           _index='stats-{0}-{1}'.
-                           format(self.event,
-                                  interval_date.strftime(
-                                      self.index_name_suffix)),
+                           _index=index_name,
                            _type='{0}-{1}-aggregation'.
                            format(self.event, self.aggregation_interval),
                            _source=aggregation_data)
@@ -226,13 +222,19 @@ class StatAggregator(object):
                                       datetime.datetime.min.time())
         )
         while upper_limit <= datetime.datetime.utcnow():
+            self.indices = set()
             self.new_bookmark = upper_limit.strftime(self.doc_id_suffix)
             bulk(self.client,
                  self.agg_iter(lower_limit, upper_limit),
                  stats_only=True,
                  chunk_size=50)
-            current_search_client.indices.flush(index='*')
+            # Flush all indices which have been modified
+            current_search_client.indices.flush(
+                index=','.join(self.indices),
+                wait_if_ongoing=True
+            )
             self.set_bookmark()
+            self.indices = set()
             lower_limit = lower_limit + datetime.timedelta(self.batch_size)
             upper_limit = min(datetime.datetime.utcnow().
                               replace(microsecond=0),

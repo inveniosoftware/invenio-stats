@@ -79,9 +79,12 @@ def test_overwriting_aggregations(app, mock_event_queue, es):
         mock_event_queue
     )
     indexer.run()
-    current_search_client.indices.flush(index='*')
+    current_search_client.indices.refresh(index='*')
+
+    # Aggregate events
     with patch('datetime.datetime', NewDate):
         aggregate_events(['file-download-agg'])
+    current_search_client.indices.refresh(index='*')
 
     # Send new events, some on the last aggregated day and some far
     # in the future.
@@ -100,13 +103,13 @@ def test_overwriting_aggregations(app, mock_event_queue, es):
         mock_event_queue
     )
     indexer.run()
-    current_search_client.indices.flush(index='*')
+    current_search_client.indices.refresh(index='*')
 
     # Aggregate again. The aggregation should start from the last bookmark.
     NewDate.current_date = (2017, 7, 2)
     with patch('datetime.datetime', NewDate):
         aggregate_events(['file-download-agg'])
-    current_search_client.indices.flush(index='*')
+    current_search_client.indices.refresh(index='*')
 
     res = current_search_client.search(
         index='stats-file-download',
@@ -129,7 +132,7 @@ def test_overwriting_aggregations(app, mock_event_queue, es):
                          indirect=['indexed_events'])
 def test_date_range(app, es, event_queues, indexed_events):
     aggregate_events(['file-download-agg'])
-    current_search_client.indices.flush(index='*')
+    current_search_client.indices.refresh(index='*')
 
     query = Search(using=current_search_client,
                    index='stats-file-download')[0:30].sort('file_id')
@@ -160,7 +163,7 @@ def test_filter_robots(app, es, event_queues, indexed_events, with_robots):
                    aggregation_field='file_id',
                    aggregation_interval='day',
                    query_modifiers=query_modifiers).run()
-    current_search_client.indices.flush(index='*')
+    current_search_client.indices.refresh(index='*')
     query = Search(
         using=current_search_client,
         index='stats-file-download',
