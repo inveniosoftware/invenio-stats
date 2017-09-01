@@ -34,8 +34,9 @@ from invenio_search import current_search, current_search_client
 from mock import patch
 
 from invenio_stats.aggregations import StatAggregator, filter_robots
+from invenio_stats.processors import EventsIndexer
 from invenio_stats.proxies import current_stats
-from invenio_stats.tasks import aggregate_events, process_events
+from invenio_stats.tasks import aggregate_events
 
 
 def test_wrong_intervals(app):
@@ -45,7 +46,7 @@ def test_wrong_intervals(app):
                        aggregation_interval='month', index_interval='day')
 
 
-def test_overwriting_aggregations(app, es, event_queues, sequential_ids):
+def test_overwriting_aggregations(app, mock_event_queue, es):
     """Check that the StatAggregator correctly starts from bookmark.
 
     1. Create sample file download event and process it.
@@ -69,11 +70,15 @@ def test_overwriting_aggregations(app, es, event_queues, sequential_ids):
 
     # Send some events
     event_type = 'file-download'
-    events = [_create_file_download_event(date) for date in
-              [(2017, 6, 1), (2017, 6, 2, 10)]]
-    current_queues.declare()
-    current_stats.publish(event_type, events)
-    process_events(['file-download'])
+    mock_event_queue.consume.return_value = [
+        _create_file_download_event(date) for date in
+        [(2017, 6, 1), (2017, 6, 2, 10)]
+    ]
+
+    indexer = EventsIndexer(
+        mock_event_queue
+    )
+    indexer.run()
     current_search_client.indices.flush(index='*')
     with patch('datetime.datetime', NewDate):
         aggregate_events(['file-download-agg'])
@@ -86,11 +91,15 @@ def test_overwriting_aggregations(app, es, event_queues, sequential_ids):
         if 'file_id' in hit['_source'].keys():
             assert hit['_version'] == 1
 
-    new_events = [_create_file_download_event(date) for date in
-                  [(2017, 6, 2, 15),  # second event on the same date
-                   (2017, 7, 1)]]
-    current_stats.publish(event_type, new_events)
-    process_events(['file-download'])
+    mock_event_queue.consume.return_value = [
+        _create_file_download_event(date) for date in
+        [(2017, 6, 2, 15),  # second event on the same date
+         (2017, 7, 1)]
+    ]
+    indexer = EventsIndexer(
+        mock_event_queue
+    )
+    indexer.run()
     current_search_client.indices.flush(index='*')
 
     # Aggregate again. The aggregation should start from the last bookmark.
