@@ -28,11 +28,13 @@ from __future__ import absolute_import, print_function
 
 import hashlib
 from datetime import datetime
+from time import mktime
 
 import arrow
 import elasticsearch
 from flask import current_app
 from invenio_search import current_search_client
+from pytz import utc
 from robot_detection import is_robot
 
 from .utils import get_geoip, obj_or_import_string
@@ -122,10 +124,14 @@ class EventsIndexer(object):
             suffix = arrow.get(msg.get('timestamp')).strftime(self.suffix)
             ts = datetime.strptime(msg.get('timestamp'),
                                    '%Y-%m-%dT%H:%M:%S')
+            # apply timestamp windowing in order to group events too close
+            # in time
             if self.double_click_window > 0:
-                ts = ts.replace(second=self.double_click_window *
-                                (ts.second // self.double_click_window))
-
+                timestamp = mktime(utc.localize(ts).utctimetuple())
+                ts = ts.fromtimestamp(
+                    timestamp // self.double_click_window *
+                    self.double_click_window
+                )
             yield dict(
                 _id=hash_id(ts.isoformat(), msg),
                 _op_type='index',
