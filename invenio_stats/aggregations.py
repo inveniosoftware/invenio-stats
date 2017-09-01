@@ -229,7 +229,8 @@ class StatAggregator(object):
             self.new_bookmark = upper_limit.strftime(self.doc_id_suffix)
             bulk(self.client,
                  self.agg_iter(lower_limit, upper_limit),
-                 stats_only=True)
+                 stats_only=True,
+                 chunk_size=50)
             current_search_client.indices.flush(index='*')
             self.set_bookmark()
             lower_limit = lower_limit + datetime.timedelta(self.batch_size)
