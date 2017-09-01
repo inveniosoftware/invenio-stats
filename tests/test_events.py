@@ -104,6 +104,37 @@ def test_events_indexer_preprocessors(app, mock_event_queue):
     assert received_docs == expected_docs
 
 
+def test_events_indexer_id_windowing(app, mock_event_queue):
+    """Check that EventsIndexer applies time windows to ids."""
+
+    indexer = EventsIndexer(mock_event_queue, preprocessors=[],
+                            double_click_window=180)
+
+    # Generated docs will be registered in this list
+    received_docs = []
+
+    def bulk(client, generator, *args, **kwargs):
+        received_docs.extend(generator)
+
+    mock_event_queue.consume.return_value = [
+        _create_file_download_event(date) for date in
+        [
+            # Those two events will be in the same window
+            (2017, 6, 1, 0, 11, 3), (2017, 6, 1, 0, 9, 1),
+            # Those two events will be in the same window
+            (2017, 6, 2, 0, 12, 10), (2017, 6, 2, 0, 13, 3),
+            (2017, 6, 2, 0, 30, 3)
+        ]
+    ]
+
+    with patch('elasticsearch.helpers.bulk', side_effect=bulk):
+        indexer.run()
+
+    assert len(received_docs) == 5
+    ids = set(doc['_id'] for doc in received_docs)
+    assert len(ids) == 3
+
+
 def test_anonymise_user(app, mock_user_ctx, request_headers, objects):
     """Test anonymize_user preprocessor."""
     with app.test_request_context(headers=request_headers['user']):
