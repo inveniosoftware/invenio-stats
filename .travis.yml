@@ -49,17 +49,6 @@ env:
   - REQUIREMENTS=devel ES_HOST=127.0.0.1 ES_URL="https://download.elastic.co/elasticsearch/release/org/elasticsearch/distribution/tar/elasticsearch/2.4.5/elasticsearch-2.4.5.tar.gz" BROKER_URL=redis://localhost:6379/0
   - REQUIREMENTS=devel ES_HOST=127.0.0.1 ES_URL="https://download.elastic.co/elasticsearch/release/org/elasticsearch/distribution/tar/elasticsearch/2.4.5/elasticsearch-2.4.5.tar.gz" BROKER_URL=amqp://localhost:5672//
 
-matrix:
-  allow_failures:
-    - python: "2.7"
-      env: REQUIREMENTS=lowest ES_URL="https://download.elastic.co/elasticsearch/release/org/elasticsearch/distribution/tar/elasticsearch/2.4.5/elasticsearch-2.4.5.tar.gz" BROKER_URL=redis://localhost:6379/0
-    - python: "2.7"
-      env: REQUIREMENTS=lowest ES_URL="https://download.elastic.co/elasticsearch/release/org/elasticsearch/distribution/tar/elasticsearch/2.4.5/elasticsearch-2.4.5.tar.gz" BROKER_URL=amqp://localhost:5672//
-    - python: "3.5"
-      env: REQUIREMENTS=lowest ES_URL="https://download.elastic.co/elasticsearch/release/org/elasticsearch/distribution/tar/elasticsearch/2.4.5/elasticsearch-2.4.5.tar.gz" BROKER_URL=redis://localhost:6379/0
-    - python: "3.5"
-      env: REQUIREMENTS=lowest ES_URL="https://download.elastic.co/elasticsearch/release/org/elasticsearch/distribution/tar/elasticsearch/2.4.5/elasticsearch-2.4.5.tar.gz" BROKER_URL=amqp://localhost:5672//
-
 before_install:
   - "mkdir /tmp/elasticsearch"
   - "wget -O - $ES_URL | tar xz --directory=/tmp/elasticsearch --strip-components=1"
