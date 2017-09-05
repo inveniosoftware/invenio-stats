@@ -75,6 +75,7 @@ install_requires = [
     'maxminddb-geolite2>=2017.0404',
     # 'python-geoip-geolite2>=2015.0303',
     'robot-detection>=0.4',
+    'python-dateutil>=2.6.1',
 ]
 
 packages = find_packages()
