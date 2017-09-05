@@ -32,6 +32,7 @@ from time import mktime
 
 import arrow
 import elasticsearch
+from dateutil import parser
 from flask import current_app
 from invenio_search import current_search_client
 from pytz import utc
@@ -122,8 +123,11 @@ class EventsIndexer(object):
             if msg is None:
                 continue
             suffix = arrow.get(msg.get('timestamp')).strftime(self.suffix)
-            ts = datetime.strptime(msg.get('timestamp'),
-                                   '%Y-%m-%dT%H:%M:%S')
+            ts = parser.parse(msg.get('timestamp'))
+            # Truncate timestamp to keep only seconds. This is to improve
+            # elasticsearch performances.
+            ts = ts.replace(microsecond=0)
+            msg['timestamp'] = ts.isoformat()
             # apply timestamp windowing in order to group events too close
             # in time
             if self.double_click_window > 0:
