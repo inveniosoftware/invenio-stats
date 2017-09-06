@@ -191,7 +191,11 @@ def db(app):
 
 @pytest.yield_fixture()
 def es(app):
-    """Provide elasticsearch access, create and clean indices."""
+    """Provide elasticsearch access, create and clean indices.
+
+    Don't create template so that the test or another fixture can modify the
+    enabled events.
+    """
     current_search_client.indices.delete(index='*')
     current_search_client.indices.delete_template('*')
     list(current_search.create())
@@ -200,6 +204,13 @@ def es(app):
     finally:
         current_search_client.indices.delete(index='*')
         current_search_client.indices.delete_template('*')
+
+
+@pytest.yield_fixture()
+def es_with_templates(app, es):
+    """Provide elasticsearch access, create and clean indices and templates."""
+    list(current_search.put_templates())
+    yield current_search_client
 
 
 @pytest.fixture()
@@ -358,8 +369,11 @@ def mock_event_queue(app, mock_datetime, request_headers, objects,
     mock_queue.routing_key = 'stats-file-download'
     with patch('datetime.datetime', mock_datetime), \
             app.test_request_context(headers=request_headers['user']):
-        events = [file_download_event_builder({}, app, objects[0]) for idx
-                  in range(100)]
+        events = [
+            build_file_unique_id(
+                file_download_event_builder({}, app, objects[0])
+            ) for idx in range(100)
+        ]
         mock_queue.consume.return_value = iter(events)
     # Save the queued events for later tests
     mock_queue.queued_events = deepcopy(events)

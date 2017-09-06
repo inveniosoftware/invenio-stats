@@ -28,7 +28,8 @@ import datetime
 
 import pytest
 from conftest import _create_file_download_event
-from elasticsearch_dsl import Search
+from dateutil import parser
+from elasticsearch_dsl import Index, Search
 from invenio_queues.proxies import current_queues
 from invenio_search import current_search, current_search_client
 from mock import patch
@@ -46,7 +47,7 @@ def test_wrong_intervals(app):
                        aggregation_interval='month', index_interval='day')
 
 
-def test_overwriting_aggregations(app, mock_event_queue, es):
+def test_overwriting_aggregations(app, mock_event_queue, es_with_templates):
     """Check that the StatAggregator correctly starts from bookmark.
 
     1. Create sample file download event and process it.
@@ -56,9 +57,6 @@ def test_overwriting_aggregations(app, mock_event_queue, es):
         overwrite the aggregation,
         by checking that the document version has increased.
     """
-    for t in current_search.put_templates(ignore=[400]):
-        pass
-
     class NewDate(datetime.datetime):
         """datetime.datetime mock."""
         # Aggregate at 12:00, thus the day will be aggregated again later
@@ -122,6 +120,82 @@ def test_overwriting_aggregations(app, mock_event_queue, es):
             assert hit['_source']['count'] == 2
         else:
             assert hit['_version'] == 1
+
+
+def test_aggregation_without_events(app, es_with_templates):
+    """Check that the aggregation doesn't crash if there are no events.
+
+    This scenario happens when celery starts aggregating but no events
+    have been created yet.
+    """
+    # Aggregate events
+    StatAggregator(event='file-download',
+                   aggregation_field='file_id',
+                   aggregation_interval='day',
+                   query_modifiers=[]).run()
+    assert not Index(
+        'stats-file-download', using=current_search_client
+    ).exists()
+    # Create the index but without any event. This happens when the events
+    # have been indexed but are not yet searchable (before index refresh).
+    Index('events-stats-file-download-2017',
+          using=current_search_client).create()
+    # Aggregate events
+    StatAggregator(event='file-download',
+                   aggregation_field='file_id',
+                   aggregation_interval='day',
+                   query_modifiers=[]).run()
+    assert not Index(
+        'stats-file-download', using=current_search_client
+    ).exists()
+
+
+def test_bookmark_removal(app, es_with_templates, mock_event_queue):
+    """Remove aggregation bookmark and restart aggregation.
+
+    This simulates the scenario where aggregations have been created but the
+    the bookmarks have not been set due to an error.
+    """
+    mock_event_queue.consume.return_value = [
+        _create_file_download_event(date) for date in
+        [(2017, 6, 2, 15),  # second event on the same date
+         (2017, 7, 1)]
+    ]
+    indexer = EventsIndexer(
+        mock_event_queue
+    )
+    indexer.run()
+    current_search_client.indices.refresh(index='*')
+
+    def aggregate_and_check_version(expected_version):
+        # Aggregate events
+        StatAggregator(event='file-download',
+                       aggregation_field='file_id',
+                       aggregation_interval='day',
+                       query_modifiers=[]).run()
+        current_search_client.indices.refresh(index='*')
+        res = current_search_client.search(
+            index='stats-file-download',
+            doc_type='file-download-day-aggregation',
+            version=True
+        )
+        for hit in res['hits']['hits']:
+            assert hit['_version'] == expected_version
+
+    aggregate_and_check_version(1)
+    aggregate_and_check_version(1)
+    # Delete all bookmarks
+    bookmarks = Search(using=current_search_client,
+                       index='stats-file-download',
+                       doc_type='file-download-bookmark').query('match_all')
+    for bookmark in bookmarks:
+        res = current_search_client.delete(
+            index=bookmark.meta.index, id=bookmark.meta.id,
+            doc_type='file-download-bookmark'
+        )
+    current_search_client.indices.refresh(index='*')
+    # the aggregations should have been overwritten
+    aggregate_and_check_version(2)
 
 
 @pytest.mark.parametrize('indexed_events',
