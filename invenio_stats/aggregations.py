@@ -30,6 +30,7 @@ import datetime
 from collections import OrderedDict
 
 import six
+from dateutil import parser
 from elasticsearch.helpers import bulk
 from elasticsearch_dsl import Index, Search
 from invenio_search import current_search_client
@@ -68,7 +69,7 @@ class StatAggregator(object):
     is used to aggregate new events without having to redo the old ones.
     """
 
-    def __init__(self, client, event,
+    def __init__(self, event, client=None,
                  aggregation_field=None,
                  copy_fields=None,
                  query_modifiers=None,
@@ -76,7 +77,7 @@ class StatAggregator(object):
                  index_interval='month', batch_size=7,
                  subaggregations=[]):
         """Construct aggregator instance."""
-        self.client = client
+        self.client = client or current_search_client
         self.event = event
         self.aggregation_alias = 'stats-{}'.format(self.event)
         self.aggregation_field = aggregation_field
@@ -98,28 +99,50 @@ class StatAggregator(object):
         self.doc_id_suffix = self.supported_intervals[aggregation_interval]
         self.batch_size = batch_size
         self.subaggregations = subaggregations
+        self.event_index = 'events-stats-{}'.format(self.event)
+
+    def _get_oldest_event_timestamp(self):
+        """Search for the oldest event timestamp."""
+        # Retrieve the oldest event in order to start aggregation
+        # from there
+        query_events = Search(
+            using=self.client,
+            index=self.event_index
+        )[0:1].sort(
+            {'timestamp': {'order': 'asc'}}
+        )
+        result = query_events.execute()
+        # There might not be any events yet if the first event have been
+        # indexed but the indices have not been refreshed yet.
+        if len(result) == 0:
+            return None
+        return parser.parse(result[0]['timestamp'])
 
     def get_bookmark(self):
         """Get last aggregation date."""
         if not Index(self.aggregation_alias,
                      using=self.client).exists():
-            if not Index('events-stats-{}'.format(self.event),
+            if not Index(self.event_index,
                          using=self.client).exists():
                 return datetime.date.today()
-            indices = self.get_indices_with_alias('events-stats-{}'.
-                                                  format(self.event))
-            indices.sort()
-            oldest_index = indices[0]
-            return datetime.datetime.strptime(oldest_index,
-                                              'events-stats-{}-%Y-%m-%d'.
-                                              format(self.event))
-        query_bookmark = Search(using=self.client,
-                                index=self.aggregation_alias,
-                                doc_type='{0}-bookmark'.format(self.event))
-        query_bookmark.aggs.metric('latest', 'max', field='date')
-        bookmark = query_bookmark.execute()[0]
+            return self._get_oldest_event_timestamp()
+
+        # retrieve the oldest bookmark
+        query_bookmark = Search(
+            using=self.client,
+            index=self.aggregation_alias,
+            doc_type='{0}-bookmark'.format(self.event)
+        )[0:1].sort(
+            {'date': {'order': 'desc'}}
+        )
+        bookmarks = query_bookmark.execute()
+        # if no bookmark is found but the index exist, the bookmark was somehow
+        # lost or never written, so restart from the beginning
+        if len(bookmarks) == 0:
+            return self._get_oldest_event_timestamp()
+
         # change it to doc_id_suffix
-        bookmark = datetime.datetime.strptime(bookmark.date,
+        bookmark = datetime.datetime.strptime(bookmarks[0].date,
                                               self.doc_id_suffix)
         return bookmark
 
@@ -146,10 +169,12 @@ class StatAggregator(object):
         if lower_limit is None:
             lower_limit = self.get_bookmark().isoformat()
         aggregation_data = {}
+
         self.agg_query = Search(using=self.client,
-                                index='events-stats-{}'.format(self.event)).\
+                                index=self.event_index).\
             filter('range', timestamp={'gte': lower_limit,
                                        'lte': upper_limit})
+
         # apply query modifiers
         for modifier in self.query_modifiers:
             self.agg_query = modifier(self.agg_query)
@@ -202,18 +227,15 @@ class StatAggregator(object):
                            _source=aggregation_data)
         self.last_index_written = index_name
 
-    def get_indices_with_alias(self, alias_name):
-        """Return list of indices with given alias."""
-        result = []
-        all_indices = self.client.indices.get_aliases()
-        for index in all_indices:
-            if alias_name in all_indices[index]['aliases']:
-                result.append(index)
-        return result
-
     def run(self):
         """Calculate statistics aggregations."""
+        # If no events have been indexed there is nothing to aggregate
+        if not Index(self.event_index, using=self.client).exists():
+            return
         lower_limit = self.get_bookmark()
+        # Stop here if no bookmark could be estimated.
+        if lower_limit is None:
+            return
         upper_limit = min(
             datetime.datetime.utcnow().
             replace(microsecond=0),
