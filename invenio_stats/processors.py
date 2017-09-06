@@ -56,7 +56,7 @@ def anonymize_user(doc):
     if uid:
         m.update(uid.encode('utf-8'))
     elif ua:
-        m.update(ua)
+        m.update(ua.encode('utf-8'))
     else:
         # TODO: add random data?
         pass
