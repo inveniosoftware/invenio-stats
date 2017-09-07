@@ -25,11 +25,12 @@
 """InvenioStats views."""
 
 from elasticsearch.exceptions import NotFoundError
-from flask import Blueprint, jsonify, request
+from flask import Blueprint, abort, jsonify, request
 from invenio_rest.views import ContentNegotiatedMethodView
 
 from .errors import InvalidRequestInputError, UnknownQueryError
 from .proxies import current_stats
+from .utils import current_user
 
 blueprint = Blueprint(
     'invenio_stats',
@@ -78,7 +79,6 @@ class StatsQueryResource(ContentNegotiatedMethodView):
             except KeyError:
                 raise UnknownQueryError(stat)
 
-            # Check that the user is allowed to ask for this statistic
             permission = current_stats.permission_factory(stat, params)
             if permission is not None and not permission.can():
                 message = ('You do not have a permission to query the '

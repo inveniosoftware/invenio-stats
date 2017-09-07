@@ -48,6 +48,25 @@ def test_wrong_intervals(app):
                        aggregation_interval='month', index_interval='day')
 
 
+@pytest.mark.parametrize('indexed_events',
+                         [dict(file_number=1,
+                               event_number=1,
+                               robot_event_number=0,
+                               start_date=datetime.date(2017, 1, 1),
+                               end_date=datetime.date(2017, 1, 7))],
+                         indirect=['indexed_events'])
+def test_get_bookmark(app, indexed_events):
+    """Test bookmark reading."""
+    for t in current_search.put_templates(ignore=[400]):
+        pass
+    stat_agg = StatAggregator(client=current_search_client,
+                              event='file-download',
+                              aggregation_field='file_id',
+                              aggregation_interval='day')
+    stat_agg.run()
+    assert stat_agg.get_bookmark() == datetime.datetime(2017, 1, 8)
+
+
 def test_overwriting_aggregations(app, mock_event_queue, es_with_templates):
     """Check that the StatAggregator correctly starts from bookmark.
 
@@ -203,7 +222,7 @@ def test_bookmark_removal(app, es_with_templates, mock_event_queue):
 
 @pytest.mark.parametrize('indexed_events',
                          [dict(file_number=5,
-                               event_number=1,  # due to _id overwriting
+                               event_number=1,
                                start_date=datetime.date(2015, 1, 28),
                                end_date=datetime.date(2015, 2, 3))],
                          indirect=['indexed_events'])
@@ -224,7 +243,7 @@ def test_date_range(app, es, event_queues, indexed_events):
 
 @pytest.mark.parametrize('indexed_events',
                          [dict(file_number=1,
-                               event_number=2,  # could timestamps clash?
+                               event_number=2,
                                robot_event_number=3,
                                start_date=datetime.date(2015, 1, 28),
                                end_date=datetime.date(2015, 1, 30))],

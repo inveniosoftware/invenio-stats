@@ -36,15 +36,24 @@ from contextlib import contextmanager
 from copy import deepcopy
 from random import randrange
 
+# imported to make sure that
+# login_oauth2_user(valid, oauth) is included
+import invenio_oauth2server.views.server
 import pytest
 from elasticsearch.exceptions import RequestError
 from flask import Flask, appcontext_pushed, g
 from flask.cli import ScriptInfo
 from flask_celeryext import FlaskCeleryExt
+from flask_security import url_for_security
+from invenio_accounts import InvenioAccounts, InvenioAccountsREST
+from invenio_accounts.testutils import create_test_user
 from invenio_db import db as db_
 from invenio_db import InvenioDB
 from invenio_files_rest import InvenioFilesREST
 from invenio_files_rest.models import Bucket, Location, ObjectVersion
+from invenio_oauth2server import InvenioOAuth2Server, \
+    InvenioOAuth2ServerREST, current_oauth2server
+from invenio_oauth2server.models import Client, Token
 from invenio_pidstore import InvenioPIDStore
 from invenio_pidstore.minters import recid_minter
 from invenio_queues import InvenioQueues
@@ -60,8 +69,11 @@ from sqlalchemy_utils.functions import create_database, database_exists
 from invenio_stats import InvenioStats
 from invenio_stats.contrib.event_builders import build_file_unique_id, \
     file_download_event_builder
+from invenio_stats.contrib.registrations import register_queries
 from invenio_stats.processors import EventsIndexer, anonymize_user, flag_robots
-from invenio_stats.tasks import process_events
+from invenio_stats.tasks import aggregate_events, process_events
+from invenio_stats.utils import AllowAllPermission
+from invenio_stats.views import blueprint
 
 
 def mock_iter_entry_points_factory(data, mocked_group):
@@ -112,6 +124,56 @@ def event_entrypoints():
         yield result
 
 
+@pytest.yield_fixture()
+def query_entrypoints(custom_permission_factory):
+    """Same as event_entrypoints for queries."""
+    from pkg_resources import EntryPoint
+    entrypoint = EntryPoint('invenio_stats', 'queries')
+    data = []
+    result = []
+    conf = [dict(
+        query_name='test-query',
+        query_class=CustomQuery,
+        query_config=dict(
+            index='stats-file-download',
+            doc_type='file-download-day-aggregation',
+            copy_fields=dict(
+                bucket_id='bucket_id',
+            ),
+            required_filters=dict(
+                bucket_id='bucket_id',
+            )
+        ),
+        permission_factory=custom_permission_factory
+    ),
+        dict(
+        query_name='test-query2',
+        query_class=CustomQuery,
+        query_config=dict(
+            index='stats-file-download',
+            doc_type='file-download-day-aggregation',
+            copy_fields=dict(
+                bucket_id='bucket_id',
+            ),
+            required_filters=dict(
+                bucket_id='bucket_id',
+            )
+        ),
+        permission_factory=custom_permission_factory
+    )]
+
+    result += conf
+    result += register_queries()
+    entrypoint.load = lambda conf=conf: (lambda: result)
+    data.append(entrypoint)
+
+    entrypoints = mock_iter_entry_points_factory(data, 'invenio_stats.queries')
+
+    with patch('invenio_stats.ext.iter_entry_points',
+               entrypoints):
+        yield result
+
+
 def date_range(start_date, end_date):
     """Get all dates in a given range."""
     if start_date >= end_date:
@@ -137,7 +199,8 @@ def event_queues(app, event_entrypoints):
 def base_app():
     """Flask application fixture without InvenioStats."""
     from invenio_stats.config import STATS_EVENTS
-    app_ = Flask('testapp')
+    instance_path = tempfile.mkdtemp()
+    app_ = Flask('testapp', instance_path=instance_path)
     stats_events = {'file-download': deepcopy(STATS_EVENTS['file-download'])}
     stats_events.update({'event_{}'.format(idx): {} for idx in range(5)})
     app_.config.update(dict(
@@ -151,29 +214,44 @@ def base_app():
             'SQLALCHEMY_DATABASE_URI', 'sqlite://'),
         SQLALCHEMY_TRACK_MODIFICATIONS=True,
         TESTING=True,
+        OAUTH2SERVER_CLIENT_ID_SALT_LEN=64,
+        OAUTH2SERVER_CLIENT_SECRET_SALT_LEN=60,
+        OAUTH2SERVER_TOKEN_PERSONAL_SALT_LEN=60,
         STATS_MQ_EXCHANGE=Exchange(
             'test_events',
             type='direct',
             delivery_mode='transient',  # in-memory queue
             durable=True,
         ),
+        SECRET_KEY='asecretkey',
+        SERVER_NAME='localhost',
+        STATS_QUERIES={'bucket-file-download-histogram': {},
+                       'bucket-file-download-total': {},
+                       'test-query': {},
+                       'test-query2': {}},
         STATS_EVENTS=stats_events,
         STATS_AGGREGATIONS={'file-download-agg': {}}
     ))
     FlaskCeleryExt(app_)
+    InvenioAccounts(app_)
+    InvenioAccountsREST(app_)
     InvenioDB(app_)
     InvenioRecords(app_)
+    InvenioFilesREST(app_)
     InvenioPIDStore(app_)
     InvenioQueues(app_)
-    InvenioFilesREST(app_)
+    InvenioOAuth2Server(app_)
+    InvenioOAuth2ServerREST(app_)
     InvenioSearch(app_, entry_point_group=None)
     with app_.app_context():
         yield app_
+    shutil.rmtree(instance_path)
 
 
 @pytest.yield_fixture()
 def app(base_app):
     """Flask application fixture with InvenioStats."""
+    base_app.register_blueprint(blueprint)
     InvenioStats(base_app)
     yield base_app
 
@@ -399,8 +477,10 @@ def generate_events(app, file_number=5, event_number=100, robot_event_number=0,
         unique_ts = _unique_ts_gen()
         for file_idx in range(file_number):
             for entry_date in date_range(start_date, end_date):
-                file_id = '{0}-{1}'.format(entry_date.strftime('%Y-%m-%d'),
-                                           file_idx)
+                file_id = 'F000000000000000000000000000000{}'.\
+                    format(file_idx + 1)
+                bucket_id = 'B000000000000000000000000000000{}'.\
+                    format(file_idx + 1)
 
                 def build_event(is_robot=False):
                     ts = next(unique_ts)
@@ -410,7 +490,7 @@ def generate_events(app, file_number=5, event_number=100, robot_event_number=0,
                             datetime.time(minute=ts % 60,
                                           second=ts % 60)).
                         isoformat(),
-                        bucket_id=file_id,
+                        bucket_id=bucket_id,
                         file_id=file_id,
                         file_key='test.pdf',
                         visitor_id=100,
@@ -445,6 +525,36 @@ def indexed_events(app, es, mock_user_ctx, request):
     yield
 
 
+@pytest.yield_fixture()
+def aggregated_events(app, es, mock_user_ctx, request):
+    """Parametrized pre indexed sample events."""
+    for t in current_search.put_templates(ignore=[400]):
+        pass
+    generate_events(app=app, **request.param)
+    aggregate_events(['file-download-agg'])
+    current_search_client.indices.flush(index='*')
+    yield
+
+
+@pytest.fixture()
+def users(app, db):
+    """Create users."""
+    user1 = create_test_user(email='info@inveniosoftware.org',
+                             password='tester')
+    user2 = create_test_user(email='info2@inveniosoftware.org',
+                             password='tester2')
+
+    user1.allowed_token = Token.create_personal(name='allowed_token',
+                                                user_id=user1.id,
+                                                scopes=[]
+                                                ).access_token
+    user2.allowed_token = Token.create_personal(name='allowed_token',
+                                                user_id=user2.id,
+                                                scopes=[]
+                                                ).access_token
+    return {'authorized': user1, 'unauthorized': user2}
+
+
 def get_deleted_docs(index):
     """Get all deleted docs from an ES index."""
     return current_search_client.indices.stats()[
@@ -466,3 +576,48 @@ def _create_file_download_event(timestamp,
         visitor_id=100
     )
     return build_file_unique_id(doc)
+
+
+@pytest.fixture()
+def custom_permission_factory(users):
+    """Test denying permission factory."""
+    def permission_factory(query_name, params, *args, **kwargs):
+        permission_factory.query_name = query_name
+        permission_factory.params = params
+        from flask_login import current_user
+        if current_user.is_authenticated and \
+                current_user.id == users['authorized'].id:
+            return type('Allow', (), {'can': lambda self: True})()
+        return type('Deny', (), {'can': lambda self: False})()
+    permission_factory.query_name = None
+    permission_factory.params = None
+    return permission_factory
+
+
+@pytest.yield_fixture()
+def sample_histogram_query_data():
+    """Sample query parameters."""
+    yield {"mystat":
+           {"stat": "bucket-file-download-histogram",
+            "params": {"start_date": "2017-1-1",
+                       "end_date": "2017-7-1",
+                       "interval": "day",
+                       "bucket_id":
+                       "B0000000000000000000000000000001",
+                       "file_key": "test.pdf"
+                       }
+            }
+           }
+
+
+class CustomQuery:
+    """Mock query class."""
+
+    def __init__(self, *args, **kwargs):
+        """Mock constructor to accept the query_config parameters."""
+        pass
+
+    def run(self, *args, **kwargs):
+        """Sample response."""
+        return dict(bucket_id='test_bucket',
+                    value=100)

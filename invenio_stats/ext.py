@@ -34,7 +34,8 @@ from werkzeug.utils import cached_property
 
 from . import config
 from .errors import DuplicateAggregationError, DuplicateEventError, \
-    UnknownAggregationError, UnknownEventError
+    DuplicateQueryError, UnknownAggregationError, UnknownEventError, \
+    UnknownQueryError
 from .receivers import register_receivers
 from .utils import load_or_import_from_config
 

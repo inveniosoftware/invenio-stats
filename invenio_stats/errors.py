@@ -49,9 +49,13 @@ class DuplicateAggregationError(Exception):
     """Error raised when a duplicate aggregation is detected."""
 
 
+class DuplicateQueryError(Exception):
+    """Error raised when a duplicate aggregation is detected."""
+
 ##
 #  Aggregation errors
 ##
+
 
 class NotSupportedInterval(Exception):
     """Error raised for an unsupported aggregation interval."""
