@@ -25,6 +25,7 @@
 """Aggregation tests."""
 
 import datetime
+import time
 
 import pytest
 from conftest import _create_file_download_event
@@ -140,6 +141,8 @@ def test_aggregation_without_events(app, es_with_templates):
     # have been indexed but are not yet searchable (before index refresh).
     Index('events-stats-file-download-2017',
           using=current_search_client).create()
+    # Wait for the index to be available
+    time.sleep(1)
     # Aggregate events
     StatAggregator(event='file-download',
                    aggregation_field='file_id',

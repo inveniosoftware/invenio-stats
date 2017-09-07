@@ -6,6 +6,19 @@
     }
   },
   "mappings": {
+    "_default_": {
+      "dynamic_templates": [
+        {
+          "date_fields": {
+            "match_mapping_type": "date",
+            "mapping": {
+              "type": "date",
+              "format": "date_optional_time"
+            }
+          }
+        }
+      ]
+    },
     "file-download-aggregation": {
       "_source": {
         "enabled": true
