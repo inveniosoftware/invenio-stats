@@ -46,6 +46,8 @@ env:
   - REQUIREMENTS=lowest ES_URL="https://download.elastic.co/elasticsearch/release/org/elasticsearch/distribution/tar/elasticsearch/2.4.5/elasticsearch-2.4.5.tar.gz" BROKER_URL=amqp://localhost:5672//
   - REQUIREMENTS=release ES_URL="https://download.elastic.co/elasticsearch/release/org/elasticsearch/distribution/tar/elasticsearch/2.4.5/elasticsearch-2.4.5.tar.gz" BROKER_URL=redis://localhost:6379/0
   - REQUIREMENTS=release ES_URL="https://download.elastic.co/elasticsearch/release/org/elasticsearch/distribution/tar/elasticsearch/2.4.5/elasticsearch-2.4.5.tar.gz" BROKER_URL=amqp://localhost:5672// DEPLOY=true
+  # Test with elasticsearch 2.2
+  - REQUIREMENTS=release ES_URL="https://download.elasticsearch.org/elasticsearch/release/org/elasticsearch/distribution/tar/elasticsearch/2.2.2/elasticsearch-2.2.2.tar.gz" BROKER_URL=amqp://localhost:5672//
   - REQUIREMENTS=devel ES_HOST=127.0.0.1 ES_URL="https://download.elastic.co/elasticsearch/release/org/elasticsearch/distribution/tar/elasticsearch/2.4.5/elasticsearch-2.4.5.tar.gz" BROKER_URL=redis://localhost:6379/0
   - REQUIREMENTS=devel ES_HOST=127.0.0.1 ES_URL="https://download.elastic.co/elasticsearch/release/org/elasticsearch/distribution/tar/elasticsearch/2.4.5/elasticsearch-2.4.5.tar.gz" BROKER_URL=amqp://localhost:5672//
 
