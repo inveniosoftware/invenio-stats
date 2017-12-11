@@ -72,7 +72,7 @@ install_requires = [
     'arrow>=0.7.0',
     'Flask>=0.11',
     'invenio-files-rest>=1.0.0a16',
-    'invenio-search>=1.0.0a10',
+    'invenio-search>=1.0.0a10,<=1.0.0b1', # FIXME: remove higher limit.
     'invenio-queues>=1.0.0a1',
     'python-geoip>=1.2',
     'maxminddb-geolite2>=2017.0404',
