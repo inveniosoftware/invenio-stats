@@ -25,9 +25,15 @@
  Invenio-Stats
 ===============
 
-This module provides the functionality to measure the occurence of any event in an invenio application, e.g. file downloads, record views and others. During the logging of an event, it is possible to define processes that will prepare or append to the data recorded, e.g. add the country of origin from the ip. Monitoring works by listening to the signals triggered by the declared events. The event data are The different components used for the stream processing, are the following, in order of appearance:
+This module provides the functionality to measure the occurence of any event in
+an invenio application, e.g. file downloads, record views and others. During
+the logging of an event, it is possible to define processes that will transform
+the recorded data, e.g. add the country of origin from the ip. Monitoring can
+be done by listening to the signals triggered by the declared events. The
+different components used for this event processing, are the
+following:
 
- **Event Signal** > **Receiver** > **Message Queue** > **Task Queue Worker** > **Elasticsearch**
+ **[Event Signal]** > **Receiver** > **[Message Queue]** > **Celery Task** > **[Elasticsearch]**
 
 The default Message Queue is RabbitMQ and Task Queue is Celery.
 These signals also carry any other information required for cataloguing, such as timestamp, record info etc.

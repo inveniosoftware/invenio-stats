@@ -22,7 +22,19 @@
 # waive the privileges and immunities granted to it by virtue of its status
 # as an Intergovernmental Organization or submit itself to any jurisdiction.
 
-"""Invenio module for collecting statistics."""
+"""Invenio module for collecting statistics.
+
+Those events are
+often sent via signals which are then recorded by invenio-stats listeners.
+Those events can also be transformed, .
+
+Invenio-stats provides the tools :
+- register the events in Elasticsearch, where they can be queried easily.
+- transform the events, e.g. add the country of origin from
+the ip address
+ **[Event Signal]** > **Receiver** > **[Message Queue]** > **Celery Task** > **[Elasticsearch]**
+
+"""
 
 from __future__ import absolute_import, print_function
 

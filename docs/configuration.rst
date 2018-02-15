@@ -25,5 +25,46 @@
 Configuration
 =============
 
-.. automodule:: invenio_stats.config
-   :members:
+
+Events creation
+---------------
+The creation of events can be done via signals. Invenio-stats provide an
+easy way to generate those events.
+
+
+.. autodata:: invenio_stats.config.STATS_REGISTER_RECEIVERS
+
+.. autodata:: invenio_stats.config.STATS_EVENTS
+
+
+Events processing
+-----------------
+If you create events they will be queued in an AMQP queue. You should
+ensure that you regularly process them. You do this by configuring a Celery
+Beat schedule similar to this:
+
+.. code-block:: python
+    from datetime import timedelta
+    CELERY_BEAT_SCHEDULE = {
+        'indexer': {
+            'task': 'invenio_stats.tasks.process_events',
+            'schedule': timedelta(hours=3),
+        },
+    }
+
+Invenio stats provide aggregations
+
+
+
+Queues configuration
+--------------------
+Invenio-stats creates AMQP queues in order to buffer events. Those queues
+need to be configured. Change these parameters only if you know what you are
+doing.
+
+.. autodata:: invenio_stats.config.STATS_MQ_EXCHANGE
+
+#.. automodule:: invenio_stats.config
+#   :members:
+
+
