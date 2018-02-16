@@ -34,6 +34,7 @@ Invenio-Stats.
    :maxdepth: 2
 
    installation
+   overview
    configuration
    usage
    examplesapp
