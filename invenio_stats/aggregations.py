@@ -74,9 +74,23 @@ class StatAggregator(object):
                  copy_fields=None,
                  query_modifiers=None,
                  aggregation_interval='month',
-                 index_interval='month', batch_size=7,
-                 subaggregations=[]):
-        """Construct aggregator instance."""
+                 index_interval='month', batch_size=7):
+        """Construct aggregator instance.
+
+        :param event: aggregated event.
+        :param client: elasticsearch client.
+        :param aggregation_field: field on which the aggregation will be done.
+        :param copy_fields: list of fields which are copied from the raw events
+            into the aggregation.
+        :param query_modifiers: list of functions modifying the raw events
+            query. By default the query_modifiers are [filter_robots].
+        :param aggregation_interval: aggregation time window. default: month.
+        :param index_interval: time window of the elasticsearch indices which
+            will contain the resulting aggregations.
+        :param batch_size: max number of days for which raw events are being
+            fetched in one query. This number has to be coherent with the
+            aggregation_interval.
+        """
         self.client = client or current_search_client
         self.event = event
         self.aggregation_alias = 'stats-{}'.format(self.event)
@@ -98,7 +112,6 @@ class StatAggregator(object):
         self.index_name_suffix = self.supported_intervals[index_interval]
         self.doc_id_suffix = self.supported_intervals[aggregation_interval]
         self.batch_size = batch_size
-        self.subaggregations = subaggregations
         self.event_index = 'events-stats-{}'.format(self.event)
 
     def _get_oldest_event_timestamp(self):

@@ -41,6 +41,11 @@ services:
   - redis
   - rabbitmq
 
+addons:
+  apt:
+    packages:
+      - graphviz
+
 env:
   - REQUIREMENTS=lowest ES_URL="https://download.elastic.co/elasticsearch/release/org/elasticsearch/distribution/tar/elasticsearch/2.4.5/elasticsearch-2.4.5.tar.gz" BROKER_URL=redis://localhost:6379/0
   - REQUIREMENTS=lowest ES_URL="https://download.elastic.co/elasticsearch/release/org/elasticsearch/distribution/tar/elasticsearch/2.4.5/elasticsearch-2.4.5.tar.gz" BROKER_URL=amqp://localhost:5672//

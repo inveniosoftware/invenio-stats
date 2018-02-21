@@ -48,7 +48,7 @@ querying**.
 The most common statistics measure the occurence of events in an invenio
 application, e.g. file downloads, record views and others. Invenio-stats
 provides the tools to transform, register, compress and query those events.
-However statistics can be fully customized and directly query the database.
+However, statistics can be fully customized and directly query the database.
 
 The services it uses are:
 

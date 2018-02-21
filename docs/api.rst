@@ -27,3 +27,16 @@ API Docs
 
 .. automodule:: invenio_stats.ext
    :members:
+
+.. automodule:: invenio_stats.processors
+   :members:
+
+.. automodule:: invenio_stats.queries
+   :members:
+
+.. automodule:: invenio_stats.tasks
+   :members:
+
+.. automodule:: invenio_stats.contrib.event_builders
+   :members:
+
