@@ -32,30 +32,14 @@ from kombu import Exchange
 
 from .utils import default_permission_factory
 
-STATS_MQ_EXCHANGE = Exchange(
-    'events',
-    type='direct',
-    delivery_mode='transient',  # in-memory queue
-)
-"""Default exchange for message queue."""
-
-STATS_INDICES_PREFIX = 'events'
-"""Allowed event types."""
-
 STATS_REGISTER_RECEIVERS = True
-"""Register signal receivers."""
+"""Enable the registration of signal receivers.
 
-STATS_INDICES_SUFFIX = '%Y.%W',
-"""Suffix of indices."""
-
-SQLALCHEMY_TRACK_MODIFICATIONS = False
-
-CELERY_BEAT_SCHEDULE = {
-    'indexer': {
-        'task': 'invenio_stats.tasks.index_events',
-        'schedule': timedelta(hours=3),
-    },
-}
+Default is ``True``.
+The signal receivers are functions which will listen to the signals listed in
+by the ``STATS_EVENTS`` config variable. An event will be generated for each
+signal sent.
+"""
 
 STATS_EVENTS = {
     'file-download': {
@@ -65,20 +49,21 @@ STATS_EVENTS = {
         ]
     },
 }
-"""Enabled Events. A queue will be created for each key.
+"""Enabled Events.
 
-If the dict of an event contains the 'signal' key, a signal receiver will
-be registered. Receiver function which will be connected on a signal and
-emit events.
+Each key is the name of an event. A queue will be created for each event.
 
+If the dict of an event contains the 'signal' key, and the config variable
+``STATS_REGISTER_RECEIVERS`` is ``True``, a signal receiver will be registered.
+Receiver function which will be connected on a signal and emit events.
 The key is the name of the emitted event.
 
 signal:
     Signal to which the receiver will be connected to.
 
 event_builders:
-    list of functions which will create the event. Each function will receive
-    the event created by the previous function and can update it.
+    list of functions which will create and enhance the event. Each function
+    will receive the event created by the previous function and can update it.
 """
 
 
@@ -86,9 +71,30 @@ STATS_AGGREGATIONS = {
     'file-download-agg': {},
 }
 
+
 STATS_QUERIES = {
     'bucket-file-download-histogram': {},
     'bucket-file-download-total': {},
 }
 
+
 STATS_PERMISSION_FACTORY = default_permission_factory
+"""Permission factory used by the statistics REST API.
+
+This is a function which returns a permission granting or forbidding access
+to a request. It is of the form ``permission_factory(query_name, params)``
+where ``query_name`` is the name of the statistic requested by the user and
+``params`` is a dict of parameters for this statistic. The result of the
+function is a Permission.
+
+See Invenio-access and Flask-principal for a better understanding of the
+access control mechanisms.
+"""
+
+
+STATS_MQ_EXCHANGE = Exchange(
+    'events',
+    type='direct',
+    delivery_mode='transient',  # in-memory queue
+)
+"""Default exchange used for the message queues."""

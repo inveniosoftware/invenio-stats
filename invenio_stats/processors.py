@@ -97,6 +97,11 @@ class EventsIndexer(object):
                  preprocessors=None, double_click_window=10):
         """Initialize indexer.
 
+        :param prefix: prefix appended to elasticsearch indices' name.
+        :param suffix: suffix appended to elasticsearch indices' name.
+        :param double_click_window: time window during which similar events are
+            deduplicated (counted as one occurence).
+        :param client: elasticsearch client.
         :param preprocessors: a list of functions which are called on every
             event before it is indexed. Each function should return the
             processed event. If it returns None, the event is filtered and

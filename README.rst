@@ -40,10 +40,19 @@
 .. image:: https://img.shields.io/github/license/inveniosoftware/invenio-stats.svg
         :target: https://github.com/inveniosoftware/invenio-stats/blob/master/LICENSE
 
-
 Invenio module for collecting statistics.
 
-*This is an experimental developer preview release.*
+This module provides the components for **statistical data processing and
+querying**.
 
-* Free software: GPLv2 license
-* Documentation: https://pythonhosted.org/invenio-stats/
+The most common statistics measure the occurence of events in an invenio
+application, e.g. file downloads, record views and others. Invenio-stats
+provides the tools to transform, register, compress and query those events.
+However, statistics can be fully customized and directly query the database.
+
+The services it uses are:
+
+- RabbitMQ for buffering incomming events before
+- Elasticsearch for aggregating and searching events.
+
+Further documentation is available on: https://invenio-accounts.readthedocs.io/

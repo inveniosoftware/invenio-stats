@@ -47,8 +47,8 @@ from flask_celeryext import FlaskCeleryExt
 from flask_security import url_for_security
 from invenio_accounts import InvenioAccounts, InvenioAccountsREST
 from invenio_accounts.testutils import create_test_user
-from invenio_db import db as db_
 from invenio_db import InvenioDB
+from invenio_db import db as db_
 from invenio_files_rest import InvenioFilesREST
 from invenio_files_rest.models import Bucket, Location, ObjectVersion
 from invenio_oauth2server import InvenioOAuth2Server, \

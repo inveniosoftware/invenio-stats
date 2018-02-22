@@ -91,7 +91,6 @@ from invenio_stats.tasks import aggregate_events, process_events
 from invenio_stats.views import blueprint
 
 # Create Flask application
-# TODO
 app = Flask(__name__)
 app.config.update(dict(
     BROKER_URL='redis://',

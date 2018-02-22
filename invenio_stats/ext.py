@@ -49,7 +49,6 @@ class _InvenioStatsState(object):
                  entry_point_group_queries):
         self.app = app
         self.exchange = app.config['STATS_MQ_EXCHANGE']
-        self.suffix = app.config['STATS_INDICES_SUFFIX']
         self.enabled_events = app.config['STATS_EVENTS']
         self.enabled_aggregations = app.config['STATS_AGGREGATIONS']
         self.enabled_queries = app.config['STATS_QUERIES']
