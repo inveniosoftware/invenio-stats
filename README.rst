@@ -55,4 +55,4 @@ The services it uses are:
 - RabbitMQ for buffering incomming events before
 - Elasticsearch for aggregating and searching events.
 
-Further documentation is available on: https://invenio-accounts.readthedocs.io/
+Further documentation is available on: https://invenio-stats.readthedocs.io/
