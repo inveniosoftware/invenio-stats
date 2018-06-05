@@ -102,7 +102,8 @@ def event_entrypoints():
         event_type_name = 'event_{}'.format(idx)
         from pkg_resources import EntryPoint
         entrypoint = EntryPoint(event_type_name, event_type_name)
-        conf = dict(event_type=event_type_name, templates='/',
+        conf = dict(event_type=event_type_name,
+                    templates='invenio_stats.contrib.record_view',
                     processor_class=EventsIndexer)
         entrypoint.load = lambda conf=conf: (lambda: [conf])
         data.append(entrypoint)
@@ -112,7 +113,8 @@ def event_entrypoints():
     event_type_name = 'file-download'
     from pkg_resources import EntryPoint
     entrypoint = EntryPoint('invenio_files_rest', 'test_dir')
-    conf = dict(event_type=event_type_name, templates='contrib/file-download',
+    conf = dict(event_type=event_type_name,
+                templates='invenio_stats.contrib.file_download',
                 processor_class=EventsIndexer)
     entrypoint.load = lambda conf=conf: (lambda: [conf])
     data.append(entrypoint)

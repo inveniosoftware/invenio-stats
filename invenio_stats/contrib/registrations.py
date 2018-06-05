@@ -33,38 +33,40 @@ from invenio_stats.queries import ESDateHistogramQuery, ESTermsQuery
 
 def register_events():
     """Register sample events."""
-    return [dict(event_type='file-download',
-                 templates='contrib/file-download',
-                 processor_class=EventsIndexer,
-                 processor_config=dict(
-                    preprocessors=[
-                        flag_robots,
-                        anonymize_user,
-                        build_file_unique_id
-                    ]
-                 )),
-            dict(event_type='record-view',
-                 templates='contrib/record-view',
-                 processor_class=EventsIndexer)]
+    return [
+        dict(
+            event_type='file-download',
+            templates='invenio_stats.contrib.file_download',
+            processor_class=EventsIndexer,
+            processor_config=dict(
+                preprocessors=[
+                    flag_robots,
+                    anonymize_user,
+                    build_file_unique_id
+                ])),
+        dict(
+            event_type='record-view',
+            templates='invenio_stats.contrib.record_view',
+            processor_class=EventsIndexer)]
 
 
 def register_aggregations():
     """Register sample aggregations."""
-    return [dict(aggregation_name='file-download-agg',
-                 templates='contrib/aggregations/aggr-file-download',
-                 aggregator_class=StatAggregator,
-                 aggregator_config=dict(
-                     client=current_search_client,
-                     event='file-download',
-                     aggregation_field='unique_id',
-                     aggregation_interval='day',
-                     copy_fields=dict(
-                         file_key='file_key',
-                         bucket_id='bucket_id',
-                         file_id='file_id',
-                     )
-                 ))
-            ]
+    return [dict(
+        aggregation_name='file-download-agg',
+        templates='invenio_stats.contrib.aggregations.aggr_file_download',
+        aggregator_class=StatAggregator,
+        aggregator_config=dict(
+            client=current_search_client,
+            event='file-download',
+            aggregation_field='unique_id',
+            aggregation_interval='day',
+            copy_fields=dict(
+                file_key='file_key',
+                bucket_id='bucket_id',
+                file_id='file_id',
+            )
+        ))]
 
 
 def register_queries():

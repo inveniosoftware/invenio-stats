@@ -50,9 +50,20 @@ tests_require = [
     'python-dateutil>=2.6.0',
 ]
 
+invenio_search_version = '1.0.0'
+
 extras_require = {
     'docs': [
         'Sphinx>=1.4',
+    ],
+    'elasticsearch2': [
+        'invenio-search[elasticsearch2]>={}'.format(invenio_search_version)
+    ],
+    'elasticsearch5': [
+        'invenio-search[elasticsearch5]>={}'.format(invenio_search_version)
+    ],
+    'elasticsearch6': [
+        'invenio-search[elasticsearch6]>={}'.format(invenio_search_version)
     ],
     'tests': tests_require,
 }
@@ -70,9 +81,8 @@ setup_requires = [
 
 install_requires = [
     'arrow>=0.7.0',
-    'Flask>=0.11',
+    'Flask>=0.11.1',
     'invenio-files-rest>=1.0.0a16',
-    'invenio-search>=1.0.0a10,<=1.0.0b1', # FIXME: remove higher limit.
     'invenio-queues>=1.0.0a1',
     'python-geoip>=1.2',
     'maxminddb-geolite2>=2017.0404',
