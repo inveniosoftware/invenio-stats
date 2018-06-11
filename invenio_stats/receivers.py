@@ -62,4 +62,6 @@ def register_receivers(app, config):
         ]
 
         signal = obj_or_import_string(event_config['signal'])
-        signal.connect(EventEmmiter(event_name, event_builders), weak=False)
+        signal.connect(
+            EventEmmiter(event_name, event_builders), sender=app, weak=False
+        )
