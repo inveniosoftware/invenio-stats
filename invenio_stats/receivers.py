@@ -30,6 +30,27 @@ from .proxies import current_stats
 from .utils import obj_or_import_string
 
 
+class EventEmmiter(object):
+    """Receive a signal and send an event."""
+
+    def __init__(self, name, builders):
+        self.name = name
+        self.builders = builders
+
+    def __call__(self, *args, **kwargs):
+        """Receive a signal and send an event."""
+        # Send the event only if it is registered
+        if self.name in current_stats.events:
+            event = {}
+            for builder in self.builders:
+                event = builder(event, *args, **kwargs)
+            if event:
+                current_stats.publish(self.name, [event])
+
+    def __repr__(self):
+        return '<EventEmmiter: {} ({})>'.format(self.name, self.origin)
+
+
 def register_receivers(app, config):
     """Register signal receivers which send events."""
     for event_name, event_config in config.items():
@@ -38,16 +59,5 @@ def register_receivers(app, config):
             for func in event_config.get('event_builders', [])
         ]
 
-        def event_emitter(*args, **kwargs):
-            """Receive a signal and send an event."""
-            # Send the event only if it is registered
-            if event_name in current_stats.events:
-                event = {}
-                for builder in event_builders:
-                    event = builder(event, *args, **kwargs)
-                if event:
-                    current_stats.publish(event_name, [event])
-        # Connect the receiver to the signal
-        obj_or_import_string(
-            event_config['signal']
-        ).connect(event_emitter, weak=False)
+        signal = obj_or_import_string(event_config['signal'])
+        signal.connect(EventEmmiter(event_name, event_builders), weak=False)
