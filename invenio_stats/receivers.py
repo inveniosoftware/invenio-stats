@@ -34,6 +34,7 @@ class EventEmmiter(object):
     """Receive a signal and send an event."""
 
     def __init__(self, name, builders):
+        """Contructor."""
         self.name = name
         self.builders = builders
 
@@ -48,6 +49,7 @@ class EventEmmiter(object):
                 current_stats.publish(self.name, [event])
 
     def __repr__(self):
+        """Repr."""
         return '<EventEmmiter: {} ({})>'.format(self.name, self.origin)
 
 

@@ -38,6 +38,7 @@ tests_require = [
     'elasticsearch-dsl<5,>=2.0.0',
     'invenio-db>=1.0.0b5',
     'invenio-accounts>=1.0.0b9',
+    'invenio-files-rest>=1.0.0a23',
     'invenio-oauth2server>=1.0.0b1',
     'invenio-records>=1.0.0b2',
     'isort>=4.2.15',
