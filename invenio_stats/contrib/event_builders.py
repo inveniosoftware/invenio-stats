@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 #
 # This file is part of Invenio.
-# Copyright (C) 2017 CERN.
+# Copyright (C) 2017, 2018 CERN.
 #
 # Invenio is free software; you can redistribute it
 # and/or modify it under the terms of the GNU General Public License as
@@ -28,8 +28,7 @@ from __future__ import absolute_import, print_function
 
 import datetime
 
-from ..proxies import current_stats
-from ..utils import get_user, load_or_import_from_config
+from ..utils import get_user
 
 
 def file_download_event_builder(event, sender_app, obj=None, **kwargs):
@@ -50,6 +49,12 @@ def file_download_event_builder(event, sender_app, obj=None, **kwargs):
 def build_file_unique_id(doc):
     """Build file unique identifier."""
     doc['unique_id'] = '{0}_{1}'.format(doc['bucket_id'], doc['file_id'])
+    return doc
+
+
+def build_record_unique_id(doc):
+    """Build record unique identifier."""
+    doc['unique_id'] = '{0}_{1}'.format(doc['pid_type'], doc['pid_value'])
     return doc
 
 
