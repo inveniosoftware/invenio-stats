@@ -33,7 +33,6 @@ from time import mktime
 import arrow
 import elasticsearch
 from dateutil import parser
-from flask import current_app
 from invenio_db import db
 from invenio_files_rest.models import FileInstance
 from invenio_search import current_search_client
@@ -60,22 +59,44 @@ def anonymize_user(doc):
     if ip:
         doc.update(get_geoip(ip))
 
-    uid = doc.pop('user_id', '')
-    ua = doc.pop('user_agent', '')
+    user_id = doc.pop('user_id', '')
+    session_id = doc.pop('session_id', '')
+    user_agent = doc.pop('user_agent', '')
 
-    m = hashlib.sha224()
+    # A 'User Session' is defined as activity by a user in a period of
+    # one hour. timeslice represents the hour of the day in which
+    # the event has been generated and together with user info it determines
+    # the 'User Session'
+    timeslice = arrow.get(doc.get('timestamp')).strftime('%Y%m%d%H')
+
+    visitor_id = hashlib.sha224()
     # TODO: include random salt here, that changes once a day.
     # m.update(random_salt)
-    if uid:
-        m.update(uid.encode('utf-8'))
-    elif ua:
-        m.update(ua.encode('utf-8'))
+    if user_id:
+        visitor_id.update(user_id.encode('utf-8'))
+    elif session_id:
+        visitor_id.update(session_id.encode('utf-8'))
+    elif ip and user_agent:
+        vid = '{}|{}|{}'.format(ip, user_agent, timeslice)
+        visitor_id.update(vid.encode('utf-8'))
     else:
         # TODO: add random data?
         pass
 
+    unique_session_id = hashlib.sha224()
+    if user_id is not None:
+        sid = '{}|{}'.format(user_id, timeslice)
+        unique_session_id.update(sid.encode('utf-8'))
+    elif session_id is not None:
+        sid = '{}|{}'.format(session_id, timeslice)
+        unique_session_id.update(sid.encode('utf-8'))
+    elif ip and user_agent:
+        sid = '{}|{}|{}'.format(ip, user_agent, timeslice)
+        unique_session_id.update(sid.encode('utf-8'))
+
     doc.update(dict(
-        visitor_id=m.hexdigest()
+        visitor_id=visitor_id.hexdigest(),
+        unique_session_id=unique_session_id.hexdigest()
     ))
 
     return doc
