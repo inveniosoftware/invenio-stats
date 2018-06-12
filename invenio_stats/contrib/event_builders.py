@@ -28,6 +28,8 @@ from __future__ import absolute_import, print_function
 
 import datetime
 
+from flask import request
+
 from ..utils import get_user
 
 
@@ -40,6 +42,7 @@ def file_download_event_builder(event, sender_app, obj=None, **kwargs):
         bucket_id=str(obj.bucket_id),
         file_id=str(obj.file_id),
         file_key=obj.key,
+        referrer=request.referrer,
         # Who:
         **get_user()
     ))
@@ -68,6 +71,7 @@ def record_view_event_builder(event, sender_app, pid=None, record=None,
         record_id=str(record.id),
         pid_type=pid.pid_type,
         pid_value=str(pid.pid_value),
+        referrer=request.referrer,
         # Who:
         **get_user()
     ))
