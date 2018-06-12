@@ -27,7 +27,7 @@
 from __future__ import absolute_import, print_function
 
 import six
-from flask import request
+from flask import current_app, request, session
 from flask_login import current_user
 from geolite2 import geolite2
 from werkzeug.utils import import_string
@@ -63,6 +63,7 @@ def get_user():
         user_id=(
             current_user.get_id() if current_user.is_authenticated else None
         ),
+        session_id=session.get('sid_s')
     )
 
 

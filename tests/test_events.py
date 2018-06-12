@@ -143,6 +143,7 @@ def test_anonymise_user(app, mock_user_ctx, request_headers, objects):
     assert 'user_id' not in event
     assert 'user_agent' not in event
     assert 'ip_address' not in event
+    assert 'session_id' not in event
     assert event['visitor_id'] == \
         '78d8045d684abd2eece923758f3cd781489df3a48e1278982466017f'
 
