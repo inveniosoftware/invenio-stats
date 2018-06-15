@@ -32,12 +32,12 @@ from time import mktime
 
 import arrow
 import elasticsearch
+from counter_robots import is_machine, is_robot
 from dateutil import parser
 from invenio_db import db
 from invenio_files_rest.models import FileInstance
 from invenio_search import current_search_client
 from pytz import utc
-from robot_detection import is_robot
 
 from .utils import get_geoip, obj_or_import_string
 
@@ -105,6 +105,12 @@ def anonymize_user(doc):
 def flag_robots(doc):
     """Flag events which are created by robots."""
     doc['is_robot'] = 'user_agent' in doc and is_robot(doc['user_agent'])
+    return doc
+
+
+def flag_machines(doc):
+    """Flag events which are created by machines."""
+    doc['is_machine'] = 'user_agent' in doc and is_machine(doc['user_agent'])
     return doc
 
 

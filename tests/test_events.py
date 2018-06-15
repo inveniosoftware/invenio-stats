@@ -30,7 +30,7 @@ from mock import patch
 from invenio_stats.contrib.event_builders import build_file_unique_id, \
     file_download_event_builder
 from invenio_stats.processors import EventsIndexer, anonymize_user, \
-    flag_robots, hash_id
+    flag_machines, flag_robots, hash_id
 from invenio_stats.proxies import current_stats
 from invenio_stats.tasks import process_events
 
@@ -156,7 +156,20 @@ def test_flag_robots(app, mock_user_ctx, request_headers, objects):
         return flag_robots(event)
 
     assert build_event(request_headers['user'])['is_robot'] is False
+    assert build_event(request_headers['machine'])['is_robot'] is False
     assert build_event(request_headers['robot'])['is_robot'] is True
+
+
+def test_flag_machines(app, mock_user_ctx, request_headers, objects):
+    """Test machines preprocessor."""
+    def build_event(headers):
+        with app.test_request_context(headers=headers):
+            event = file_download_event_builder({}, app, objects[0])
+        return flag_machines(event)
+
+    assert build_event(request_headers['user'])['is_machine'] is False
+    assert build_event(request_headers['robot'])['is_machine'] is False
+    assert build_event(request_headers['machine'])['is_machine'] is True
 
 
 def test_double_clicks(app, mock_event_queue, es):

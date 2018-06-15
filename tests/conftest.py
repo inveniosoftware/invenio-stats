@@ -417,7 +417,8 @@ def request_headers():
               'Mozilla/5.0 (Windows NT 6.1; WOW64) '
               'AppleWebKit/537.36 (KHTML, like Gecko)'
               'Chrome/45.0.2454.101 Safari/537.36'},
-        robot={'USER_AGENT': 'googlebot'}
+        robot={'USER_AGENT': 'googlebot'},
+        machine={'USER_AGENT': 'Wget/1.14 (linux-gnu)'}
     )
 
 
