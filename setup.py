@@ -82,13 +82,13 @@ setup_requires = [
 
 install_requires = [
     'arrow>=0.7.0',
+    'counter-robots>=2018.6a1',
     'Flask>=0.11.1',
     'invenio-files-rest>=1.0.0a16',
     'invenio-queues>=1.0.0a1',
     'python-geoip>=1.2',
     'maxminddb-geolite2>=2017.0404',
     # 'python-geoip-geolite2>=2015.0303',
-    'robot-detection>=0.4',
     'python-dateutil>=2.6.1',
 ]
 
