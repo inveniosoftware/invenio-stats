@@ -1,8 +1,8 @@
 ========================
- Invenio-Stats v1.0.0a8
+ Invenio-Stats v1.0.0a9
 ========================
 
-Invenio-Stats v1.0.0a8 was released on December 11, 2017.
+Invenio-Stats v1.0.0a9 was released on June 15, 2018.
 
 About
 -----
@@ -19,7 +19,7 @@ What's new
 Installation
 ------------
 
-   $ pip install invenio-stats==1.0.0a8
+   $ pip install invenio-stats==1.0.0a9
 
 Documentation
 -------------
