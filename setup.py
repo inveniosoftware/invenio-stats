@@ -82,7 +82,7 @@ setup_requires = [
 
 install_requires = [
     'arrow>=0.7.0',
-    'counter-robots>=2018.6a1',
+    'counter-robots>=2018.6',
     'Flask>=0.11.1',
     'invenio-files-rest>=1.0.0a16',
     'invenio-queues>=1.0.0a1',
