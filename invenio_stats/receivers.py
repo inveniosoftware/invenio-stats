@@ -45,8 +45,9 @@ class EventEmmiter(object):
             event = {}
             for builder in self.builders:
                 event = builder(event, *args, **kwargs)
-            if event:
-                current_stats.publish(self.name, [event])
+                if event is None:
+                    return
+            current_stats.publish(self.name, [event])
 
     def __repr__(self):
         """Repr."""
