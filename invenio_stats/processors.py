@@ -84,10 +84,10 @@ def anonymize_user(doc):
         pass
 
     unique_session_id = hashlib.sha224()
-    if user_id is not None:
+    if user_id:
         sid = '{}|{}'.format(user_id, timeslice)
         unique_session_id.update(sid.encode('utf-8'))
-    elif session_id is not None:
+    elif session_id:
         sid = '{}|{}'.format(session_id, timeslice)
         unique_session_id.update(sid.encode('utf-8'))
     elif ip and user_agent:
