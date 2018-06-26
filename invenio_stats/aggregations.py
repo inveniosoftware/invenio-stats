@@ -71,6 +71,7 @@ class StatAggregator(object):
 
     def __init__(self, event, client=None,
                  aggregation_field=None,
+                 metric_aggregation_fields=None,
                  copy_fields=None,
                  query_modifiers=None,
                  aggregation_interval='month',
@@ -80,6 +81,10 @@ class StatAggregator(object):
         :param event: aggregated event.
         :param client: elasticsearch client.
         :param aggregation_field: field on which the aggregation will be done.
+        :param metric_aggregation_fields: dictionary of fields on which a
+            metric aggregation will be included. The format of the  The keys of
+            the dictionary will be the destination name of the metric value,
+        :param metric
         :param copy_fields: list of fields which are copied from the raw events
             into the aggregation.
         :param query_modifiers: list of functions modifying the raw events
@@ -95,6 +100,15 @@ class StatAggregator(object):
         self.event = event
         self.aggregation_alias = 'stats-{}'.format(self.event)
         self.aggregation_field = aggregation_field
+        self.metric_aggregation_fields = metric_aggregation_fields
+        self.allowed_metrics = {
+            'cardinality', 'min', 'max', 'avg', 'sum', 'extended_stats',
+            'geo_centroid', 'percentiles', 'stats'}
+        if any(v not in self.allowed_metrics
+               for k, (v, _) in (metric_aggregation_fields or {}).items()):
+            raise(ValueError('Metric aggregation type should be one of [{}]'
+                             .format(', '.join(self.allowed_metrics))))
+
         self.copy_fields = copy_fields or {}
         self.aggregation_interval = aggregation_interval
         self.index_interval = index_interval
@@ -204,6 +218,9 @@ class StatAggregator(object):
         top = terms.metric(
             'top_hit', 'top_hits', size=1, sort={'timestamp': 'desc'}
         )
+        if self.metric_aggregation_fields:
+            for dst, (metric, field) in self.metric_aggregation_fields.items():
+                terms.metric(dst, metric, field=field)
 
         results = self.agg_query.execute()
         index_name = None
@@ -214,6 +231,10 @@ class StatAggregator(object):
                 aggregation_data['timestamp'] = interval_date.isoformat()
                 aggregation_data[self.aggregation_field] = aggregation['key']
                 aggregation_data['count'] = aggregation['doc_count']
+
+                if self.metric_aggregation_fields:
+                    for f in self.metric_aggregation_fields:
+                        aggregation_data[f] = aggregation[f]['value']
 
                 doc = aggregation.top_hit.hits.hits[0]['_source']
                 for destination, source in self.copy_fields.items():

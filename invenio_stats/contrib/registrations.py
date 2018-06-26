@@ -65,7 +65,28 @@ def register_aggregations():
                 file_key='file_key',
                 bucket_id='bucket_id',
                 file_id='file_id',
-            )
+            ),
+            metric_aggregation_fields={
+                'unique_count': ('cardinality', 'unique_session_id'),
+                'volume': ('sum', 'size'),
+            },
+        )), dict(
+        aggregation_name='record-view-agg',
+        templates='invenio_stats.contrib.aggregations.aggr_record_view',
+        aggregator_class=StatAggregator,
+        aggregator_config=dict(
+            client=current_search_client,
+            event='record-view',
+            aggregation_field='unique_id',
+            aggregation_interval='day',
+            copy_fields=dict(
+                record_id='record_id',
+                pid_type='pid_type',
+                pid_value='pid_value',
+            ),
+            metric_aggregation_fields={
+                'unique_count': ('cardinality', 'unique_session_id'),
+            },
         ))]
 
 
