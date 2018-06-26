@@ -37,6 +37,14 @@
           "type": "integer",
           "index": "not_analyzed"
         },
+        "unique_count": {
+          "type": "integer",
+          "index": "not_analyzed"
+        },
+        "volume": {
+          "type": "double",
+          "index": "not_analyzed"
+        },
         "file_id": {
           "type": "string",
           "index": "not_analyzed"
