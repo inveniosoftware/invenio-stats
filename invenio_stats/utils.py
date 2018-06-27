@@ -36,10 +36,8 @@ from werkzeug.utils import import_string
 def get_geoip(ip):
     """Lookup country for IP address."""
     reader = geolite2.reader()
-    ip_data = reader.get(ip)
-    if ip_data is not None:
-        return dict(country=ip_data['country'])
-    return {}
+    ip_data = reader.get(ip) or {}
+    return ip_data.get('country', {}).get('iso_code')
 
 
 def get_user():

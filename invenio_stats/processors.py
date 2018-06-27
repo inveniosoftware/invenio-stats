@@ -57,7 +57,7 @@ def anonymize_user(doc):
     """Preprocess an event by anonymizing user information."""
     ip = doc.pop('ip_address', None)
     if ip:
-        doc.update(get_geoip(ip))
+        doc.update({'country': get_geoip(ip)})
 
     user_id = doc.pop('user_id', '')
     session_id = doc.pop('session_id', '')
