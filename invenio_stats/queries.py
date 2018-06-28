@@ -234,8 +234,8 @@ class ESTermsQuery(ESQuery):
 
         term_agg = agg_query.aggs
         for term in self.aggregated_fields:
-            term_agg = term_agg.bucket(term, 'terms', field=term, size=0)
-        term_agg.metric('total', 'sum', field='count')
+            last_level_agg = term_agg.bucket(term, 'terms', field=term, size=0)
+        last_level_agg.metric('total', 'sum', field='count')
 
         if self.copy_fields:
             term_agg.metric(
