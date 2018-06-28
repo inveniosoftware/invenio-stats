@@ -82,7 +82,7 @@ class ESDateHistogramQuery(ESQuery):
     """Allowed intervals for the histogram aggregation."""
 
     def __init__(self, time_field='timestamp', copy_fields=None,
-                 required_filters=None, *args, **kwargs):
+                 required_filters=None, metric_fields=None, *args, **kwargs):
         """Constructor.
 
         :param time_field: name of the timestamp field.
@@ -90,11 +90,14 @@ class ESDateHistogramQuery(ESQuery):
             into the resulting aggregation item.
         :param required_filters: Dict of "mandatory query parameter" ->
             "filtered field".
+        :param metric_fields: Dict of "destination field" ->
+            tuple("metric type", "traget field").
         """
         super(ESDateHistogramQuery, self).__init__(*args, **kwargs)
         self.time_field = time_field
         self.copy_fields = copy_fields or dict()
         self.required_filters = required_filters or {}
+        self.metric_fields = metric_fields or {}
 
     def validate_arguments(self, interval, start_date, end_date, **kwargs):
         """Validate query arguments."""
@@ -131,6 +134,9 @@ class ESDateHistogramQuery(ESQuery):
         )
         hist_agg.metric('total', 'sum', field='count')
 
+        for destination, (metric, field) in self.metric_fields.items():
+            hist_agg.metric(destination, metric, field=field)
+
         if self.copy_fields:
             hist_agg.metric(
                 'top_hit', 'top_hits', size=1, sort={'timestamp': 'desc'}
@@ -161,6 +167,10 @@ class ESDateHistogramQuery(ESQuery):
                             result,
                             doc
                         )
+            if self.metric_fields:
+                for destination in self.metric_fields:
+                    result[destination] = agg[destination]['value']
+
             return result
         return dict(
             type='bucket',
@@ -190,7 +200,7 @@ class ESTermsQuery(ESQuery):
 
     def __init__(self, time_field='timestamp', copy_fields=None,
                  required_filters=None, aggregated_fields=None,
-                 *args, **kwargs):
+                 metric_fields=None, *args, **kwargs):
         """Constructor.
 
         :param time_field: name of the timestamp field.
@@ -200,12 +210,15 @@ class ESTermsQuery(ESQuery):
             "filtered field".
         :param aggregated_fields: List of fields which will be used in the
             terms aggregations.
+        :param metric_fields: Dict of "destination field" ->
+            tuple("metric type", "traget field").
         """
         super(ESTermsQuery, self).__init__(*args, **kwargs)
         self.time_field = time_field
         self.copy_fields = copy_fields or dict()
         self.required_filters = required_filters or {}
         self.aggregated_fields = aggregated_fields or []
+        self.metric_fields = metric_fields or {}
         assert len(self.aggregated_fields) > 0
 
     def validate_arguments(self, start_date, end_date, **kwargs):
@@ -236,6 +249,9 @@ class ESTermsQuery(ESQuery):
         for term in self.aggregated_fields:
             last_level_agg = term_agg.bucket(term, 'terms', field=term, size=0)
         last_level_agg.metric('total', 'sum', field='count')
+
+        for destination, (metric, field) in self.metric_fields.items():
+            term_agg.metric(destination, metric, field=field)
 
         if self.copy_fields:
             term_agg.metric(
@@ -280,6 +296,9 @@ class ESTermsQuery(ESQuery):
                                 res,
                                 doc
                             )
+                if self.metric_fields:
+                    for destination in self.metric_fields:
+                        result[destination] = agg[destination]['value']
             return res
 
         return build_buckets(result['aggregations'], self.aggregated_fields,
