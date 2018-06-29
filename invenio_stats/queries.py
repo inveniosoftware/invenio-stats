@@ -51,12 +51,7 @@ class ESQuery(object):
         self.query_name = query_name
         self.doc_type = doc_type
 
-    def run(self, *args, **kwargs):
-        """Run the query."""
-        raise NotImplementedError()
-
-
-def extract_date(date):
+    def extract_date(self, date):
     """Extract date from string if necessary.
 
     :returns: the extracted date.
@@ -73,6 +68,10 @@ def extract_date(date):
             'Invalid date type for statistic {}.'
         ).format(self.query_name)
     return date
+
+    def run(self, *args, **kwargs):
+        """Run the query."""
+        raise NotImplementedError()
 
 
 class ESDateHistogramQuery(ESQuery):
@@ -191,8 +190,8 @@ class ESDateHistogramQuery(ESQuery):
     def run(self, interval='day', start_date=None,
             end_date=None, **kwargs):
         """Run the query."""
-        start_date = extract_date(start_date) if start_date else None
-        end_date = extract_date(end_date) if end_date else None
+        start_date = self.extract_date(start_date) if start_date else None
+        end_date = self.extract_date(end_date) if end_date else None
         self.validate_arguments(interval, start_date, end_date, **kwargs)
 
         agg_query = self.build_query(interval, start_date,
@@ -316,8 +315,8 @@ class ESTermsQuery(ESQuery):
 
     def run(self, start_date=None, end_date=None, **kwargs):
         """Run the query."""
-        start_date = extract_date(start_date) if start_date else None
-        end_date = extract_date(end_date) if end_date else None
+        start_date = self.extract_date(start_date) if start_date else None
+        end_date = self.extract_date(end_date) if end_date else None
         self.validate_arguments(start_date, end_date, **kwargs)
 
         agg_query = self.build_query(start_date, end_date, **kwargs)
