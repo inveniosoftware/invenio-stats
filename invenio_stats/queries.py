@@ -82,20 +82,25 @@ class ESDateHistogramQuery(ESQuery):
     """Allowed intervals for the histogram aggregation."""
 
     def __init__(self, time_field='timestamp', copy_fields=None,
-                 required_filters=None, metric_fields=None, *args, **kwargs):
+                 query_modifiers=None, required_filters=None,
+                 metric_fields=None, *args, **kwargs):
         """Constructor.
 
         :param time_field: name of the timestamp field.
         :param copy_fields: list of fields to copy from the top hit document
             into the resulting aggregation item.
+        :param query_modifiers: List of functions accepting a ``query`` and
+            ``**kwargs`` (same as provided to the ``run`` method), that will
+            be applied to the aggregation query.
         :param required_filters: Dict of "mandatory query parameter" ->
             "filtered field".
         :param metric_fields: Dict of "destination field" ->
-            tuple("metric type", "traget field").
+            tuple("metric type", "source field").
         """
         super(ESDateHistogramQuery, self).__init__(*args, **kwargs)
         self.time_field = time_field
-        self.copy_fields = copy_fields or dict()
+        self.copy_fields = copy_fields or {}
+        self.query_modifiers = query_modifiers or []
         self.required_filters = required_filters or {}
         self.metric_fields = metric_fields or {}
 
@@ -105,7 +110,7 @@ class ESDateHistogramQuery(ESQuery):
             raise InvalidRequestInputError(
                 'Invalid aggregation time interval for statistic {}.'
             ).format(self.query_name)
-        if kwargs.keys() != self.required_filters.keys():
+        if set(kwargs) < set(self.required_filters):
             raise InvalidRequestInputError(
                 'Missing one of the required parameters {0} in '
                 'query {1}'.format(set(self.required_filters.keys()),
@@ -126,7 +131,10 @@ class ESDateHistogramQuery(ESQuery):
             agg_query = agg_query.filter(
                 'range',
                 **{self.time_field: time_range})
-        hist_agg = agg_query.aggs.bucket(
+
+        for modifier in self.query_modifiers:
+            self.agg_query = modifier(self.agg_query, **kwargs)
+
             'histogram',
             'date_histogram',
             field=self.time_field,
@@ -199,23 +207,27 @@ class ESTermsQuery(ESQuery):
     """Elasticsearch sum query."""
 
     def __init__(self, time_field='timestamp', copy_fields=None,
-                 required_filters=None, aggregated_fields=None,
-                 metric_fields=None, *args, **kwargs):
+                 query_modifiers=None, required_filters=None,
+                 aggregated_fields=None, metric_fields=None, *args, **kwargs):
         """Constructor.
 
         :param time_field: name of the timestamp field.
         :param copy_fields: list of fields to copy from the top hit document
             into the resulting aggregation item.
+        :param query_modifiers: List of functions accepting a ``query`` and
+            ``**kwargs`` (same as provided to the ``run`` method), that will
+            be applied to the aggregation query.
         :param required_filters: Dict of "mandatory query parameter" ->
             "filtered field".
         :param aggregated_fields: List of fields which will be used in the
             terms aggregations.
         :param metric_fields: Dict of "destination field" ->
-            tuple("metric type", "traget field").
+            tuple("metric type", "source field").
         """
         super(ESTermsQuery, self).__init__(*args, **kwargs)
         self.time_field = time_field
-        self.copy_fields = copy_fields or dict()
+        self.copy_fields = copy_fields or {}
+        self.query_modifiers = query_modifiers or []
         self.required_filters = required_filters or {}
         self.aggregated_fields = aggregated_fields or []
         self.metric_fields = metric_fields or {}
@@ -223,7 +235,7 @@ class ESTermsQuery(ESQuery):
 
     def validate_arguments(self, start_date, end_date, **kwargs):
         """Validate query arguments."""
-        if kwargs.keys() != self.required_filters.keys():
+        if set(kwargs) < set(self.required_filters):
             raise InvalidRequestInputError(
                 'Missing one of the required parameters {0} in '
                 'query {1}'.format(set(self.required_filters.keys()),
@@ -245,10 +257,8 @@ class ESTermsQuery(ESQuery):
                 'range',
                 **{self.time_field: time_range})
 
-        term_agg = agg_query.aggs
-        for term in self.aggregated_fields:
-            last_level_agg = term_agg.bucket(term, 'terms', field=term, size=0)
-        last_level_agg.metric('total', 'sum', field='count')
+        for modifier in self.query_modifiers:
+            self.agg_query = modifier(self.agg_query, **kwargs)
 
         for destination, (metric, field) in self.metric_fields.items():
             term_agg.metric(destination, metric, field=field)
