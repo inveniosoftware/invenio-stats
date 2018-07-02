@@ -52,22 +52,22 @@ class ESQuery(object):
         self.doc_type = doc_type
 
     def extract_date(self, date):
-    """Extract date from string if necessary.
+        """Extract date from string if necessary.
 
-    :returns: the extracted date.
-    """
-    if isinstance(date, six.string_types):
-        try:
-            date = dateutil.parser.parse(date)
-        except ValueError:
-            raise ValueError(
-                'Invalid date format for statistic {}.'
+        :returns: the extracted date.
+        """
+        if isinstance(date, six.string_types):
+            try:
+                date = dateutil.parser.parse(date)
+            except ValueError:
+                raise ValueError(
+                    'Invalid date format for statistic {}.'
+                ).format(self.query_name)
+        if not isinstance(date, datetime):
+            raise TypeError(
+                'Invalid date type for statistic {}.'
             ).format(self.query_name)
-    if not isinstance(date, datetime):
-        raise TypeError(
-            'Invalid date type for statistic {}.'
-        ).format(self.query_name)
-    return date
+        return date
 
     def run(self, *args, **kwargs):
         """Run the query."""
@@ -87,7 +87,7 @@ class ESDateHistogramQuery(ESQuery):
 
         :param time_field: name of the timestamp field.
         :param copy_fields: list of fields to copy from the top hit document
-            into the resulting aggregation item.
+            into the resulting aggregation.
         :param query_modifiers: List of functions accepting a ``query`` and
             ``**kwargs`` (same as provided to the ``run`` method), that will
             be applied to the aggregation query.
@@ -101,7 +101,7 @@ class ESDateHistogramQuery(ESQuery):
         self.copy_fields = copy_fields or {}
         self.query_modifiers = query_modifiers or []
         self.required_filters = required_filters or {}
-        self.metric_fields = metric_fields or {}
+        self.metric_fields = metric_fields or {'value': ('sum', 'count')}
 
     def validate_arguments(self, interval, start_date, end_date, **kwargs):
         """Validate query arguments."""
@@ -134,18 +134,18 @@ class ESDateHistogramQuery(ESQuery):
         for modifier in self.query_modifiers:
             self.agg_query = modifier(self.agg_query, **kwargs)
 
+        base_agg = agg_query.aggs.bucket(
             'histogram',
             'date_histogram',
             field=self.time_field,
             interval=interval
         )
-        hist_agg.metric('total', 'sum', field='count')
 
         for destination, (metric, field) in self.metric_fields.items():
-            hist_agg.metric(destination, metric, field=field)
+            base_agg.metric(destination, metric, field=field)
 
         if self.copy_fields:
-            hist_agg.metric(
+            base_agg.metric(
                 'top_hit', 'top_hits', size=1, sort={'timestamp': 'desc'}
             )
 
@@ -157,34 +157,34 @@ class ESDateHistogramQuery(ESQuery):
 
         return agg_query
 
-    def process_query_result(self, result, interval, start_date, end_date):
+    def process_query_result(self, query_result, interval,
+                             start_date, end_date):
         """Build the result using the query result."""
-        def build_bucket(agg):
-            result = dict(
-                value=agg['total']['value'],
+        def build_buckets(agg):
+            """Build recursively result buckets."""
+            bucket_result = dict(
                 key=agg['key'],
+                date=agg['key_as_string'],
             )
+            for metric in self.metric_fields:
+                bucket_result[metric] = agg[metric]['value']
             if self.copy_fields and agg['top_hit']['hits']['hits']:
                 doc = agg['top_hit']['hits']['hits'][0]['_source']
                 for destination, source in self.copy_fields.items():
                     if isinstance(source, six.string_types):
-                        result[destination] = doc[source]
+                        bucket_result[destination] = doc[source]
                     else:
-                        result[destination] = source(
-                            result,
-                            doc
-                        )
-            if self.metric_fields:
-                for destination in self.metric_fields:
-                    result[destination] = agg[destination]['value']
+                        bucket_result[destination] = source(bucket_result, doc)
+            return bucket_result
 
-            return result
+        # Add copy_fields
+        buckets = query_result['aggregations']['histogram']['buckets']
         return dict(
-            type='bucket',
-            key_type='date',
             interval=interval,
-            buckets=list(map(build_bucket,
-                             result['aggregations']['histogram']['buckets']))
+            key_type='date',
+            start_date=start_date.isoformat(),
+            end_date=end_date.isoformat(),
+            buckets=[build_buckets(b) for b in buckets]
         )
 
     def run(self, interval='day', start_date=None,
@@ -212,7 +212,7 @@ class ESTermsQuery(ESQuery):
 
         :param time_field: name of the timestamp field.
         :param copy_fields: list of fields to copy from the top hit document
-            into the resulting aggregation item.
+            into the resulting aggregation.
         :param query_modifiers: List of functions accepting a ``query`` and
             ``**kwargs`` (same as provided to the ``run`` method), that will
             be applied to the aggregation query.
@@ -229,8 +229,7 @@ class ESTermsQuery(ESQuery):
         self.query_modifiers = query_modifiers or []
         self.required_filters = required_filters or {}
         self.aggregated_fields = aggregated_fields or []
-        self.metric_fields = metric_fields or {}
-        assert len(self.aggregated_fields) > 0
+        self.metric_fields = metric_fields or {'value': ('sum', 'count')}
 
     def validate_arguments(self, start_date, end_date, **kwargs):
         """Validate query arguments."""
@@ -259,11 +258,21 @@ class ESTermsQuery(ESQuery):
         for modifier in self.query_modifiers:
             self.agg_query = modifier(self.agg_query, **kwargs)
 
-        for destination, (metric, field) in self.metric_fields.items():
-            term_agg.metric(destination, metric, field=field)
+        base_agg = agg_query.aggs
+
+        def _apply_metric_aggs(agg):
+            for destination, (metric, field) in self.metric_fields.items():
+                agg.metric(destination, metric, field=field)
+
+        _apply_metric_aggs(base_agg)
+        if self.aggregated_fields:
+            cur_agg = base_agg
+            for term in self.aggregated_fields:
+                cur_agg = cur_agg.bucket(term, 'terms', field=term, size=0)
+                _apply_metric_aggs(cur_agg)
 
         if self.copy_fields:
-            term_agg.metric(
+            base_agg.metric(
                 'top_hit', 'top_hits', size=1, sort={'timestamp': 'desc'}
             )
 
@@ -275,43 +284,39 @@ class ESTermsQuery(ESQuery):
 
         return agg_query
 
-    def process_query_result(self, result, start_date, end_date):
+    def process_query_result(self, query_result, start_date, end_date):
         """Build the result using the query result."""
-        def build_buckets(agg, fields, res):
+        def build_buckets(agg, fields, bucket_result):
             """Build recursively result buckets."""
+            # Add metric results for current bucket
+            for metric in self.metric_fields:
+                bucket_result[metric] = agg[metric]['value']
             if fields:
-                field = fields[0]
-                res.update(
+                current_level = fields[0]
+                bucket_result.update(dict(
                     type='bucket',
-                    field=field,
+                    field=current_level,
                     key_type='terms',
-                    buckets=list(map(
-                        lambda sub: build_buckets(sub, fields[1:],
-                                                  dict(key=sub['key'])),
-                        agg[field]['buckets']))
-                )
-            else:
-                res.update(
-                    value=agg['total']['value'],
-                    key=agg['key'],
-                )
-                if self.copy_fields and agg['top_hit']['hits']['hits']:
-                    doc = agg['top_hit']['hits']['hits'][0]['_source']
-                    for destination, source in self.copy_fields.items():
-                        if isinstance(source, six.string_types):
-                            res[destination] = doc[source]
-                        else:
-                            res[destination] = source(
-                                res,
-                                doc
-                            )
-                if self.metric_fields:
-                    for destination in self.metric_fields:
-                        result[destination] = agg[destination]['value']
-            return res
+                    buckets=[build_buckets(b, fields[1:], dict(key=b['key']))
+                             for b in agg[current_level]['buckets']]
+                ))
+            return bucket_result
 
-        return build_buckets(result['aggregations'], self.aggregated_fields,
-                             dict())
+        # Add copy_fields
+        aggs = query_result['aggregations']
+        result = dict(
+            start_date=start_date.isoformat(),
+            end_date=end_date.isoformat(),
+        )
+        if self.copy_fields and aggs['top_hit']['hits']['hits']:
+            doc = aggs['top_hit']['hits']['hits'][0]['_source']
+            for destination, source in self.copy_fields.items():
+                if isinstance(source, six.string_types):
+                    result[destination] = doc[source]
+                else:
+                    result[destination] = source(result, doc)
+
+        return build_buckets(aggs, self.aggregated_fields, result)
 
     def run(self, start_date=None, end_date=None, **kwargs):
         """Run the query."""
