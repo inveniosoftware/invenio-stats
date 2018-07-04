@@ -132,7 +132,7 @@ class ESDateHistogramQuery(ESQuery):
                 **{self.time_field: time_range})
 
         for modifier in self.query_modifiers:
-            self.agg_query = modifier(self.agg_query, **kwargs)
+            agg_query = modifier(agg_query, **kwargs)
 
         base_agg = agg_query.aggs.bucket(
             'histogram',
@@ -182,8 +182,8 @@ class ESDateHistogramQuery(ESQuery):
         return dict(
             interval=interval,
             key_type='date',
-            start_date=start_date.isoformat(),
-            end_date=end_date.isoformat(),
+            start_date=start_date.isoformat() if start_date else None,
+            end_date=end_date.isoformat() if end_date else None,
             buckets=[build_buckets(b) for b in buckets]
         )
 
@@ -256,7 +256,7 @@ class ESTermsQuery(ESQuery):
                 **{self.time_field: time_range})
 
         for modifier in self.query_modifiers:
-            self.agg_query = modifier(self.agg_query, **kwargs)
+            agg_query = modifier(agg_query, **kwargs)
 
         base_agg = agg_query.aggs
 
@@ -305,8 +305,8 @@ class ESTermsQuery(ESQuery):
         # Add copy_fields
         aggs = query_result['aggregations']
         result = dict(
-            start_date=start_date.isoformat(),
-            end_date=end_date.isoformat(),
+            start_date=start_date.isoformat() if start_date else None,
+            end_date=end_date.isoformat() if end_date else None,
         )
         if self.copy_fields and aggs['top_hit']['hits']['hits']:
             doc = aggs['top_hit']['hits']['hits'][0]['_source']
