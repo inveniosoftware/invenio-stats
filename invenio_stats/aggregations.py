@@ -189,12 +189,11 @@ class StatAggregator(object):
                  _success_date(),
                  stats_only=True)
 
-    def agg_iter(self, lower_limit=None,
-                 upper_limit=datetime.datetime.utcnow().replace(microsecond=0).
-                 isoformat()):
+    def agg_iter(self, lower_limit=None, upper_limit=None):
         """Aggregate and return dictionary to be indexed in ES."""
-        if lower_limit is None:
-            lower_limit = self.get_bookmark().isoformat()
+        lower_limit = lower_limit or self.get_bookmark().isoformat()
+        upper_limit = upper_limit or (
+            datetime.datetime.utcnow().replace(microsecond=0).isoformat())
         aggregation_data = {}
 
         self.agg_query = Search(using=self.client,
@@ -261,21 +260,21 @@ class StatAggregator(object):
                            _source=aggregation_data)
         self.last_index_written = index_name
 
-    def run(self):
+    def run(self, start_date=None, end_date=None, update_bookmark=True):
         """Calculate statistics aggregations."""
         # If no events have been indexed there is nothing to aggregate
         if not Index(self.event_index, using=self.client).exists():
             return
-        lower_limit = self.get_bookmark()
+        lower_limit = start_date or self.get_bookmark()
         # Stop here if no bookmark could be estimated.
         if lower_limit is None:
             return
         upper_limit = min(
-            datetime.datetime.utcnow().
-            replace(microsecond=0),
-            datetime.datetime.combine(lower_limit +
-                                      datetime.timedelta(self.batch_size),
-                                      datetime.datetime.min.time())
+            end_date or datetime.datetime.max,  # ignore if `None`
+            datetime.datetime.utcnow().replace(microsecond=0),
+            datetime.datetime.combine(
+                lower_limit + datetime.timedelta(self.batch_size),
+                datetime.datetime.min.time())
         )
         while upper_limit <= datetime.datetime.utcnow():
             self.indices = set()
@@ -289,12 +288,14 @@ class StatAggregator(object):
                 index=','.join(self.indices),
                 wait_if_ongoing=True
             )
-            self.set_bookmark()
+            if update_bookmark:
+                self.set_bookmark()
             self.indices = set()
             lower_limit = lower_limit + datetime.timedelta(self.batch_size)
-            upper_limit = min(datetime.datetime.utcnow().
-                              replace(microsecond=0),
-                              lower_limit +
-                              datetime.timedelta(self.batch_size))
+            upper_limit = min(
+                end_date or datetime.datetime.max,  # ignore if `None``
+                datetime.datetime.utcnow().replace(microsecond=0),
+                lower_limit + datetime.timedelta(self.batch_size)
+            )
             if lower_limit > upper_limit:
                 break
