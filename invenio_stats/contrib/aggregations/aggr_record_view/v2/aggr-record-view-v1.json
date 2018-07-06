@@ -37,7 +37,7 @@
         }
       }
     },
-    "record-view-bookmark": {
+    "record-view-agg-bookmark": {
       "date_detection": false,
       "properties": {
         "date": {

@@ -62,7 +62,7 @@
         }
       }
     },
-    "file-download-bookmark": {
+    "file-download-agg-bookmark": {
       "date_detection": false,
       "properties": {
         "date": {
