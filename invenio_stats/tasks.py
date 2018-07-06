@@ -43,11 +43,12 @@ def process_events(event_types):
 
 
 @shared_task
-def aggregate_events(aggregations):
+def aggregate_events(aggregations, start_date=None, end_date=None,
+                     update_bookmark=True):
     """Aggregate indexed events."""
     results = []
     for a in aggregations:
         aggregator = current_stats.aggregations[a].aggregator_class(
             **current_stats.aggregations[a].aggregator_config)
-        results.append(aggregator.run())
+        results.append(aggregator.run(start_date, end_date, update_bookmark))
     return results
