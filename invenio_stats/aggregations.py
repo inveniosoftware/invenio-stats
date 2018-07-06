@@ -69,7 +69,7 @@ class StatAggregator(object):
     is used to aggregate new events without having to redo the old ones.
     """
 
-    def __init__(self, event, client=None,
+    def __init__(self, name, event, client=None,
                  aggregation_field=None,
                  metric_aggregation_fields=None,
                  copy_fields=None,
@@ -96,6 +96,7 @@ class StatAggregator(object):
             fetched in one query. This number has to be coherent with the
             aggregation_interval.
         """
+        self.name = name
         self.client = client or current_search_client
         self.event = event
         self.aggregation_alias = 'stats-{}'.format(self.event)

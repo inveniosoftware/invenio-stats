@@ -48,7 +48,8 @@ def aggregate_events(aggregations, start_date=None, end_date=None,
     """Aggregate indexed events."""
     results = []
     for a in aggregations:
-        aggregator = current_stats.aggregations[a].aggregator_class(
-            **current_stats.aggregations[a].aggregator_config)
+        aggr_cfg = current_stats.aggregations[a]
+        aggregator = aggr_cfg.aggregator_class(
+            name=aggr_cfg.name, **aggr_cfg.aggregator_config)
         results.append(aggregator.run(start_date, end_date, update_bookmark))
     return results
