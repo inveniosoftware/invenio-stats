@@ -116,6 +116,9 @@ setup(
     include_package_data=True,
     platforms='any',
     entry_points={
+        'flask.commands': [
+            'stats = invenio_stats.cli:stats',
+        ],
         'invenio_base.apps': [
             'invenio_stats = invenio_stats:InvenioStats',
         ],
