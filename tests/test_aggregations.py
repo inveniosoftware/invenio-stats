@@ -44,7 +44,7 @@ from invenio_stats.tasks import aggregate_events
 def test_wrong_intervals(app):
     """Test aggregation with aggregation_interval > index_interval."""
     with pytest.raises(ValueError):
-        StatAggregator(current_search_client, 'test',
+        StatAggregator('test-aggr-name', 'test', current_search_client,
                        aggregation_interval='month', index_interval='day')
 
 
@@ -59,7 +59,8 @@ def test_get_bookmark(app, indexed_events):
     """Test bookmark reading."""
     for t in current_search.put_templates(ignore=[400]):
         pass
-    stat_agg = StatAggregator(client=current_search_client,
+    stat_agg = StatAggregator(name='test-file-download',
+                              client=current_search_client,
                               event='file-download',
                               aggregation_field='file_id',
                               aggregation_interval='day')
@@ -149,7 +150,8 @@ def test_aggregation_without_events(app, es_with_templates):
     have been created yet.
     """
     # Aggregate events
-    StatAggregator(event='file-download',
+    StatAggregator(name='test-file-download',
+                   event='file-download',
                    aggregation_field='file_id',
                    aggregation_interval='day',
                    query_modifiers=[]).run()
@@ -163,7 +165,8 @@ def test_aggregation_without_events(app, es_with_templates):
     # Wait for the index to be available
     time.sleep(1)
     # Aggregate events
-    StatAggregator(event='file-download',
+    StatAggregator(name='test-file-download',
+                   event='file-download',
                    aggregation_field='file_id',
                    aggregation_interval='day',
                    query_modifiers=[]).run()
@@ -191,7 +194,8 @@ def test_bookmark_removal(app, es_with_templates, mock_event_queue):
 
     def aggregate_and_check_version(expected_version):
         # Aggregate events
-        StatAggregator(event='file-download',
+        StatAggregator(name='test-file-download',
+                       event='file-download',
                        aggregation_field='file_id',
                        aggregation_interval='day',
                        query_modifiers=[]).run()
@@ -254,7 +258,8 @@ def test_filter_robots(app, es, event_queues, indexed_events, with_robots):
     query_modifiers = []
     if not with_robots:
         query_modifiers = [filter_robots]
-    StatAggregator(client=current_search_client,
+    StatAggregator(name='test-file-download',
+                   client=current_search_client,
                    event='file-download',
                    aggregation_field='file_id',
                    aggregation_interval='day',

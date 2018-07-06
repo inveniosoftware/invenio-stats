@@ -129,7 +129,8 @@ class _InvenioStatsState(object):
     def aggregations(self):
         AggregationConfig = namedtuple(
             'AggregationConfig',
-            ['config', 'templates', 'aggregator_class', 'aggregator_config']
+            ['name', 'config', 'templates', 'aggregator_class',
+             'aggregator_config']
         )
         result = {}
         config = self._aggregations_config
@@ -141,6 +142,7 @@ class _InvenioStatsState(object):
 
         for cfg in config.values():
             result[cfg['aggregation_name']] = AggregationConfig(
+                name=cfg['aggregation_name'],
                 config=cfg,
                 templates=cfg['templates'],
                 aggregator_class=cfg['aggregator_class'],
