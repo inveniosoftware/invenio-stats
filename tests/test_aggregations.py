@@ -44,7 +44,7 @@ from invenio_stats.tasks import aggregate_events
 def test_wrong_intervals(app):
     """Test aggregation with aggregation_interval > index_interval."""
     with pytest.raises(ValueError):
-        StatAggregator('test-aggr-name', 'test', current_search_client,
+        StatAggregator('test-agg', 'test', current_search_client,
                        aggregation_interval='month', index_interval='day')
 
 
@@ -59,7 +59,7 @@ def test_get_bookmark(app, indexed_events):
     """Test bookmark reading."""
     for t in current_search.put_templates(ignore=[400]):
         pass
-    stat_agg = StatAggregator(name='test-file-download',
+    stat_agg = StatAggregator(name='file-download-agg',
                               client=current_search_client,
                               event='file-download',
                               aggregation_field='file_id',
@@ -150,7 +150,7 @@ def test_aggregation_without_events(app, es_with_templates):
     have been created yet.
     """
     # Aggregate events
-    StatAggregator(name='test-file-download',
+    StatAggregator(name='file-download-agg',
                    event='file-download',
                    aggregation_field='file_id',
                    aggregation_interval='day',
@@ -194,7 +194,7 @@ def test_bookmark_removal(app, es_with_templates, mock_event_queue):
 
     def aggregate_and_check_version(expected_version):
         # Aggregate events
-        StatAggregator(name='test-file-download',
+        StatAggregator(name='file-download-agg',
                        event='file-download',
                        aggregation_field='file_id',
                        aggregation_interval='day',
@@ -211,13 +211,14 @@ def test_bookmark_removal(app, es_with_templates, mock_event_queue):
     aggregate_and_check_version(1)
     aggregate_and_check_version(1)
     # Delete all bookmarks
-    bookmarks = Search(using=current_search_client,
-                       index='stats-file-download',
-                       doc_type='file-download-bookmark').query('match_all')
+    bookmarks = Search(
+        using=current_search_client,
+        index='stats-file-download',
+        doc_type='file-download-agg-bookmark').query('match_all')
     for bookmark in bookmarks:
         res = current_search_client.delete(
             index=bookmark.meta.index, id=bookmark.meta.id,
-            doc_type='file-download-bookmark'
+            doc_type='file-download-agg-bookmark'
         )
     current_search_client.indices.refresh(index='*')
     # the aggregations should have been overwritten
@@ -258,7 +259,7 @@ def test_filter_robots(app, es, event_queues, indexed_events, with_robots):
     query_modifiers = []
     if not with_robots:
         query_modifiers = [filter_robots]
-    StatAggregator(name='test-file-download',
+    StatAggregator(name='file-download-agg',
                    client=current_search_client,
                    event='file-download',
                    aggregation_field='file_id',

@@ -129,6 +129,17 @@ class StatAggregator(object):
         self.batch_size = batch_size
         self.event_index = 'events-stats-{}'.format(self.event)
 
+    @property
+    def bookmark_doc_type(self):
+        """Get document type for the aggregation's bookmark."""
+        return '{0}-bookmark'.format(self.name)
+
+    @property
+    def aggregation_doc_type(self):
+        """Get document type for the aggregation."""
+        return '{0}-{1}-aggregation'.format(
+            self.event, self.aggregation_interval)
+
     def _get_oldest_event_timestamp(self):
         """Search for the oldest event timestamp."""
         # Retrieve the oldest event in order to start aggregation
@@ -159,7 +170,7 @@ class StatAggregator(object):
         query_bookmark = Search(
             using=self.client,
             index=self.aggregation_alias,
-            doc_type='{0}-bookmark'.format(self.event)
+            doc_type=self.bookmark_doc_type
         )[0:1].sort(
             {'date': {'order': 'desc'}}
         )
@@ -183,7 +194,7 @@ class StatAggregator(object):
             }
 
             yield dict(_index=self.last_index_written,
-                       _type='{}-bookmark'.format(self.event),
+                       _type=self.bookmark_doc_type,
                        _source=bookmark)
         if self.last_index_written:
             bulk(self.client,
@@ -256,8 +267,7 @@ class StatAggregator(object):
                                   interval_date.strftime(
                                       self.doc_id_suffix)),
                            _index=index_name,
-                           _type='{0}-{1}-aggregation'.
-                           format(self.event, self.aggregation_interval),
+                           _type=self.aggregation_doc_type,
                            _source=aggregation_data)
         self.last_index_written = index_name
 
@@ -306,7 +316,7 @@ class StatAggregator(object):
         query = Search(
             using=self.client,
             index=self.aggregation_alias,
-            doc_type='{0}-bookmark'.format(self.event)
+            doc_type=self.bookmark_doc_type
         ).sort({'date': {'order': 'desc'}})
 
         range_args = {}
@@ -324,8 +334,7 @@ class StatAggregator(object):
         aggs_query = Search(
             using=self.client,
             index=self.aggregation_alias,
-            doc_type='{0}-{1}-aggregation'.format(
-                self.event, self.aggregation_interval)
+            doc_type=self.aggregation_doc_type
         ).extra(_source=False)
 
         range_args = {}
@@ -339,7 +348,7 @@ class StatAggregator(object):
         bookmarks_query = Search(
             using=self.client,
             index=self.aggregation_alias,
-            doc_type='{0}-bookmark'.format(self.event)
+            doc_type=self.bookmark_doc_type
         ).sort({'date': {'order': 'desc'}})
 
         if range_args:
