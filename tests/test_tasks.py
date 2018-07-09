@@ -26,10 +26,8 @@
 
 from __future__ import absolute_import, print_function
 
-from datetime import datetime
-
 from invenio_stats import current_stats
-from invenio_stats.tasks import aggregate_events, process_events
+from invenio_stats.tasks import process_events
 
 
 def test_process_events(app, es, event_queues):

@@ -29,31 +29,26 @@ from __future__ import absolute_import, print_function
 import datetime
 import os
 import shutil
-import sys
 import tempfile
 import uuid
 from contextlib import contextmanager
 from copy import deepcopy
-from random import randrange
 
 # imported to make sure that
 # login_oauth2_user(valid, oauth) is included
-import invenio_oauth2server.views.server
+import invenio_oauth2server.views.server  # noqa
 import pytest
-from elasticsearch.exceptions import RequestError
 from flask import Flask, appcontext_pushed, g
 from flask.cli import ScriptInfo
 from flask_celeryext import FlaskCeleryExt
-from flask_security import url_for_security
 from invenio_accounts import InvenioAccounts, InvenioAccountsREST
 from invenio_accounts.testutils import create_test_user
 from invenio_db import InvenioDB
 from invenio_db import db as db_
 from invenio_files_rest import InvenioFilesREST
 from invenio_files_rest.models import Bucket, Location, ObjectVersion
-from invenio_oauth2server import InvenioOAuth2Server, \
-    InvenioOAuth2ServerREST, current_oauth2server
-from invenio_oauth2server.models import Client, Token
+from invenio_oauth2server import InvenioOAuth2Server, InvenioOAuth2ServerREST
+from invenio_oauth2server.models import Token
 from invenio_pidstore import InvenioPIDStore
 from invenio_pidstore.minters import recid_minter
 from invenio_queues import InvenioQueues
@@ -62,7 +57,7 @@ from invenio_records import InvenioRecords
 from invenio_records.api import Record
 from invenio_search import InvenioSearch, current_search, current_search_client
 from kombu import Exchange
-from mock import MagicMock, Mock, patch
+from mock import Mock, patch
 from six import BytesIO
 from sqlalchemy_utils.functions import create_database, database_exists
 
@@ -70,9 +65,8 @@ from invenio_stats import InvenioStats
 from invenio_stats.contrib.event_builders import build_file_unique_id, \
     file_download_event_builder
 from invenio_stats.contrib.registrations import register_queries
-from invenio_stats.processors import EventsIndexer, anonymize_user, flag_robots
-from invenio_stats.tasks import aggregate_events, process_events
-from invenio_stats.utils import AllowAllPermission
+from invenio_stats.processors import EventsIndexer
+from invenio_stats.tasks import aggregate_events
 from invenio_stats.views import blueprint
 
 

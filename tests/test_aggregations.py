@@ -29,15 +29,12 @@ import time
 
 import pytest
 from conftest import _create_file_download_event
-from dateutil import parser
 from elasticsearch_dsl import Index, Search
-from invenio_queues.proxies import current_queues
 from invenio_search import current_search, current_search_client
 from mock import patch
 
 from invenio_stats.aggregations import StatAggregator, filter_robots
 from invenio_stats.processors import EventsIndexer
-from invenio_stats.proxies import current_stats
 from invenio_stats.tasks import aggregate_events
 
 

@@ -27,15 +27,9 @@
 import datetime
 
 import pytest
-from conftest import _create_file_download_event
-from invenio_queues.proxies import current_queues
-from invenio_search import current_search, current_search_client
 
-from invenio_stats.aggregations import StatAggregator
 from invenio_stats.contrib.registrations import register_queries
-from invenio_stats.proxies import current_stats
 from invenio_stats.queries import ESDateHistogramQuery, ESTermsQuery
-from invenio_stats.tasks import aggregate_events, process_events
 
 
 @pytest.mark.parametrize('aggregated_events',
