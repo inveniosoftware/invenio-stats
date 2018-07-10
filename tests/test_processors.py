@@ -28,6 +28,8 @@ from datetime import datetime
 
 import pytest
 from conftest import _create_file_download_event
+from elasticsearch_dsl import Search
+from helpers import get_queue_size
 from invenio_queues.proxies import current_queues
 from mock import patch
 
@@ -248,3 +250,52 @@ def test_double_clicks(app, mock_event_queue, es):
         index='events-stats-file-download-2000-06-01',
     )
     assert res['hits']['total'] == 2
+
+
+def test_failing_processors(app, event_queues, es_with_templates):
+    """Test events that raise an exception when processed."""
+    es = es_with_templates
+    search = Search(using=es)
+
+    current_queues.declare()
+    current_stats.publish(
+        'file-download',
+        [_create_file_download_event(date) for date in
+         [(2018, 1, 1), (2018, 1, 2), (2018, 1, 3), (2018, 1, 4)]])
+
+    def _raises_on_second_call(doc):
+        if _raises_on_second_call.calls == 1:
+            _raises_on_second_call.calls += 1
+            raise Exception('mocked-exception')
+        _raises_on_second_call.calls += 1
+        return doc
+    _raises_on_second_call.calls = 0
+
+    queue = current_queues.queues['stats-file-download']
+    indexer = EventsIndexer(queue, preprocessors=[_raises_on_second_call])
+
+    assert get_queue_size('stats-file-download') == 4
+    assert not es.indices.exists('events-stats-file-download-2018-01-01')
+    assert not es.indices.exists('events-stats-file-download-2018-01-02')
+    assert not es.indices.exists('events-stats-file-download-2018-01-03')
+    assert not es.indices.exists('events-stats-file-download-2018-01-04')
+    assert not es.indices.exists_alias(name='events-stats-file-download')
+
+    with pytest.raises(Exception, match='mocked-exception'):
+        indexer.run()  # 1st event indexed, 2nd raise exception and is dropped
+
+    es.indices.refresh(index='*')
+    assert get_queue_size('stats-file-download') == 2
+    assert not es.indices.exists('events-stats-file-download-2018-01-01')
+    assert not es.indices.exists('events-stats-file-download-2018-01-02')
+    assert not es.indices.exists('events-stats-file-download-2018-01-03')
+    assert not es.indices.exists('events-stats-file-download-2018-01-04')
+    assert not es.indices.exists_alias(name='events-stats-file-download')
+
+    indexer.run()  # 3rd and 4th events are indexed
+
+    es.indices.refresh(index='*')
+    assert get_queue_size('stats-file-download') == 0
+    assert search.index('events-stats-file-download').count() == 2
+    assert search.index('events-stats-file-download-2018-01-03').count() == 1
+    assert search.index('events-stats-file-download-2018-01-04').count() == 1
