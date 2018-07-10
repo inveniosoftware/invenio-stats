@@ -63,7 +63,7 @@ from sqlalchemy_utils.functions import create_database, database_exists
 
 from invenio_stats import InvenioStats
 from invenio_stats.contrib.event_builders import build_file_unique_id, \
-    file_download_event_builder
+    build_record_unique_id, file_download_event_builder
 from invenio_stats.contrib.registrations import register_queries
 from invenio_stats.processors import EventsIndexer
 from invenio_stats.tasks import aggregate_events
@@ -103,20 +103,26 @@ def event_entrypoints():
         data.append(entrypoint)
         result.append(conf)
 
-    # including file_download
-    event_type_name = 'file-download'
+    # including file-download
     from pkg_resources import EntryPoint
     entrypoint = EntryPoint('invenio_files_rest', 'test_dir')
-    conf = dict(event_type=event_type_name,
+    conf = dict(event_type='file-download',
                 templates='invenio_stats.contrib.file_download',
+                processor_class=EventsIndexer)
+    entrypoint.load = lambda conf=conf: (lambda: [conf])
+    data.append(entrypoint)
+
+    # including record-view
+    entrypoint = EntryPoint('invenio_records_ui', 'test_dir')
+    conf = dict(event_type='record-view',
+                templates='invenio_stats.contrib.record_view',
                 processor_class=EventsIndexer)
     entrypoint.load = lambda conf=conf: (lambda: [conf])
     data.append(entrypoint)
 
     entrypoints = mock_iter_entry_points_factory(data, 'invenio_stats.events')
 
-    with patch('invenio_stats.ext.iter_entry_points',
-               entrypoints):
+    with patch('invenio_stats.ext.iter_entry_points', entrypoints):
         yield result
 
 
@@ -197,7 +203,14 @@ def base_app():
     from invenio_stats.config import STATS_EVENTS
     instance_path = tempfile.mkdtemp()
     app_ = Flask('testapp', instance_path=instance_path)
-    stats_events = {'file-download': deepcopy(STATS_EVENTS['file-download'])}
+    stats_events = {
+        'file-download': deepcopy(STATS_EVENTS['file-download']),
+        'record-view': {
+            'signal': 'invenio_records_ui.signals.record_viewed',
+            'event_builders': ['invenio_stats.contrib.event_builders'
+                               '.record_view_event_builder']
+        }
+    }
     stats_events.update({'event_{}'.format(idx): {} for idx in range(5)})
     app_.config.update(dict(
         CELERY_ALWAYS_EAGER=True,
@@ -573,6 +586,23 @@ def _create_file_download_event(timestamp,
         visitor_id=100
     )
     return build_file_unique_id(doc)
+
+
+def _create_record_view_event(timestamp,
+                              record_id='R0000000000000000000000000000001',
+                              pid_type='recid',
+                              pid_value='1',
+                              visitor_id=100):
+    """Create a file_download event content."""
+    doc = dict(
+        timestamp=datetime.datetime(*timestamp).isoformat(),
+        # What:
+        record_id=record_id,
+        pid_type=pid_type,
+        pid_value=pid_value,
+        visitor_id=100
+    )
+    return build_record_unique_id(doc)
 
 
 @pytest.fixture()
