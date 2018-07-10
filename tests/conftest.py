@@ -575,7 +575,9 @@ def get_deleted_docs(index):
 def _create_file_download_event(timestamp,
                                 bucket_id='B0000000000000000000000000000001',
                                 file_id='F0000000000000000000000000000001',
-                                file_key='test.pdf', visitor_id=100):
+                                size=9000,
+                                file_key='test.pdf',
+                                visitor_id=100):
     """Create a file_download event content."""
     doc = dict(
         timestamp=datetime.datetime(*timestamp).isoformat(),
@@ -583,6 +585,7 @@ def _create_file_download_event(timestamp,
         bucket_id=str(bucket_id),
         file_id=str(file_id),
         file_key=file_key,
+        size=size,
         visitor_id=100
     )
     return build_file_unique_id(doc)

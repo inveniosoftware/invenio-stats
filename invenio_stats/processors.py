@@ -33,23 +33,10 @@ import arrow
 import elasticsearch
 from counter_robots import is_machine, is_robot
 from dateutil import parser
-from invenio_db import db
-from invenio_files_rest.models import FileInstance
 from invenio_search import current_search_client
 from pytz import utc
 
 from .utils import get_geoip, obj_or_import_string
-
-
-def include_size(doc):
-    """Add file size to an event."""
-    file_obj = db.session.query(FileInstance).filter(
-        FileInstance.id == doc.get('file_id')
-    )
-    size = file_obj.size if file_obj else None
-    doc.update(dict(
-        size=size
-    ))
 
 
 def anonymize_user(doc):
