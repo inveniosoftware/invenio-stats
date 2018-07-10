@@ -503,6 +503,7 @@ def generate_events(app, file_number=5, event_number=100, robot_event_number=0,
                         bucket_id=bucket_id,
                         file_id=file_id,
                         file_key='test.pdf',
+                        size=9000,
                         visitor_id=100,
                         is_robot=is_robot
                     )
@@ -586,7 +587,7 @@ def _create_file_download_event(timestamp,
         file_id=str(file_id),
         file_key=file_key,
         size=size,
-        visitor_id=100
+        visitor_id=visitor_id,
     )
     return build_file_unique_id(doc)
 
@@ -603,7 +604,7 @@ def _create_record_view_event(timestamp,
         record_id=record_id,
         pid_type=pid_type,
         pid_value=pid_value,
-        visitor_id=100
+        visitor_id=visitor_id,
     )
     return build_record_unique_id(doc)
 
