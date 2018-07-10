@@ -24,6 +24,7 @@
 
 """Events tests."""
 from invenio_queues.proxies import current_queues
+
 from invenio_stats.proxies import current_stats
 
 

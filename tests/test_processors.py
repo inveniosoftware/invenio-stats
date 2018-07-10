@@ -24,6 +24,11 @@
 
 """Event processor tests."""
 
+from datetime import datetime
+
+import pytest
+from conftest import _create_file_download_event
+from invenio_queues.proxies import current_queues
 from mock import patch
 
 from invenio_stats.contrib.event_builders import build_file_unique_id, \
@@ -34,17 +39,89 @@ from invenio_stats.proxies import current_stats
 from invenio_stats.tasks import process_events
 
 
-def test_anonymise_user(app, mock_user_ctx, request_headers, objects):
+@pytest.mark.parametrize(
+    ['ip_addess', 'user_id', 'session_id', 'user_agent', 'timestamp',
+     'exp_country', 'exp_visitor_id', 'exp_unique_session_id'],
+    [
+        # Minimal
+        ('131.169.180.47', None, None, None, datetime(2018, 1, 1, 12),
+         'DE',
+         'd14a028c2a3a2bc9476102bb288234c415a2b01f828ea62ac5b3e42f',
+         'd14a028c2a3a2bc9476102bb288234c415a2b01f828ea62ac5b3e42f'),
+        # User id
+        ('188.184.37.205', '100', None, None, datetime(2018, 1, 1, 12),
+         'CH',
+         '66348d03d012c50199bf8b45546ba5b405dcef3a0d4ed4a963c42327',
+         '821aa7364dd24d6026b3c3f41b625011dce665025ef43d91369021fb'),
+        # User id + session id + user agent, different IP address
+        ('23.22.39.120', '100', 'foo', 'bar', datetime(2018, 1, 1, 12),
+         'US',
+         '66348d03d012c50199bf8b45546ba5b405dcef3a0d4ed4a963c42327',
+         '821aa7364dd24d6026b3c3f41b625011dce665025ef43d91369021fb'),
+        # User id, different hour
+        ('23.22.39.120', '100', None, None, datetime(2018, 1, 1, 15),
+         'US',
+         '66348d03d012c50199bf8b45546ba5b405dcef3a0d4ed4a963c42327',
+         '8ed64a5456e354b94363e61a9c9463cdab3a2a726471d50d3db915b6'),
+        # User id, same hour different minute
+        ('23.22.39.120', '100', None, None, datetime(2018, 1, 1, 15, 30),
+         'US',
+         '66348d03d012c50199bf8b45546ba5b405dcef3a0d4ed4a963c42327',
+         '8ed64a5456e354b94363e61a9c9463cdab3a2a726471d50d3db915b6'),
+        # Session id
+        ('131.169.180.47', None, 'foo', None, datetime(2018, 1, 1, 12),
+         'DE',
+         '0808f64e60d58979fcb676c96ec938270dea42445aeefcd3a4e6f8db',
+         '3bfc63b1f73736586b287873f6c40b85189f288afa94814a8888bc33'),
+        # Session id + user agent
+        ('131.169.180.47', None, 'foo', 'bar', datetime(2018, 1, 1, 12),
+         'DE',
+         '0808f64e60d58979fcb676c96ec938270dea42445aeefcd3a4e6f8db',
+         '3bfc63b1f73736586b287873f6c40b85189f288afa94814a8888bc33'),
+        # Session id + user agent + different hour
+        ('131.169.180.47', None, 'foo', 'bar', datetime(2018, 1, 1, 15),
+         'DE',
+         '0808f64e60d58979fcb676c96ec938270dea42445aeefcd3a4e6f8db',
+         'c754dec5421b6b766f83efb0d8e9915e9b78d877a16e61c730c3d0b5'),
+        # User agent
+        ('188.184.37.205', None, None, 'bar', datetime(2018, 1, 1, 12),
+         'CH',
+         'd9fe787765ddca6931accfa840a7f9fe6081719810f5bc241b5e6670',
+         'd9fe787765ddca6931accfa840a7f9fe6081719810f5bc241b5e6670'),
+        # Differnet ip address
+        ('131.169.180.47', None, None, 'bar', datetime(2018, 1, 1, 12),
+         'DE',
+         '635e7978322f54cd01654d216712ecc795f0461773314918ac04aaf5',
+         '635e7978322f54cd01654d216712ecc795f0461773314918ac04aaf5'),
+        # Different hour
+        ('131.169.180.47', None, None, 'bar', datetime(2018, 1, 1, 15),
+         'DE',
+         'fb40d9579e73650f2e91485fad5e35757ca4fd63b1bbcd4837d0efe8',
+         'fb40d9579e73650f2e91485fad5e35757ca4fd63b1bbcd4837d0efe8'),
+        # No result ip address
+        ('0.0.0.0', None, None, None, datetime(2018, 1, 1, 12),
+         None,
+         'd14a028c2a3a2bc9476102bb288234c415a2b01f828ea62ac5b3e42f',
+         'd14a028c2a3a2bc9476102bb288234c415a2b01f828ea62ac5b3e42f'),
+    ]
+)
+def test_anonymize_user(ip_addess, user_id, session_id, user_agent, timestamp,
+                        exp_country, exp_visitor_id, exp_unique_session_id):
     """Test anonymize_user preprocessor."""
-    with app.test_request_context(headers=request_headers['user']):
-        event = file_download_event_builder({}, app, objects[0])
-    event = anonymize_user(event)
+    event = anonymize_user({
+        'ip_address': ip_addess,
+        'user_id': user_id,
+        'session_id': session_id,
+        'user_agent': user_agent,
+        'timestamp': timestamp.isoformat(),
+    })
     assert 'user_id' not in event
     assert 'user_agent' not in event
     assert 'ip_address' not in event
     assert 'session_id' not in event
-    assert event['visitor_id'] == \
-        '78d8045d684abd2eece923758f3cd781489df3a48e1278982466017f'
+    assert event['country'] == exp_country
+    assert event['visitor_id'] == exp_visitor_id
+    assert event['unique_session_id'] == exp_unique_session_id
 
 
 def test_flag_robots(app, mock_user_ctx, request_headers, objects):
@@ -69,6 +146,14 @@ def test_flag_machines(app, mock_user_ctx, request_headers, objects):
     assert build_event(request_headers['user'])['is_machine'] is False
     assert build_event(request_headers['robot'])['is_machine'] is False
     assert build_event(request_headers['machine'])['is_machine'] is True
+
+
+def test_referrer(app, mock_user_ctx, request_headers, objects):
+    """Test referrer header."""
+    request_headers['user']['REFERER'] = 'example.com'
+    with app.test_request_context(headers=request_headers['user']):
+        event = file_download_event_builder({}, app, objects[0])
+    assert event['referrer'] == 'example.com'
 
 
 def test_events_indexer_preprocessors(app, mock_event_queue):
