@@ -207,3 +207,33 @@ def test_aggregations_delete(script_info, event_queues, es, aggregated_events):
     assert agg_alias.doc_type('file-download-agg-bookmark').count() == 0
     assert agg_alias.doc_type('file-download-day-aggregation').count() == 0
     assert search.index('stats-file-download-2018-01').count() == 0
+
+
+@pytest.mark.parametrize('aggregated_events',
+                         [dict(file_number=1,
+                               event_number=1,
+                               robot_event_number=0,
+                               start_date=datetime.date(2018, 1, 1),
+                               end_date=datetime.date(2018, 1, 31))],
+                         indirect=['aggregated_events'])
+def test_aggregations_list_bookmarks(script_info, event_queues, es,
+                                     aggregated_events):
+    """Test "aggregations list-bookmarks" CLI command."""
+    search = Search(using=es)
+    runner = CliRunner()
+
+    es.indices.refresh(index='*')
+    agg_alias = search.index('stats-file-download')
+    assert agg_alias.count() == 36
+    assert agg_alias.doc_type('file-download-agg-bookmark').count() == 5
+    assert agg_alias.doc_type('file-download-day-aggregation').count() == 31
+    assert search.index('stats-file-download-2018-01').count() == 36
+
+    result = runner.invoke(
+        stats, ['aggregations', 'list-bookmarks', 'file-download-agg'],
+        obj=script_info)
+    assert result.exit_code == 0
+
+    bookmarks_query = agg_alias.doc_type('file-download-agg-bookmark')
+    bookmarks = [b.date for b in bookmarks_query.scan()]
+    assert all(b in result.output for b in bookmarks)
