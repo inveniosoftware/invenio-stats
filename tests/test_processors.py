@@ -24,6 +24,7 @@
 
 """Event processor tests."""
 
+import logging
 from datetime import datetime
 
 import pytest
@@ -252,7 +253,7 @@ def test_double_clicks(app, mock_event_queue, es):
     assert res['hits']['total'] == 2
 
 
-def test_failing_processors(app, event_queues, es_with_templates):
+def test_failing_processors(app, event_queues, es_with_templates, caplog):
     """Test events that raise an exception when processed."""
     es = es_with_templates
     search = Search(using=es)
@@ -281,21 +282,19 @@ def test_failing_processors(app, event_queues, es_with_templates):
     assert not es.indices.exists('events-stats-file-download-2018-01-04')
     assert not es.indices.exists_alias(name='events-stats-file-download')
 
-    with pytest.raises(Exception, match='mocked-exception'):
-        indexer.run()  # 1st event indexed, 2nd raise exception and is dropped
+    with caplog.at_level(logging.ERROR):
+        indexer.run()  # 2nd event raises exception and is dropped
 
-    es.indices.refresh(index='*')
-    assert get_queue_size('stats-file-download') == 2
-    assert not es.indices.exists('events-stats-file-download-2018-01-01')
-    assert not es.indices.exists('events-stats-file-download-2018-01-02')
-    assert not es.indices.exists('events-stats-file-download-2018-01-03')
-    assert not es.indices.exists('events-stats-file-download-2018-01-04')
-    assert not es.indices.exists_alias(name='events-stats-file-download')
-
-    indexer.run()  # 3rd and 4th events are indexed
+    # Check that the error was logged
+    error_logs = [r for r in caplog.records if r.levelno == logging.ERROR]
+    assert len(error_logs) == 1
+    assert error_logs[0].msg == 'Error while processing event'
+    assert error_logs[0].exc_info[1].args[0] == 'mocked-exception'
 
     es.indices.refresh(index='*')
     assert get_queue_size('stats-file-download') == 0
-    assert search.index('events-stats-file-download').count() == 2
+    assert search.index('events-stats-file-download').count() == 3
+    assert search.index('events-stats-file-download-2018-01-01').count() == 1
+    assert not es.indices.exists('events-stats-file-download-2018-01-02')
     assert search.index('events-stats-file-download-2018-01-03').count() == 1
     assert search.index('events-stats-file-download-2018-01-04').count() == 1
