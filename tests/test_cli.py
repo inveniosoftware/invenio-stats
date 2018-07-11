@@ -86,9 +86,9 @@ def test_events_process(script_info, event_queues, es_with_templates):
     current_stats.publish(
         'record-view', [_create_record_view_event((2018, 2, 1, 10))])
 
-    # Process all event types
+    # Process all event types via a celery task
     result = runner.invoke(
-        stats, ['events', 'process', '--eager'], obj=script_info)
+        stats, ['events', 'process'], obj=script_info)
     assert result.exit_code == 0
 
     es.indices.refresh(index='*')
@@ -148,10 +148,10 @@ def test_aggregations_process(script_info, event_queues, es, indexed_events):
     assert agg_alias.doc_type('file-download-day-aggregation').count() == 10
     assert search.index('stats-file-download-2018-01').count() == 12
 
-    # Run over all the events
+    # Run over all the events via celery task
     result = runner.invoke(
         stats, ['aggregations', 'process', 'file-download-agg',
-                '--eager', '--update-bookmark'],
+                '--update-bookmark'],
         obj=script_info)
     assert result.exit_code == 0
 
