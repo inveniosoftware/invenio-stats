@@ -119,6 +119,8 @@ class StatAggregator(object):
                                                 ('day', '%Y-%m-%d'),
                                                 ('month', '%Y-%m'),
                                                 ('year', '%Y')])
+        self.dt_rounding_map = {
+            'hour': 'h', 'day': 'd', 'month': 'M', 'year': 'y'}
         if list(self.supported_intervals.keys()).index(aggregation_interval) \
                 > \
                 list(self.supported_intervals.keys()).index(index_interval):
@@ -201,6 +203,13 @@ class StatAggregator(object):
                  _success_date(),
                  stats_only=True)
 
+    def _format_range_dt(self, d):
+        """Format range filter datetime to the closest aggregation interval."""
+        if not isinstance(d, six.string_types):
+            d = d.isoformat()
+        return '{0}||/{1}'.format(
+            d, self.dt_rounding_map[self.aggregation_interval])
+
     def agg_iter(self, lower_limit=None, upper_limit=None):
         """Aggregate and return dictionary to be indexed in ES."""
         lower_limit = lower_limit or self.get_bookmark().isoformat()
@@ -210,8 +219,9 @@ class StatAggregator(object):
 
         self.agg_query = Search(using=self.client,
                                 index=self.event_index).\
-            filter('range', timestamp={'gte': lower_limit,
-                                       'lte': upper_limit})
+            filter('range', timestamp={
+                'gte': self._format_range_dt(lower_limit),
+                'lte': self._format_range_dt(upper_limit)})
 
         # apply query modifiers
         for modifier in self.query_modifiers:
