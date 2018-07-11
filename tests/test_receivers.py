@@ -24,7 +24,10 @@
 
 """Signal receivers tests."""
 
+import logging
+
 from blinker import Namespace
+from helpers import get_queue_size
 from invenio_queues.proxies import current_queues
 
 from invenio_stats import InvenioStats
@@ -61,5 +64,39 @@ def test_register_receivers(base_app, event_entrypoints):
         # two events should have been created from the sent events. They should
         # have been both processed by the two event builders.
         assert events == [{'event_param1': 42, 'event_param2': 43}] * 2
+    finally:
+        current_queues.delete()
+
+
+def test_failing_receiver(base_app, event_entrypoints, caplog):
+    """Test failing signal receiver function."""
+    try:
+        _signals = Namespace()
+        my_signal = _signals.signal('my-signal')
+
+        def failing_event_builder(event, sender_app):
+            raise Exception('builder-exception')
+
+        base_app.config.update(dict(
+            STATS_EVENTS=dict(
+                event_0=dict(
+                    signal=my_signal,
+                    event_builders=[failing_event_builder]
+                )
+            )
+        ))
+        InvenioStats(base_app)
+        current_queues.declare()
+
+        with caplog.at_level(logging.ERROR):
+            my_signal.send(base_app)
+
+        error_logs = [r for r in caplog.records if r.levelno == logging.ERROR]
+        assert len(error_logs) == 1
+        assert error_logs[0].msg == 'Error building event'
+        assert error_logs[0].exc_info[1].args[0] == 'builder-exception'
+
+        # Check that no event was sent to the queue
+        assert get_queue_size('stats-event_0') == 0
     finally:
         current_queues.delete()

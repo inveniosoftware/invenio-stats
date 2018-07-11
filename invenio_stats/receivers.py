@@ -26,6 +26,8 @@
 
 from __future__ import absolute_import, print_function
 
+from flask import current_app
+
 from .proxies import current_stats
 from .utils import obj_or_import_string
 
@@ -41,13 +43,16 @@ class EventEmmiter(object):
     def __call__(self, *args, **kwargs):
         """Receive a signal and send an event."""
         # Send the event only if it is registered
-        if self.name in current_stats.events:
-            event = {}
-            for builder in self.builders:
-                event = builder(event, *args, **kwargs)
-                if event is None:
-                    return
-            current_stats.publish(self.name, [event])
+        try:
+            if self.name in current_stats.events:
+                event = {}
+                for builder in self.builders:
+                    event = builder(event, *args, **kwargs)
+                    if event is None:
+                        return
+                current_stats.publish(self.name, [event])
+        except Exception:
+            current_app.logger.exception(u'Error building event')
 
     def __repr__(self):
         """Repr."""
