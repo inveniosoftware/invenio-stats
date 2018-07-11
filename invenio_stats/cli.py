@@ -51,7 +51,8 @@ def _validate_event_type(ctx, param, value):
     if invalid_values:
         raise click.BadParameter(
             'Invalid event type(s): {}. Valid values: {}'.format(
-                invalid_values, set(current_stats.enabled_events)))
+                ', '.join(invalid_values),
+                ', '.join(current_stats.enabled_events)))
     return value
 
 
@@ -66,7 +67,8 @@ def _validate_aggregation_type(ctx, param, value):
     if invalid_values:
         raise click.BadParameter(
             'Invalid aggregation type(s): {}. Valid values: {}'.format(
-                invalid_values, set(current_stats.enabled_aggregations)))
+                ', '.join(invalid_values),
+                ', '.join(current_stats.enabled_aggregations)))
     return value
 
 
