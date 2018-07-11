@@ -161,3 +161,49 @@ def test_aggregations_process(script_info, event_queues, es, indexed_events):
     assert agg_alias.doc_type('file-download-day-aggregation').count() == 46
     assert search.index('stats-file-download-2018-01').count() == 36
     assert search.index('stats-file-download-2018-02').count() == 18
+
+
+@pytest.mark.parametrize('aggregated_events',
+                         [dict(file_number=1,
+                               event_number=1,
+                               robot_event_number=0,
+                               start_date=datetime.date(2018, 1, 1),
+                               end_date=datetime.date(2018, 1, 31))],
+                         indirect=['aggregated_events'])
+def test_aggregations_delete(script_info, event_queues, es, aggregated_events):
+    """Test "aggregations process" CLI command."""
+    search = Search(using=es)
+    runner = CliRunner()
+
+    es.indices.refresh(index='*')
+    agg_alias = search.index('stats-file-download')
+    assert agg_alias.count() == 36
+    assert agg_alias.doc_type('file-download-agg-bookmark').count() == 5
+    assert agg_alias.doc_type('file-download-day-aggregation').count() == 31
+    assert search.index('stats-file-download-2018-01').count() == 36
+
+    result = runner.invoke(
+        stats, ['aggregations', 'delete', 'file-download-agg',
+                '--start-date=2018-01-01', '--end-date=2018-01-10', '--yes'],
+        obj=script_info)
+    assert result.exit_code == 0
+
+    es.indices.refresh(index='*')
+    agg_alias = search.index('stats-file-download')
+    assert agg_alias.count() == 25
+    assert agg_alias.doc_type('file-download-agg-bookmark').count() == 4
+    assert agg_alias.doc_type('file-download-day-aggregation').count() == 21
+    assert search.index('stats-file-download-2018-01').count() == 25
+
+    # Delete all aggregations
+    result = runner.invoke(
+        stats, ['aggregations', 'delete', '--yes'],
+        obj=script_info)
+    assert result.exit_code == 0
+
+    es.indices.refresh(index='*')
+    agg_alias = search.index('stats-file-download')
+    assert agg_alias.count() == 0
+    assert agg_alias.doc_type('file-download-agg-bookmark').count() == 0
+    assert agg_alias.doc_type('file-download-day-aggregation').count() == 0
+    assert search.index('stats-file-download-2018-01').count() == 0
