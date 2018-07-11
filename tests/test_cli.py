@@ -24,6 +24,9 @@
 
 """CLI tests."""
 
+import datetime
+
+import pytest
 from click.testing import CliRunner
 from conftest import _create_file_download_event, _create_record_view_event
 from elasticsearch_dsl import Search
@@ -95,3 +98,66 @@ def test_events_process(script_info, event_queues, es_with_templates):
     assert search.index('events-stats-record-view-2018-01-01').count() == 3
     assert search.index('events-stats-record-view-2018-02-01').count() == 1
     assert search.index('events-stats-record-view').count() == 4
+
+
+@pytest.mark.parametrize('indexed_events',
+                         [dict(file_number=1,
+                               event_number=1,
+                               robot_event_number=0,
+                               start_date=datetime.date(2018, 1, 1),
+                               end_date=datetime.date(2018, 2, 15))],
+                         indirect=['indexed_events'])
+def test_aggregations_process(script_info, event_queues, es, indexed_events):
+    """Test "aggregations process" CLI command."""
+    search = Search(using=es)
+    runner = CliRunner()
+
+    # Invalid argument
+    result = runner.invoke(
+        stats, ['aggregations', 'process', 'invalid-aggr-type', '--eager'],
+        obj=script_info)
+    assert result.exit_code == 2
+    assert 'Invalid aggregation type(s):' in result.output
+
+    result = runner.invoke(
+        stats, ['aggregations', 'process', 'file-download-agg',
+                '--start-date=2018-01-01', '--end-date=2018-01-10',
+                '--eager'],
+        obj=script_info)
+    assert result.exit_code == 0
+
+    agg_alias = search.index('stats-file-download')
+
+    es.indices.refresh(index='*')
+    assert agg_alias.count() == 10
+    assert agg_alias.doc_type('file-download-agg-bookmark').count() == 0
+    assert agg_alias.doc_type('file-download-day-aggregation').count() == 10
+    assert search.index('stats-file-download-2018-01').count() == 10
+
+    # Run again over same period, but update the bookmark
+    result = runner.invoke(
+        stats, ['aggregations', 'process', 'file-download-agg',
+                '--start-date=2018-01-01', '--end-date=2018-01-10',
+                '--eager', '--update-bookmark'],
+        obj=script_info)
+    assert result.exit_code == 0
+
+    es.indices.refresh(index='*')
+    assert agg_alias.count() == 12
+    assert agg_alias.doc_type('file-download-agg-bookmark').count() == 2
+    assert agg_alias.doc_type('file-download-day-aggregation').count() == 10
+    assert search.index('stats-file-download-2018-01').count() == 12
+
+    # Run over all the events
+    result = runner.invoke(
+        stats, ['aggregations', 'process', 'file-download-agg',
+                '--eager', '--update-bookmark'],
+        obj=script_info)
+    assert result.exit_code == 0
+
+    es.indices.refresh(index='*')
+    assert agg_alias.count() == 54
+    assert agg_alias.doc_type('file-download-agg-bookmark').count() == 8
+    assert agg_alias.doc_type('file-download-day-aggregation').count() == 46
+    assert search.index('stats-file-download-2018-01').count() == 36
+    assert search.index('stats-file-download-2018-02').count() == 18
