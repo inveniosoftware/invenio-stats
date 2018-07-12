@@ -578,7 +578,8 @@ def _create_file_download_event(timestamp,
                                 file_id='F0000000000000000000000000000001',
                                 size=9000,
                                 file_key='test.pdf',
-                                visitor_id=100):
+                                visitor_id=100,
+                                user_id=None):
     """Create a file_download event content."""
     doc = dict(
         timestamp=datetime.datetime(*timestamp).isoformat(),
@@ -588,6 +589,7 @@ def _create_file_download_event(timestamp,
         file_key=file_key,
         size=size,
         visitor_id=visitor_id,
+        user_id=user_id,
     )
     return build_file_unique_id(doc)
 
@@ -596,7 +598,8 @@ def _create_record_view_event(timestamp,
                               record_id='R0000000000000000000000000000001',
                               pid_type='recid',
                               pid_value='1',
-                              visitor_id=100):
+                              visitor_id=100,
+                              user_id=None):
     """Create a file_download event content."""
     doc = dict(
         timestamp=datetime.datetime(*timestamp).isoformat(),
@@ -605,6 +608,7 @@ def _create_record_view_event(timestamp,
         pid_type=pid_type,
         pid_value=pid_value,
         visitor_id=visitor_id,
+        user_id=user_id,
     )
     return build_record_unique_id(doc)
 

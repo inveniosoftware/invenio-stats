@@ -33,9 +33,10 @@ from elasticsearch_dsl import Index, Search
 from invenio_search import current_search, current_search_client
 from mock import patch
 
+from invenio_stats import current_stats
 from invenio_stats.aggregations import StatAggregator, filter_robots
 from invenio_stats.processors import EventsIndexer
-from invenio_stats.tasks import aggregate_events
+from invenio_stats.tasks import aggregate_events, process_events
 
 
 def test_wrong_intervals(app):
@@ -273,3 +274,41 @@ def test_filter_robots(app, es, event_queues, indexed_events, with_robots):
     for result in results:
         if 'file_id' in result:
             assert result.count == (5 if with_robots else 2)
+
+
+def test_metric_aggregations(app, event_queues, es_with_templates):
+    """Test the filter_robots query modifier."""
+    es = es_with_templates
+    current_stats.publish(
+        'file-download',
+        [_create_file_download_event(date, user_id='1') for date in
+         [(2018, 1, 1, 12, 10), (2018, 1, 1, 12, 20), (2018, 1, 1, 12, 30),
+          (2018, 1, 1, 13, 10), (2018, 1, 1, 13, 20), (2018, 1, 1, 13, 30),
+          (2018, 1, 1, 14, 10), (2018, 1, 1, 14, 20), (2018, 1, 1, 14, 30),
+          (2018, 1, 1, 15, 10), (2018, 1, 1, 15, 20), (2018, 1, 1, 15, 30)]])
+    process_events(['file-download'])
+    es.indices.refresh(index='*')
+
+    StatAggregator(name='file-download-agg',
+                   client=current_search_client,
+                   event='file-download',
+                   aggregation_field='file_id',
+                   metric_aggregation_fields={
+                       'unique_count': ('cardinality', 'unique_session_id',
+                                        {'precision_threshold': 1000}),
+                       'volume': ('sum', 'size', {})
+                   },
+                   aggregation_interval='day').run()
+    es.indices.refresh(index='*')
+
+    query = Search(
+        using=current_search_client,
+        index='stats-file-download',
+        doc_type='file-download-day-aggregation'
+    )
+
+    results = query.execute()
+    assert len(results) == 1
+    assert results[0].count == 12  # 3 views over 4 differnet hour slices
+    assert results[0].unique_count == 4  # 4 different hour slices accessed
+    assert results[0].volume == 9000 * 12
