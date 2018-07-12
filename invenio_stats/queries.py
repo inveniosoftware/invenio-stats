@@ -94,14 +94,21 @@ class ESDateHistogramQuery(ESQuery):
         :param required_filters: Dict of "mandatory query parameter" ->
             "filtered field".
         :param metric_fields: Dict of "destination field" ->
-            tuple("metric type", "source field").
+            tuple("metric type", "source field", "metric_options").
         """
         super(ESDateHistogramQuery, self).__init__(*args, **kwargs)
         self.time_field = time_field
         self.copy_fields = copy_fields or {}
         self.query_modifiers = query_modifiers or []
         self.required_filters = required_filters or {}
-        self.metric_fields = metric_fields or {'value': ('sum', 'count')}
+        self.metric_fields = metric_fields or {'value': ('sum', 'count', {})}
+        self.allowed_metrics = {
+            'cardinality', 'min', 'max', 'avg', 'sum', 'extended_stats',
+            'geo_centroid', 'percentiles', 'stats'}
+        if any(v not in self.allowed_metrics
+               for k, (v, _, _) in (self.metric_fields or {}).items()):
+            raise(ValueError('Metric type should be one of [{}]'
+                             .format(', '.join(self.allowed_metrics))))
 
     def validate_arguments(self, interval, start_date, end_date, **kwargs):
         """Validate query arguments."""
@@ -141,8 +148,8 @@ class ESDateHistogramQuery(ESQuery):
             interval=interval
         )
 
-        for destination, (metric, field) in self.metric_fields.items():
-            base_agg.metric(destination, metric, field=field)
+        for destination, (metric, field, opts) in self.metric_fields.items():
+            base_agg.metric(destination, metric, field=field, **opts)
 
         if self.copy_fields:
             base_agg.metric(
@@ -229,7 +236,7 @@ class ESTermsQuery(ESQuery):
         self.query_modifiers = query_modifiers or []
         self.required_filters = required_filters or {}
         self.aggregated_fields = aggregated_fields or []
-        self.metric_fields = metric_fields or {'value': ('sum', 'count')}
+        self.metric_fields = metric_fields or {'value': ('sum', 'count', {})}
 
     def validate_arguments(self, start_date, end_date, **kwargs):
         """Validate query arguments."""
@@ -261,8 +268,8 @@ class ESTermsQuery(ESQuery):
         base_agg = agg_query.aggs
 
         def _apply_metric_aggs(agg):
-            for destination, (metric, field) in self.metric_fields.items():
-                agg.metric(destination, metric, field=field)
+            for dst, (metric, field, opts) in self.metric_fields.items():
+                agg.metric(dst, metric, field=field, **opts)
 
         _apply_metric_aggs(base_agg)
         if self.aggregated_fields:

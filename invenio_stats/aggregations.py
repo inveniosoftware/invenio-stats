@@ -82,9 +82,9 @@ class StatAggregator(object):
         :param client: elasticsearch client.
         :param aggregation_field: field on which the aggregation will be done.
         :param metric_aggregation_fields: dictionary of fields on which a
-            metric aggregation will be included. The format of the  The keys of
-            the dictionary will be the destination name of the metric value,
-        :param metric
+            metric aggregation will be computed. The format of the dictionary
+            is "destination field" ->
+                tuple("metric type", "source field", "metric_options").
         :param copy_fields: list of fields which are copied from the raw events
             into the aggregation.
         :param query_modifiers: list of functions modifying the raw events
@@ -101,12 +101,12 @@ class StatAggregator(object):
         self.event = event
         self.aggregation_alias = 'stats-{}'.format(self.event)
         self.aggregation_field = aggregation_field
-        self.metric_aggregation_fields = metric_aggregation_fields
+        self.metric_aggregation_fields = metric_aggregation_fields or {}
         self.allowed_metrics = {
             'cardinality', 'min', 'max', 'avg', 'sum', 'extended_stats',
             'geo_centroid', 'percentiles', 'stats'}
         if any(v not in self.allowed_metrics
-               for k, (v, _) in (metric_aggregation_fields or {}).items()):
+               for k, (v, _, _) in (metric_aggregation_fields or {}).items()):
             raise(ValueError('Metric aggregation type should be one of [{}]'
                              .format(', '.join(self.allowed_metrics))))
 
@@ -239,9 +239,8 @@ class StatAggregator(object):
         top = terms.metric(
             'top_hit', 'top_hits', size=1, sort={'timestamp': 'desc'}
         )
-        if self.metric_aggregation_fields:
-            for dst, (metric, field) in self.metric_aggregation_fields.items():
-                terms.metric(dst, metric, field=field)
+        for dst, (metric, src, opts) in self.metric_aggregation_fields.items():
+            terms.metric(dst, metric, field=src, **opts)
 
         results = self.agg_query.execute()
         index_name = None

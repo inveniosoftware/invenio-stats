@@ -75,8 +75,9 @@ def register_aggregations():
                 file_id='file_id',
             ),
             metric_aggregation_fields={
-                'unique_count': ('cardinality', 'unique_session_id'),
-                'volume': ('sum', 'size'),
+                'unique_count': ('cardinality', 'unique_session_id',
+                                 {'precision_threshold': 1000}),
+                'volume': ('sum', 'size', {}),
             },
         )), dict(
         aggregation_name='record-view-agg',
@@ -93,7 +94,8 @@ def register_aggregations():
                 pid_value='pid_value',
             ),
             metric_aggregation_fields={
-                'unique_count': ('cardinality', 'unique_session_id'),
+                'unique_count': ('cardinality', 'unique_session_id',
+                                 {'precision_threshold': 1000}),
             },
         ))]
 
