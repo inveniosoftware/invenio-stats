@@ -37,7 +37,7 @@ from flask import current_app
 from invenio_search import current_search_client
 from pytz import utc
 
-from .utils import get_geoip, obj_or_import_string
+from .utils import get_anonymization_salt, get_geoip, obj_or_import_string
 
 
 def anonymize_user(doc):
@@ -54,9 +54,11 @@ def anonymize_user(doc):
     # one hour. timeslice represents the hour of the day in which
     # the event has been generated and together with user info it determines
     # the 'User Session'
-    timeslice = arrow.get(doc.get('timestamp')).strftime('%Y%m%d%H')
+    timestamp = arrow.get(doc.get('timestamp'))
+    timeslice = timestamp.strftime('%Y%m%d%H')
+    salt = get_anonymization_salt(timestamp)
 
-    visitor_id = hashlib.sha224()
+    visitor_id = hashlib.sha224(salt.encode('utf-8'))
     # TODO: include random salt here, that changes once a day.
     # m.update(random_salt)
     if user_id:
@@ -70,7 +72,7 @@ def anonymize_user(doc):
         # TODO: add random data?
         pass
 
-    unique_session_id = hashlib.sha224()
+    unique_session_id = hashlib.sha224(salt.encode('utf-8'))
     if user_id:
         sid = '{}|{}'.format(user_id, timeslice)
         unique_session_id.update(sid.encode('utf-8'))

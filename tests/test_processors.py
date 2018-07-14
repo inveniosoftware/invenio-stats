@@ -49,66 +49,67 @@ from invenio_stats.tasks import process_events
         # Minimal
         ('131.169.180.47', None, None, None, datetime(2018, 1, 1, 12),
          'DE',
-         'd14a028c2a3a2bc9476102bb288234c415a2b01f828ea62ac5b3e42f',
-         'd14a028c2a3a2bc9476102bb288234c415a2b01f828ea62ac5b3e42f'),
+         '1850abef504ce64cb6b38fa60fe8f90aede1d2d2e9013735554af946',
+         '1850abef504ce64cb6b38fa60fe8f90aede1d2d2e9013735554af946'),
         # User id
         ('188.184.37.205', '100', None, None, datetime(2018, 1, 1, 12),
          'CH',
-         '66348d03d012c50199bf8b45546ba5b405dcef3a0d4ed4a963c42327',
-         '821aa7364dd24d6026b3c3f41b625011dce665025ef43d91369021fb'),
+         'eaf6a44a598ea63c659e6e46722e2d11d0d7487694ec504ade273b9d',
+         'c6b85f117cd0636a07f1cf250a30d86714ec45e55a1110441d1a9e2b'),
         # User id + session id + user agent, different IP address
         ('23.22.39.120', '100', 'foo', 'bar', datetime(2018, 1, 1, 12),
          'US',
-         '66348d03d012c50199bf8b45546ba5b405dcef3a0d4ed4a963c42327',
-         '821aa7364dd24d6026b3c3f41b625011dce665025ef43d91369021fb'),
+         'eaf6a44a598ea63c659e6e46722e2d11d0d7487694ec504ade273b9d',
+         'c6b85f117cd0636a07f1cf250a30d86714ec45e55a1110441d1a9e2b'),
         # User id, different hour
         ('23.22.39.120', '100', None, None, datetime(2018, 1, 1, 15),
          'US',
-         '66348d03d012c50199bf8b45546ba5b405dcef3a0d4ed4a963c42327',
-         '8ed64a5456e354b94363e61a9c9463cdab3a2a726471d50d3db915b6'),
+         'eaf6a44a598ea63c659e6e46722e2d11d0d7487694ec504ade273b9d',
+         '77536991d991e6e8251999fc6a8d78ec1be42847da3c8774221a03a0'),
         # User id, same hour different minute
         ('23.22.39.120', '100', None, None, datetime(2018, 1, 1, 15, 30),
          'US',
-         '66348d03d012c50199bf8b45546ba5b405dcef3a0d4ed4a963c42327',
-         '8ed64a5456e354b94363e61a9c9463cdab3a2a726471d50d3db915b6'),
+         'eaf6a44a598ea63c659e6e46722e2d11d0d7487694ec504ade273b9d',
+         '77536991d991e6e8251999fc6a8d78ec1be42847da3c8774221a03a0'),
         # Session id
         ('131.169.180.47', None, 'foo', None, datetime(2018, 1, 1, 12),
          'DE',
-         '0808f64e60d58979fcb676c96ec938270dea42445aeefcd3a4e6f8db',
-         '3bfc63b1f73736586b287873f6c40b85189f288afa94814a8888bc33'),
+         'a78cc092c88fb4d060a873217f2cd466c2776f672a99ee06317c2858',
+         'ca28702a6ece34d18c6f6498ef79d77492a6bd653ac886beb5018880'),
         # Session id + user agent
         ('131.169.180.47', None, 'foo', 'bar', datetime(2018, 1, 1, 12),
          'DE',
-         '0808f64e60d58979fcb676c96ec938270dea42445aeefcd3a4e6f8db',
-         '3bfc63b1f73736586b287873f6c40b85189f288afa94814a8888bc33'),
+         'a78cc092c88fb4d060a873217f2cd466c2776f672a99ee06317c2858',
+         'ca28702a6ece34d18c6f6498ef79d77492a6bd653ac886beb5018880'),
         # Session id + user agent + different hour
         ('131.169.180.47', None, 'foo', 'bar', datetime(2018, 1, 1, 15),
          'DE',
-         '0808f64e60d58979fcb676c96ec938270dea42445aeefcd3a4e6f8db',
-         'c754dec5421b6b766f83efb0d8e9915e9b78d877a16e61c730c3d0b5'),
+         'a78cc092c88fb4d060a873217f2cd466c2776f672a99ee06317c2858',
+         'ceb752c8b51c8c4a9c18a9d4404e9fb570fbf83195631ab3efb46b31'),
         # User agent
         ('188.184.37.205', None, None, 'bar', datetime(2018, 1, 1, 12),
          'CH',
-         'd9fe787765ddca6931accfa840a7f9fe6081719810f5bc241b5e6670',
-         'd9fe787765ddca6931accfa840a7f9fe6081719810f5bc241b5e6670'),
+         'e9c48686d21c21a9ee5b9eba58b1d86c9460272809b6de71649f6ce7',
+         'e9c48686d21c21a9ee5b9eba58b1d86c9460272809b6de71649f6ce7'),
         # Differnet ip address
         ('131.169.180.47', None, None, 'bar', datetime(2018, 1, 1, 12),
          'DE',
-         '635e7978322f54cd01654d216712ecc795f0461773314918ac04aaf5',
-         '635e7978322f54cd01654d216712ecc795f0461773314918ac04aaf5'),
+         '602e9bc738b422d5a19283e20fc31ec540a12d42b04ad7073d943fb2',
+         '602e9bc738b422d5a19283e20fc31ec540a12d42b04ad7073d943fb2'),
         # Different hour
         ('131.169.180.47', None, None, 'bar', datetime(2018, 1, 1, 15),
          'DE',
-         'fb40d9579e73650f2e91485fad5e35757ca4fd63b1bbcd4837d0efe8',
-         'fb40d9579e73650f2e91485fad5e35757ca4fd63b1bbcd4837d0efe8'),
+         '4b30c060f422f304b073759553d4161a14784e0ddcf57284f55d7cae',
+         '4b30c060f422f304b073759553d4161a14784e0ddcf57284f55d7cae'),
         # No result ip address
         ('0.0.0.0', None, None, None, datetime(2018, 1, 1, 12),
          None,
-         'd14a028c2a3a2bc9476102bb288234c415a2b01f828ea62ac5b3e42f',
-         'd14a028c2a3a2bc9476102bb288234c415a2b01f828ea62ac5b3e42f'),
+         '1850abef504ce64cb6b38fa60fe8f90aede1d2d2e9013735554af946',
+         '1850abef504ce64cb6b38fa60fe8f90aede1d2d2e9013735554af946'),
     ]
 )
-def test_anonymize_user(ip_addess, user_id, session_id, user_agent, timestamp,
+def test_anonymize_user(mock_anonymization_salt,
+                        ip_addess, user_id, session_id, user_agent, timestamp,
                         exp_country, exp_visitor_id, exp_unique_session_id):
     """Test anonymize_user preprocessor."""
     event = anonymize_user({
@@ -125,6 +126,31 @@ def test_anonymize_user(ip_addess, user_id, session_id, user_agent, timestamp,
     assert event['country'] == exp_country
     assert event['visitor_id'] == exp_visitor_id
     assert event['unique_session_id'] == exp_unique_session_id
+
+
+def test_anonymiation_salt(base_app):
+    """Test anonymization salt for different days."""
+    event = anonymize_user({
+        'ip_address': '131.169.180.47', 'user_id': '100',
+        'timestamp': datetime(2018, 1, 1, 12).isoformat(),
+    })
+    event_same_day = anonymize_user({
+        'ip_address': '131.169.180.47', 'user_id': '100',
+        'timestamp': datetime(2018, 1, 1, 21).isoformat(),
+    })
+    event_other_day = anonymize_user({
+        'ip_address': '131.169.180.47', 'user_id': '100',
+        'timestamp': datetime(2018, 1, 2, 12).isoformat(),
+    })
+
+    # Same user, same day -> identical visitor id
+    assert event['visitor_id'] == event_same_day['visitor_id']
+    # Same user, same day, different hour -> different unique session id
+    assert event['unique_session_id'] != event_same_day['unique_session_id']
+    # Same user, different day -> different visitor id
+    assert event['visitor_id'] != event_other_day['visitor_id']
+    # Same user, different day and hour -> different unique session id
+    assert event['unique_session_id'] != event_other_day['unique_session_id']
 
 
 def test_flag_robots(app, mock_user_ctx, request_headers, objects):

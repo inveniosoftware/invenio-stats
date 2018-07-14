@@ -43,6 +43,7 @@ from flask.cli import ScriptInfo
 from flask_celeryext import FlaskCeleryExt
 from invenio_accounts import InvenioAccounts, InvenioAccountsREST
 from invenio_accounts.testutils import create_test_user
+from invenio_cache import InvenioCache
 from invenio_db import InvenioDB
 from invenio_db import db as db_
 from invenio_files_rest import InvenioFilesREST
@@ -176,6 +177,14 @@ def query_entrypoints(custom_permission_factory):
         yield result
 
 
+@pytest.yield_fixture()
+def mock_anonymization_salt():
+    """Mock the "get_anonymization_salt" function."""
+    with patch('invenio_stats.processors.get_anonymization_salt',
+               return_value='test-salt'):
+        yield
+
+
 def date_range(start_date, end_date):
     """Get all dates in a given range."""
     if start_date >= end_date:
@@ -248,6 +257,7 @@ def base_app():
     InvenioRecords(app_)
     InvenioFilesREST(app_)
     InvenioPIDStore(app_)
+    InvenioCache(app_)
     InvenioQueues(app_)
     InvenioOAuth2Server(app_)
     InvenioOAuth2ServerREST(app_)

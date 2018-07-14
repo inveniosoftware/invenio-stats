@@ -38,7 +38,7 @@ python:
   - "3.5"
 
 services:
-  - redis
+  - redis-server
   - rabbitmq
 
 addons:
