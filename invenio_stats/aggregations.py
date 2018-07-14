@@ -330,9 +330,11 @@ class StatAggregator(object):
 
         range_args = {}
         if start_date:
-            range_args['gte'] = start_date.replace(microsecond=0).isoformat()
+            range_args['gte'] = self._format_range_dt(
+                start_date.replace(microsecond=0))
         if end_date:
-            range_args['lte'] = end_date.replace(microsecond=0).isoformat()
+            range_args['lte'] = self._format_range_dt(
+                end_date.replace(microsecond=0))
         if range_args:
             query = query.filter('range', date=range_args)
 
@@ -348,9 +350,11 @@ class StatAggregator(object):
 
         range_args = {}
         if start_date:
-            range_args['gte'] = start_date.replace(microsecond=0).isoformat()
+            range_args['gte'] = self._format_range_dt(
+                start_date.replace(microsecond=0))
         if end_date:
-            range_args['lte'] = end_date.replace(microsecond=0).isoformat()
+            range_args['lte'] = self._format_range_dt(
+                end_date.replace(microsecond=0))
         if range_args:
             aggs_query = aggs_query.filter('range', timestamp=range_args)
 
