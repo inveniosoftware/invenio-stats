@@ -54,10 +54,6 @@ class EventEmmiter(object):
         except Exception:
             current_app.logger.exception(u'Error building event')
 
-    def __repr__(self):
-        """Repr."""
-        return '<EventEmmiter: {} ({})>'.format(self.name, self.origin)
-
 
 def register_receivers(app, config):
     """Register signal receivers which send events."""
