@@ -18,10 +18,10 @@ history = open('CHANGES.rst').read()
 tests_require = [
     'check-manifest>=0.25',
     'coverage>=4.0',
-    'elasticsearch<5,>=2.0.0',
     'elasticsearch-dsl<5,>=2.0.0',
-    'invenio-db>=1.0.2',
+    'elasticsearch<5,>=2.0.0',
     'invenio-accounts>=1.0.1',
+    'invenio-db>=1.0.2',
     'invenio-oauth2server>=1.0.1',
     'invenio-records>=1.0.0',
     'isort>=4.2.15',
@@ -69,9 +69,9 @@ install_requires = [
     'invenio-cache>=1.0.0',
     'invenio-files-rest>=1.0.0a23',
     'invenio-queues>=1.0.0a1',
-    'python-geoip>=1.2',
     'maxminddb-geolite2>=2017.0404',
     'python-dateutil>=2.6.1',
+    'python-geoip>=1.2',
 ]
 
 packages = find_packages()
