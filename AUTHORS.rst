@@ -5,11 +5,11 @@
     Invenio is free software; you can redistribute it and/or modify it
     under the terms of the MIT License; see LICENSE file for more details.
 
+Contributors
+============
 
-
-Authors
-=======
-
-Invenio module for collecting statistics.
-
-- Lars Holm Nielsen <lars.holm.nielsen@cern.ch>
+- Alexander Ioannidis
+- Chiara Bigarella
+- Dinos Kousidis
+- Lars Holm Nielsen
+- Nicolas Harraudeau
