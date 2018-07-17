@@ -40,6 +40,12 @@ def _validate_event_type(ctx, param, value):
     return value
 
 
+def _verify_date(ctx, param, value):
+    if value:
+        dateutil_parse(value)
+        return value
+
+
 def _parse_date(ctx, param, value):
     if value:
         return dateutil_parse(value)
@@ -92,8 +98,8 @@ def aggregations():
 
 @aggregations.command('process')
 @aggr_arg
-@click.option('--start-date', callback=_parse_date)
-@click.option('--end-date', callback=_parse_date)
+@click.option('--start-date', callback=_verify_date)
+@click.option('--end-date', callback=_verify_date)
 @click.option('--update-bookmark', '-b', is_flag=True)
 @click.option('--eager', '-e', is_flag=True)
 @with_appcontext

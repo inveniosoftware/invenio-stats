@@ -11,6 +11,7 @@
 from __future__ import absolute_import, print_function
 
 from celery import shared_task
+from dateutil.parser import parse as dateutil_parse
 
 from .proxies import current_stats
 
@@ -30,6 +31,8 @@ def process_events(event_types):
 def aggregate_events(aggregations, start_date=None, end_date=None,
                      update_bookmark=True):
     """Aggregate indexed events."""
+    start_date = dateutil_parse(start_date) if start_date else None
+    end_date = dateutil_parse(end_date) if end_date else None
     results = []
     for a in aggregations:
         aggr_cfg = current_stats.aggregations[a]
