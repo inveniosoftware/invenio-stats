@@ -1,26 +1,10 @@
 # -*- coding: utf-8 -*-
 #
 # This file is part of Invenio.
-# Copyright (C) 2016 CERN.
+# Copyright (C) 2016-2018 CERN.
 #
-# Invenio is free software; you can redistribute it
-# and/or modify it under the terms of the GNU General Public License as
-# published by the Free Software Foundation; either version 2 of the
-# License, or (at your option) any later version.
-#
-# Invenio is distributed in the hope that it will be
-# useful, but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
-# General Public License for more details.
-#
-# You should have received a copy of the GNU General Public License
-# along with Invenio; if not, write to the
-# Free Software Foundation, Inc., 59 Temple Place, Suite 330, Boston,
-# MA 02111-1307, USA.
-#
-# In applying this license, CERN does not
-# waive the privileges and immunities granted to it by virtue of its status
-# as an Intergovernmental Organization or submit itself to any jurisdiction.
+# Invenio is free software; you can redistribute it and/or modify it
+# under the terms of the MIT License; see LICENSE file for more details.
 
 """Invenio module for collecting statistics."""
 
@@ -36,11 +20,10 @@ tests_require = [
     'coverage>=4.0',
     'elasticsearch<5,>=2.0.0',
     'elasticsearch-dsl<5,>=2.0.0',
-    'invenio-db>=1.0.0b5',
-    'invenio-accounts>=1.0.0b9',
-    'invenio-files-rest>=1.0.0a23',
-    'invenio-oauth2server>=1.0.0b1',
-    'invenio-records>=1.0.0b2',
+    'invenio-db>=1.0.2',
+    'invenio-accounts>=1.0.1',
+    'invenio-oauth2server>=1.0.1',
+    'invenio-records>=1.0.0',
     'isort>=4.2.15',
     'mock>=1.0.0',
     'pydocstyle>=1.0.0',
@@ -70,7 +53,7 @@ extras_require = {
 }
 
 extras_require['all'] = [
-    'invenio-records-ui>=1.0.0a9',
+    'invenio-records-ui>=1.0.1',
 ]
 
 for reqs in extras_require.values():
@@ -85,11 +68,10 @@ install_requires = [
     'counter-robots>=2018.6',
     'Flask>=0.11.1',
     'invenio-cache>=1.0.0',
-    'invenio-files-rest>=1.0.0a16',
+    'invenio-files-rest>=1.0.0a23',
     'invenio-queues>=1.0.0a1',
     'python-geoip>=1.2',
     'maxminddb-geolite2>=2017.0404',
-    # 'python-geoip-geolite2>=2015.0303',
     'python-dateutil>=2.6.1',
 ]
 
@@ -108,7 +90,7 @@ setup(
     description=__doc__,
     long_description=readme + '\n\n' + history,
     keywords='invenio statistics',
-    license='GPLv2',
+    license='MIT',
     author='CERN',
     author_email='info@invenio-software.org',
     url='https://github.com/inveniosoftware/invenio-stats',
@@ -158,7 +140,7 @@ setup(
     classifiers=[
         'Environment :: Web Environment',
         'Intended Audience :: Developers',
-        'License :: OSI Approved :: GNU General Public License v2 (GPLv2)',
+        'License :: OSI Approved :: MIT License',
         'Operating System :: OS Independent',
         'Programming Language :: Python',
         'Topic :: Internet :: WWW/HTTP :: Dynamic Content',
@@ -168,6 +150,6 @@ setup(
         'Programming Language :: Python :: 3',
         'Programming Language :: Python :: 3.4',
         'Programming Language :: Python :: 3.5',
-        'Development Status :: 1 - Planning',
+        'Development Status :: 3 - Alpha',
     ],
 )
