@@ -30,6 +30,7 @@ suppress_warnings = ['image.nonlocal_uri']
 # extensions coming with Sphinx (named 'sphinx.ext.*') or your custom
 # ones.
 extensions = [
+    'celery.contrib.sphinx',
     'sphinx.ext.autodoc',
     'sphinx.ext.coverage',
     'sphinx.ext.doctest',

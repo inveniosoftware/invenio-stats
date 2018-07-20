@@ -5,10 +5,9 @@
     Invenio is free software; you can redistribute it and/or modify it
     under the terms of the MIT License; see LICENSE file for more details.
 
-
-
 Overview
 --------
+
 Invenio-Stats enables an Invenio instance to generate statistics and
 access them via a REST API.
 
@@ -16,29 +15,26 @@ Invenio-Stats is based on the requirements gathered from different Invenio
 based services. A summary can of those requirements can be found here:
 `Invenio-Stats requirements <https://github.com/inveniosoftware/invenio-stats/wiki/Requirements>`_
 
-This module is composed of many different part, all of them being optional. The
-main parts are:
+This module is composed of many different parts, all of them being optional.
+The main parts are:
 
 * **the generation of events** which can be later processed.
 
-* **the procession of events**. Example: filtering out downloads made by bots,
-  and then indexing remaining events in elasticsearch.
+* **the processing of events**. *Example: filtering out downloads made by bots,
+  and then indexing remaining events in Elasticsearch.*
 
-* **the compression of events**. Querying too many events in an elasticsearch
-  cluster can put a big strain on it. Thus doing a first compression of events
-  makes later queries faster. Example: aggregating the number of download per
-  day.
+* **the compression of events**. Querying too many events in an Elasticsearch
+  cluster can put a big strain on it. Thus doing a compression of events makes
+  later queries faster. *Example: aggregating the number of downloads per day*.
 
 * **the querying of statistics via a REST API**. This enables a standardized
   way of querying statistics.
 
-
-
 1. Event generation and processing
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-Statistics can measure the occurence of an event within the application (
-e.g. file downloads, record views) by plugging multiple components like this:
 
+Statistics can measure the occurence of an event within the application (e.g.
+file downloads, record views) by plugging multiple components like this:
 
 .. graphviz::
 
@@ -73,11 +69,11 @@ e.g. file downloads, record views) by plugging multiple components like this:
     }
     Queue [label="Message Queue\n(RabbitMQ)", margin=0.2, shape="cds"];
     Elasticsearch [label="Elasticsearch", shape="cylinder", height=2];
-    
+
     Emitter -> Queue [label="(2) events"];
-    
+
     Queue -> Processor [label="(3) events"];
-    
+
     Processor -> Elasticsearch [label="(4) processed events"];
 
     Aggregator -> Elasticsearch [label="(5) processed events" dir=back];
@@ -87,14 +83,13 @@ e.g. file downloads, record views) by plugging multiple components like this:
 Invenio-Stats provides an easy way to generate events whenever a signal is
 sent. However, it is possible to generate your own events.
 
-EventsIndexer is just one example of events processor. As other components
-it can be replaced.
-
+EventsIndexer is just one example of events processor. As other components it
+can be replaced.
 
 2. Querying
 ~~~~~~~~~~~
-The statistics are accessible via REST API.
 
+The statistics are accessible via REST API.
 
 .. graphviz::
 
@@ -131,10 +126,8 @@ The statistics are accessible via REST API.
     Elasticsearch -> Query [label="(4) stats"];
     }
 
-
-
-Not every statistic of interest has to be derived from elasticsearch. It is
-possible to return statistics by just running and SQL query on the database.
+Not every statistic of interest has to be derived from Elasticsearch. It is
+possible to retrieve statistics by just running and SQL query on the database.
 Examples:
 
 * number of users per community.
@@ -146,6 +139,5 @@ Examples:
 * number of new files per month.
 
 Elasticsearch is mainly used for events which happen very often and thus
-generate a big volume of data. Invenio-Stats provide components to
-easily generate statistics out of events previously aggregated in
-elasticsearch.
+generate a big volume of data. Invenio-Stats provide components to easily
+generate statistics out of events previously aggregated in Elasticsearch.

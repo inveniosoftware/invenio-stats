@@ -16,12 +16,14 @@ API Docs
 .. automodule:: invenio_stats.processors
    :members:
 
+.. automodule:: invenio_stats.aggregations
+   :members:
+
 .. automodule:: invenio_stats.queries
    :members:
 
-.. automodule:: invenio_stats.tasks
-   :members:
+.. autotask:: invenio_stats.tasks.process_events
+.. autotask:: invenio_stats.tasks.aggregate_events
 
 .. automodule:: invenio_stats.contrib.event_builders
    :members:
-

@@ -28,25 +28,28 @@ def filter_robots(query):
 class StatAggregator(object):
     """Generic aggregation class.
 
-    This aggregation class queries elasticsearch events and creates a new
+    This aggregation class queries Elasticsearch events and creates a new
     elasticsearch document for each aggregated day/month/year... This enables
     to "compress" the events and keep only relevant information.
 
     The expected events shoud have at least those two fields:
 
-    .. code-block:: JSON
+    .. code-block:: json
 
         {
-            timestamp: "<ISO DATE TIME>",
-            field_on_which_we_aggregate: "<A VALUE>"
+            "timestamp": "<ISO DATE TIME>",
+            "field_on_which_we_aggregate": "<A VALUE>"
         }
 
     The resulting aggregation documents will be of the form:
 
+    .. code-block:: json
+
         {
-            timestamp: "<ISO DATE TIME>",
-            field_on_which_we_aggregate: "<A VALUE>",
-            count: <NUMBER OF OCCURENCE OF THIS EVENT>
+            "timestamp": "<ISO DATE TIME>",
+            "field_on_which_we_aggregate": "<A VALUE>",
+            "count": "<NUMBER OF OCCURENCE OF THIS EVENT>",
+            "field_metric": "<METRIC CALCULATION ON A FIELD>"
         }
 
     This aggregator saves a bookmark document after each run. This bookmark
@@ -68,7 +71,7 @@ class StatAggregator(object):
         :param metric_aggregation_fields: dictionary of fields on which a
             metric aggregation will be computed. The format of the dictionary
             is "destination field" ->
-                tuple("metric type", "source field", "metric_options").
+            tuple("metric type", "source field", "metric_options").
         :param copy_fields: list of fields which are copied from the raw events
             into the aggregation.
         :param query_modifiers: list of functions modifying the raw events

@@ -35,17 +35,18 @@ STATS_EVENTS = {
 
 Each key is the name of an event. A queue will be created for each event.
 
-If the dict of an event contains the 'signal' key, and the config variable
+If the dict of an event contains the ``signal`` key, and the config variable
 ``STATS_REGISTER_RECEIVERS`` is ``True``, a signal receiver will be registered.
-Receiver function which will be connected on a signal and emit events.
-The key is the name of the emitted event.
+Receiver function which will be connected on a signal and emit events. The key
+is the name of the emitted event.
 
-signal:
-    Signal to which the receiver will be connected to.
+``signal``: Signal to which the receiver will be connected to.
 
-event_builders:
-    list of functions which will create and enhance the event. Each function
-    will receive the event created by the previous function and can update it.
+``event_builders``: list of functions which will create and enhance the event.
+    Each function will receive the event created by the previous function and
+    can update it. Keep in mind that these functions will run synchronously
+    during the creation of the event, meaning that if the signal is sent during
+    a request they will increase the response time.
 """
 
 

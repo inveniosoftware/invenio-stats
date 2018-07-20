@@ -5,28 +5,25 @@
     Invenio is free software; you can redistribute it and/or modify it
     under the terms of the MIT License; see LICENSE file for more details.
 
-
-
 Configuration
 =============
 
-
 Events creation
 ---------------
+
 The creation of events can be done via signals. Invenio-stats provides an
 easy way to generate those events.
-
 
 .. autodata:: invenio_stats.config.STATS_REGISTER_RECEIVERS
 
 .. autodata:: invenio_stats.config.STATS_EVENTS
 
-
 Events processing
 -----------------
-If you create events they will be queued in an AMQP queue. You should
-ensure that you regularly process them. You do this by configuring a Celery
-Beat schedule similar to this:
+
+If you create events they will be queued in an AMQP queue. You should ensure
+that you regularly process them. You do this by configuring a Celery Beat
+schedule similar to this:
 
 .. code-block:: python
 
@@ -38,8 +35,8 @@ Beat schedule similar to this:
         },
     }
 
-This example uses the Celery beat process to trigger an event processing
-task every 3 hours.
+This example uses the Celery beat process to trigger an event processing task
+every 3 hours.
 
 Invenio-stats provides two tasks:
 
@@ -47,13 +44,11 @@ Invenio-stats provides two tasks:
 
 * `invenio_stats.tasks.aggregate_events`
 
-
 Queues configuration
 --------------------
-Invenio-stats creates AMQP queues in order to buffer events. Those queues
-need to be configured. Change these parameters only if you know what you are
-doing.
 
-`invenio_stats.config.STATS_MQ_EXCHANGE`: Default exchange used for the
-message queues.
+Invenio-stats creates AMQP queues in order to buffer events. Those queues need
+to be configured. Change these parameters only if you know what you are doing.
 
+`invenio_stats.config.STATS_MQ_EXCHANGE`: Default exchange used for the message
+queues.
