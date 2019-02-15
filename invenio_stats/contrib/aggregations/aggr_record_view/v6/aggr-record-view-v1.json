@@ -1,5 +1,5 @@
 {
-  "template": "stats-record-view-*",
+  "index_patterns": ["stats-record-view-*"],
   "settings": {
     "index.mapper.dynamic": false,
     "index": {
@@ -24,12 +24,10 @@
           "index": "not_analyzed"
         },
         "record_id": {
-          "type": "string",
-          "index": "not_analyzed"
+          "type": "text"
         },
         "collection": {
-          "type": "string",
-          "index": "not_analyzed"
+          "type": "text"
         }
       }
     },

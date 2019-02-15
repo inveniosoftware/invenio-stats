@@ -33,32 +33,25 @@
           "format": "strict_date_hour_minute_second"
         },
         "bucket_id": {
-          "type": "string",
-          "index": "not_analyzed"
+          "type": "text"
         },
         "file_id": {
-          "type": "string",
-          "index": "not_analyzed"
+          "type": "text"
         },
         "file_key": {
-          "type": "string",
-          "index": "not_analyzed"
+          "type": "text"
         },
         "unique_id": {
-          "type": "string",
-          "index": "not_analyzed"
+          "type": "text"
         },
         "country": {
-          "type": "string",
-          "index": "not_analyzed"
+          "type": "text"
         },
         "visitor_id": {
-          "type": "string",
-          "index": "not_analyzed"
+          "type": "text"
         },
         "collection": {
-          "type": "string",
-          "index": "not_analyzed"
+          "type": "text"
         }
       }
     }

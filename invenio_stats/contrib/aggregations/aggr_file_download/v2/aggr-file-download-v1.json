@@ -33,16 +33,13 @@
           "format": "date_optional_time"
         },
         "count": {
-          "type": "integer",
-          "index": "not_analyzed"
+          "type": "integer"
         },
         "unique_count": {
-          "type": "integer",
-          "index": "not_analyzed"
+          "type": "integer"
         },
         "volume": {
-          "type": "double",
-          "index": "not_analyzed"
+          "type": "double"
         },
         "file_id": {
           "type": "string",

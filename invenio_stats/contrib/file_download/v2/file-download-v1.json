@@ -69,12 +69,10 @@
           "index": "not_analyzed"
         },
         "is_robot": {
-          "type": "boolean",
-          "index": "not_analyzed"
+          "type": "boolean"
         },
         "size": {
-          "type": "double",
-          "index": "not_analyzed"
+          "type": "double"
         }
       }
     }

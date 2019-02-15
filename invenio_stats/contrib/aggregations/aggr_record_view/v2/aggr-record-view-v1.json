@@ -20,12 +20,10 @@
           "format": "date_optional_time"
         },
         "count": {
-          "type": "integer",
-          "index": "not_analyzed"
+          "type": "integer"
         },
         "unique_count": {
-          "type": "integer",
-          "index": "not_analyzed"
+          "type": "integer"
         },
         "record_id": {
           "type": "string",

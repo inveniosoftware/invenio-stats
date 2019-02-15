@@ -20,16 +20,13 @@
           "format": "date_optional_time"
         },
         "count": {
-          "type": "integer",
-          "index": "not_analyzed"
+          "type": "integer"
         },
         "record_id": {
-          "type": "string",
-          "index": "not_analyzed"
+          "type": "text"
         },
         "collection": {
-          "type": "string",
-          "index": "not_analyzed"
+          "type": "text"
         }
       }
     },

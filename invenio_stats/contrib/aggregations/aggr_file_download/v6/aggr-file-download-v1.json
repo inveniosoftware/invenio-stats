@@ -1,5 +1,5 @@
 {
-  "template": "stats-file-download-*",
+  "index_patterns": ["stats-file-download-*"],
   "settings": {
     "index.mapper.dynamic": false,
     "index": {
@@ -33,24 +33,19 @@
           "format": "date_optional_time"
         },
         "count": {
-          "type": "integer",
-          "index": "not_analyzed"
+          "type": "integer"
         },
         "file_id": {
-          "type": "string",
-          "index": "not_analyzed"
+          "type": "text"
         },
         "file_key": {
-          "type": "string",
-          "index": "not_analyzed"
+          "type": "text"
         },
         "bucket_id": {
-          "type": "string",
-          "index": "not_analyzed"
+          "type": "text"
         },
         "collection": {
-          "type": "string",
-          "index": "not_analyzed"
+          "type": "text"
         }
       }
     },
