@@ -33,7 +33,7 @@ tests_require = [
     'python-dateutil>=2.6.0',
 ]
 
-invenio_search_version = '1.0.0'
+invenio_search_version = '1.1.0'
 
 extras_require = {
     'docs': [

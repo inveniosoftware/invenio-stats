@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 #
 # This file is part of Invenio.
-# Copyright (C) 2017-2018 CERN.
+# Copyright (C) 2017-2019 CERN.
 #
 # Invenio is free software; you can redistribute it and/or modify it
 # under the terms of the MIT License; see LICENSE file for more details.
@@ -18,6 +18,7 @@ from dateutil import parser
 from elasticsearch.helpers import bulk
 from elasticsearch_dsl import Index, Search
 from invenio_search import current_search_client
+from invenio_search.utils import prefix_index
 
 
 def filter_robots(query):
@@ -86,7 +87,8 @@ class StatAggregator(object):
         self.name = name
         self.client = client or current_search_client
         self.event = event
-        self.aggregation_alias = 'stats-{}'.format(self.event)
+        aggregation_alias = 'stats-{}'.format(self.event)
+        self.aggregation_alias = prefix_index(aggregation_alias)
         self.aggregation_field = aggregation_field
         self.metric_aggregation_fields = metric_aggregation_fields or {}
         self.allowed_metrics = {
@@ -116,7 +118,8 @@ class StatAggregator(object):
         self.index_name_suffix = self.supported_intervals[index_interval]
         self.doc_id_suffix = self.supported_intervals[aggregation_interval]
         self.batch_size = batch_size
-        self.event_index = 'events-stats-{}'.format(self.event)
+        event_index = 'events-stats-{}'.format(self.event)
+        self.event_index = prefix_index(event_index)
 
     @property
     def bookmark_doc_type(self):
@@ -257,6 +260,7 @@ class StatAggregator(object):
                              format(self.event,
                                     interval_date.strftime(
                                         self.index_name_suffix))
+                index_name = prefix_index(index_name)
                 self.indices.add(index_name)
                 yield dict(_id='{0}-{1}'.
                            format(aggregation['key'],

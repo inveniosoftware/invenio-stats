@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 #
 # This file is part of Invenio.
-# Copyright (C) 2016-2018 CERN.
+# Copyright (C) 2016-2019 CERN.
 #
 # Invenio is free software; you can redistribute it and/or modify it
 # under the terms of the MIT License; see LICENSE file for more details.
@@ -285,6 +285,12 @@ def es(app):
     finally:
         current_search_client.indices.delete(index='*')
         current_search_client.indices.delete_template('*')
+
+
+@pytest.yield_fixture()
+def index_prefix(app):
+    """Add index prefix to the app config."""
+    app.config.update(dict(SEARCH_INDEX_PREFIX='test-'))
 
 
 @pytest.yield_fixture()

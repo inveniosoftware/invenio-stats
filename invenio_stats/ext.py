@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 #
 # This file is part of Invenio.
-# Copyright (C) 2016-2018 CERN.
+# Copyright (C) 2016-2019 CERN.
 #
 # Invenio is free software; you can redistribute it and/or modify it
 # under the terms of the MIT License; see LICENSE file for more details.
@@ -13,6 +13,7 @@ from __future__ import absolute_import, print_function
 from collections import namedtuple
 
 from invenio_queues.proxies import current_queues
+from invenio_search.utils import prefix_index
 from pkg_resources import iter_entry_points
 from werkzeug.utils import cached_property
 
@@ -177,6 +178,11 @@ class _InvenioStatsState(object):
                 ),
                 permission_factory=cfg.get('permission_factory')
             )
+
+            index = prefix_index(
+                result[cfg['query_name']].query_config['index'])
+            result[cfg['query_name']].query_config['index'] = index
+
         return result
 
     @cached_property

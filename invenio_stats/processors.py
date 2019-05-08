@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 #
 # This file is part of Invenio.
-# Copyright (C) 2017-2018 CERN.
+# Copyright (C) 2017-2019 CERN.
 #
 # Invenio is free software; you can redistribute it and/or modify it
 # under the terms of the MIT License; see LICENSE file for more details.
@@ -19,6 +19,7 @@ from counter_robots import is_machine, is_robot
 from dateutil import parser
 from flask import current_app
 from invenio_search import current_search_client
+from invenio_search.utils import prefix_index
 from pytz import utc
 
 from .utils import get_anonymization_salt, get_geoip, obj_or_import_string
@@ -160,7 +161,8 @@ class EventsIndexer(object):
         self.queue = queue
         self.client = client or current_search_client
         self.doctype = queue.routing_key
-        self.index = '{0}-{1}'.format(prefix, self.queue.routing_key)
+        index_name = '{0}-{1}'.format(prefix, self.queue.routing_key)
+        self.index = prefix_index(index_name)
         self.suffix = suffix
         # load the preprocessors
         self.preprocessors = [
