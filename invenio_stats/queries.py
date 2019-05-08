@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 #
 # This file is part of Invenio.
-# Copyright (C) 2017-2018 CERN.
+# Copyright (C) 2017-2019 CERN.
 #
 # Invenio is free software; you can redistribute it and/or modify it
 # under the terms of the MIT License; see LICENSE file for more details.
@@ -14,6 +14,7 @@ import dateutil.parser
 import six
 from elasticsearch_dsl import Search
 from invenio_search import current_search_client
+from invenio_search.utils import build_alias_name
 
 from .errors import InvalidRequestInputError
 from .utils import get_bucket_size
@@ -29,7 +30,7 @@ class ESQuery(object):
         :param client: elasticsearch client used to query.
         """
         super(ESQuery, self).__init__()
-        self.index = index
+        self.index = build_alias_name(index)
         self.client = client or current_search_client
         self.query_name = query_name
 

@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 #
 # This file is part of Invenio.
-# Copyright (C) 2016-2018 CERN.
+# Copyright (C) 2016-2019 CERN.
 #
 # Invenio is free software; you can redistribute it and/or modify it
 # under the terms of the MIT License; see LICENSE file for more details.
@@ -69,7 +69,7 @@ def mock_iter_entry_points_factory(data, mocked_group):
     return entrypoints
 
 
-@pytest.yield_fixture()
+@pytest.fixture()
 def event_entrypoints():
     """Declare some events by mocking the invenio_stats.events entrypoint.
 
@@ -111,7 +111,7 @@ def event_entrypoints():
         yield result
 
 
-@pytest.yield_fixture()
+@pytest.fixture()
 def query_entrypoints(custom_permission_factory):
     """Same as event_entrypoints for queries."""
     from pkg_resources import EntryPoint
@@ -159,7 +159,7 @@ def query_entrypoints(custom_permission_factory):
         yield result
 
 
-@pytest.yield_fixture()
+@pytest.fixture()
 def mock_anonymization_salt():
     """Mock the "get_anonymization_salt" function."""
     with patch('invenio_stats.processors.get_anonymization_salt',
@@ -177,7 +177,7 @@ def date_range(start_date, end_date):
             yield start_date + datetime.timedelta(n)
 
 
-@pytest.yield_fixture()
+@pytest.fixture()
 def event_queues(app, event_entrypoints):
     """Delete and declare test queues."""
     current_queues.delete()
@@ -188,7 +188,7 @@ def event_queues(app, event_entrypoints):
         current_queues.delete()
 
 
-@pytest.yield_fixture()
+@pytest.fixture()
 def base_app():
     """Flask application fixture without InvenioStats."""
     from invenio_stats.config import STATS_EVENTS
@@ -249,7 +249,7 @@ def base_app():
     shutil.rmtree(instance_path)
 
 
-@pytest.yield_fixture()
+@pytest.fixture()
 def app(base_app):
     """Flask application fixture with InvenioStats."""
     base_app.register_blueprint(blueprint)
@@ -257,7 +257,7 @@ def app(base_app):
     yield base_app
 
 
-@pytest.yield_fixture()
+@pytest.fixture()
 def db(app):
     """Setup database."""
     if not database_exists(str(db_.engine.url)):
@@ -268,7 +268,7 @@ def db(app):
     db_.drop_all()
 
 
-@pytest.yield_fixture()
+@pytest.fixture()
 def es(app):
     """Provide elasticsearch access, create and clean indices.
 
@@ -285,7 +285,20 @@ def es(app):
         current_search_client.indices.delete_template('*')
 
 
-@pytest.yield_fixture()
+@pytest.fixture()
+def config_with_index_prefix(app):
+    """Add index prefix to the app config."""
+    # set the config (store the original value as well just to be sure)
+    original_value = app.config.get('SEARCH_INDEX_PREFIX')
+    app.config['SEARCH_INDEX_PREFIX'] = 'test-'
+
+    yield app.config
+
+    # set the original value back
+    app.config['SEARCH_INDEX_PREFIX'] = original_value
+
+
+@pytest.fixture()
 def es_with_templates(app, es):
     """Provide elasticsearch access, create and clean indices and templates."""
     list(current_search.put_templates())
@@ -313,7 +326,7 @@ def user_set(app, user):
         yield
 
 
-@pytest.yield_fixture()
+@pytest.fixture()
 def dummy_location(db):
     """File system location."""
     tmppath = tempfile.mkdtemp()
@@ -350,7 +363,7 @@ def bucket(db, dummy_location):
     return b1
 
 
-@pytest.yield_fixture()
+@pytest.fixture()
 def objects(bucket):
     """File system location."""
     # Create older versions first
@@ -376,7 +389,7 @@ def objects(bucket):
     yield objs
 
 
-@pytest.yield_fixture(scope="session")
+@pytest.fixture(scope="session")
 def sequential_ids():
     """Sequential uuids for files."""
     ids = [uuid.UUID((
@@ -400,7 +413,7 @@ def mock_users():
     }
 
 
-@pytest.yield_fixture()
+@pytest.fixture()
 def mock_user_ctx(mock_users):
     """Run in a mock authenticated user context."""
     with patch('invenio_stats.utils.current_user',
@@ -421,7 +434,7 @@ def request_headers():
     )
 
 
-@pytest.yield_fixture()
+@pytest.fixture()
 def mock_datetime():
     """Mock datetime.datetime.
 
@@ -441,7 +454,7 @@ def mock_datetime():
     yield NewDate
 
 
-@pytest.yield_fixture()
+@pytest.fixture()
 def mock_event_queue(app, mock_datetime, request_headers, objects,
                      event_entrypoints, mock_user_ctx):
     """Create a mock queue containing a few file download events."""
@@ -519,7 +532,7 @@ def generate_events(app, file_number=5, event_number=100, robot_event_number=0,
     current_search.flush_and_refresh(index='*')
 
 
-@pytest.yield_fixture()
+@pytest.fixture()
 def indexed_events(app, es, mock_user_ctx, request):
     """Parametrized pre indexed sample events."""
     for t in current_search.put_templates(ignore=[400]):
@@ -528,7 +541,7 @@ def indexed_events(app, es, mock_user_ctx, request):
     yield
 
 
-@pytest.yield_fixture()
+@pytest.fixture()
 def aggregated_events(app, es, mock_user_ctx, request):
     """Parametrized pre indexed sample events."""
     for t in current_search.put_templates(ignore=[400]):
@@ -621,7 +634,7 @@ def custom_permission_factory(users):
     return permission_factory
 
 
-@pytest.yield_fixture()
+@pytest.fixture()
 def sample_histogram_query_data():
     """Sample query parameters."""
     yield {"mystat":

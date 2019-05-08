@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 #
 # This file is part of Invenio.
-# Copyright (C) 2017-2018 CERN.
+# Copyright (C) 2017-2019 CERN.
 #
 # Invenio is free software; you can redistribute it and/or modify it
 # under the terms of the MIT License; see LICENSE file for more details.
@@ -20,6 +20,7 @@ from elasticsearch import VERSION as ES_VERSION
 from elasticsearch.helpers import bulk
 from elasticsearch_dsl import Index, Search
 from invenio_search import current_search, current_search_client
+from invenio_search.utils import prefix_index
 
 from .utils import get_bucket_size, get_doctype
 
@@ -83,7 +84,7 @@ class BookmarkAPI(object):
         """
         # NOTE: doc_type is going to be deprecated with ES_7
         self.doc_type = get_doctype('aggregation-bookmark')
-        self.bookmark_index = 'bookmark-index'
+        self.bookmark_index = prefix_index('bookmark-index')
         self.client = client
         self.agg_type = agg_type
         self.event_index = event_index
@@ -259,7 +260,7 @@ class StatAggregator(object):
             fetched in one query. This number has to be coherent with the
             aggregation_interval.
         """
-        self.aggregation_alias = 'stats-{}'.format(event)
+        self.aggregation_alias = prefix_index('stats-{}'.format(event))
         self.aggregation_field = aggregation_field
         self.aggregation_interval = aggregation_interval
         self.aggregation_name = aggregation_name
@@ -268,7 +269,7 @@ class StatAggregator(object):
         self.copy_fields = copy_fields or {}
         self.doc_id_suffix = SUPPORTED_INTERVAL[aggregation_interval]
         self.event = event
-        self.event_index = 'events-stats-{}'.format(event)
+        self.event_index = prefix_index('events-stats-{}'.format(event))
         self.has_events = True
         self.index_interval = index_interval
         self.index_name_suffix = SUPPORTED_INTERVAL[index_interval]
@@ -358,6 +359,7 @@ class StatAggregator(object):
                              format(self.event,
                                     interval_date.strftime(
                                         self.index_name_suffix))
+                index_name = prefix_index(index_name)
                 self.indices.add(index_name)
 
                 yield dict(_id='{0}-{1}'.

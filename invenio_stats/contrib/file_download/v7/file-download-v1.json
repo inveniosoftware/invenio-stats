@@ -1,5 +1,5 @@
 {
-  "template": "events-stats-file-download-*",
+  "template": "__SEARCH_INDEX_PREFIX__events-stats-file-download-*",
   "settings": {
     "index": {
       "refresh_interval": "5s"
@@ -58,6 +58,6 @@
     }
   },
   "aliases": {
-    "events-stats-file-download": {}
+    "__SEARCH_INDEX_PREFIX__events-stats-file-download": {}
   }
 }
