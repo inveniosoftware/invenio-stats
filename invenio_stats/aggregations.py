@@ -221,7 +221,7 @@ class StatAggregator(object):
             interval=self.aggregation_interval
         )
         terms = hist.bucket(
-            'terms', 'terms', field=self.aggregation_field, size=0
+            'terms', 'terms', field=self.aggregation_field, size=10000
         )
         top = terms.metric(
             'top_hit', 'top_hits', size=1, sort={'timestamp': 'desc'}
