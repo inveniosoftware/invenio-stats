@@ -114,7 +114,7 @@ def test_aggregations_process(script_info, event_queues, es, indexed_events):
 
     es.indices.refresh(index='*')
     assert agg_alias.count() == 10
-    assert agg_alias.doc_type('file-download-agg-bookmark').count() == 0
+    assert search.index('bookmark-index').count() == 0
     assert agg_alias.doc_type('file-download-day-aggregation').count() == 10
     assert search.index('stats-file-download-2018-01').count() == 10
 
@@ -127,10 +127,10 @@ def test_aggregations_process(script_info, event_queues, es, indexed_events):
     assert result.exit_code == 0
 
     es.indices.refresh(index='*')
-    assert agg_alias.count() == 12
-    assert agg_alias.doc_type('file-download-agg-bookmark').count() == 2
+    assert agg_alias.count() == 10
     assert agg_alias.doc_type('file-download-day-aggregation').count() == 10
-    assert search.index('stats-file-download-2018-01').count() == 12
+    assert search.index('stats-file-download-2018-01').count() == 10
+    assert search.index('bookmark-index').count() == 2
 
     # Run over all the events via celery task
     result = runner.invoke(
@@ -140,11 +140,12 @@ def test_aggregations_process(script_info, event_queues, es, indexed_events):
     assert result.exit_code == 0
 
     es.indices.refresh(index='*')
-    assert agg_alias.count() == 54
-    assert agg_alias.doc_type('file-download-agg-bookmark').count() == 8
+    # import wdb; wdb.set_trace()
+    assert agg_alias.count() == 46
+    assert search.index('bookmark-index').count() == 9
     assert agg_alias.doc_type('file-download-day-aggregation').count() == 46
-    assert search.index('stats-file-download-2018-01').count() == 36
-    assert search.index('stats-file-download-2018-02').count() == 18
+    assert search.index('stats-file-download-2018-01').count() == 31
+    assert search.index('stats-file-download-2018-02').count() == 15
 
 
 @pytest.mark.parametrize('aggregated_events',
@@ -161,10 +162,10 @@ def test_aggregations_delete(script_info, event_queues, es, aggregated_events):
 
     es.indices.refresh(index='*')
     agg_alias = search.index('stats-file-download')
-    assert agg_alias.count() == 36
-    assert agg_alias.doc_type('file-download-agg-bookmark').count() == 5
+    assert agg_alias.count() == 31
+    assert search.index('bookmark-index').count() == 6
     assert agg_alias.doc_type('file-download-day-aggregation').count() == 31
-    assert search.index('stats-file-download-2018-01').count() == 36
+    assert search.index('stats-file-download-2018-01').count() == 31
 
     result = runner.invoke(
         stats, ['aggregations', 'delete', 'file-download-agg',
@@ -174,10 +175,10 @@ def test_aggregations_delete(script_info, event_queues, es, aggregated_events):
 
     es.indices.refresh(index='*')
     agg_alias = search.index('stats-file-download')
-    assert agg_alias.count() == 25
-    assert agg_alias.doc_type('file-download-agg-bookmark').count() == 4
+    assert agg_alias.count() == 21
+    assert search.index('bookmark-index').count() == 5
     assert agg_alias.doc_type('file-download-day-aggregation').count() == 21
-    assert search.index('stats-file-download-2018-01').count() == 25
+    assert search.index('stats-file-download-2018-01').count() == 21
 
     # Delete all aggregations
     result = runner.invoke(
@@ -208,10 +209,10 @@ def test_aggregations_list_bookmarks(script_info, event_queues, es,
 
     es.indices.refresh(index='*')
     agg_alias = search.index('stats-file-download')
-    assert agg_alias.count() == 36
-    assert agg_alias.doc_type('file-download-agg-bookmark').count() == 5
+    assert agg_alias.count() == 31
+    assert search.index('bookmark-index').count() == 6
     assert agg_alias.doc_type('file-download-day-aggregation').count() == 31
-    assert search.index('stats-file-download-2018-01').count() == 36
+    assert search.index('stats-file-download-2018-01').count() == 31
 
     result = runner.invoke(
         stats, ['aggregations', 'list-bookmarks', 'file-download-agg'],

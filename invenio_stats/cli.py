@@ -117,8 +117,12 @@ def _aggregations_process(aggregation_types=None,
             throw=True)
         click.secho('Aggregations processed successfully.', fg='green')
     else:
+        # NOTE: aggregation_types is a LocalProxy so it needs to be casted
+        # to be passed to celery
         aggregate_events.delay(
-            aggregation_types, start_date=start_date, end_date=end_date)
+            aggregation_types._get_current_object(),
+            start_date=start_date, end_date=end_date,
+            update_bookmark=update_bookmark)
         click.secho('Aggregations processing task sent...', fg='yellow')
 
 
@@ -132,7 +136,7 @@ def _aggregations_process(aggregation_types=None,
 def _aggregations_delete(aggregation_types=None,
                          start_date=None, end_date=None):
     """Delete computed aggregations."""
-    aggregation_types = (aggregation_types or
+    aggregation_types = (aggregation_types._get_current_object() or
                          list(current_stats.enabled_aggregations))
     for a in aggregation_types:
         aggr_cfg = current_stats.aggregations[a]

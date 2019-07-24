@@ -47,7 +47,8 @@ def test_get_bookmark(app, indexed_events):
                               aggregation_field='file_id',
                               aggregation_interval='day')
     stat_agg.run()
-    assert stat_agg.get_bookmark() == datetime.datetime(2017, 1, 8)
+    assert stat_agg.bookmark_api.get_bookmark() == \
+        datetime.datetime(2017, 1, 8)
 
 
 def test_overwriting_aggregations(app, mock_event_queue, es_with_templates):
@@ -168,9 +169,7 @@ def test_bookmark_removal(app, es_with_templates, mock_event_queue):
         [(2017, 6, 2, 15),  # second event on the same date
          (2017, 7, 1)]
     ]
-    indexer = EventsIndexer(
-        mock_event_queue
-    )
+    indexer = EventsIndexer(mock_event_queue)
     indexer.run()
     current_search_client.indices.refresh(index='*')
 
@@ -195,12 +194,15 @@ def test_bookmark_removal(app, es_with_templates, mock_event_queue):
     # Delete all bookmarks
     bookmarks = Search(
         using=current_search_client,
-        index='stats-file-download',
-        doc_type='file-download-agg-bookmark').query('match_all')
+        index='bookmark-index',
+        doc_type='aggregation-bookmark'
+        ).filter(
+            'term', aggregation_type='file-download-day-aggregation'
+        ).query('match_all')
     for bookmark in bookmarks:
-        res = current_search_client.delete(
+        current_search_client.delete(
             index=bookmark.meta.index, id=bookmark.meta.id,
-            doc_type='file-download-agg-bookmark'
+            doc_type='aggregation-bookmark'
         )
     current_search_client.indices.refresh(index='*')
     # the aggregations should have been overwritten
