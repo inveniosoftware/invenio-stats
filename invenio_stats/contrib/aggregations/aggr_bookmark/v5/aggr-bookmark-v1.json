@@ -1,0 +1,17 @@
+{
+  "mappings": {
+    "aggregation-bookmark": {
+      "date_detection": false,
+      "properties": {
+        "date": {
+          "type": "date",
+          "format": "date_optional_time"
+        },
+        "aggregation_type": {
+          "type": "string",
+          "index": "not_analyzed"
+        }
+      }
+    }
+  }
+}

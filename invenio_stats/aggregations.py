@@ -119,11 +119,6 @@ class StatAggregator(object):
         self.event_index = 'events-stats-{}'.format(self.event)
 
     @property
-    def bookmark_doc_type(self):
-        """Get document type for the aggregation's bookmark."""
-        return '{0}-bookmark'.format(self.name)
-
-    @property
     def aggregation_doc_type(self):
         """Get document type for the aggregation."""
         return '{0}-{1}-aggregation'.format(
@@ -159,7 +154,8 @@ class StatAggregator(object):
         query_bookmark = Search(
             using=self.client,
             index=self.aggregation_alias,
-            doc_type=self.bookmark_doc_type
+        ).filter(
+            'term', aggregation_type=self.name
         )[0:1].sort(
             {'date': {'order': 'desc'}}
         )
@@ -176,19 +172,24 @@ class StatAggregator(object):
 
     def set_bookmark(self):
         """Set bookmark for starting next aggregation."""
+        bookmark_index = 'aggregation-bookmark'
+        doc_type = 'aggregation_bookmark'
+
         def _success_date():
             bookmark = {
                 'date': self.new_bookmark or datetime.datetime.utcnow().
-                strftime(self.doc_id_suffix)
+                strftime(self.doc_id_suffix),
+                'aggregation_type': self.name
             }
 
-            yield dict(_index=self.last_index_written,
-                       _type=self.bookmark_doc_type,
-                       _source=bookmark)
-        if self.last_index_written:
-            bulk(self.client,
-                 _success_date(),
-                 stats_only=True)
+            yield dict(_index=bookmark_index,
+                       _source=bookmark,
+                       _type=doc_type)
+        
+        # TODO: no need for bulk indexing
+        bulk(self.client,
+             _success_date(),
+             stats_only=True)
 
     def _format_range_dt(self, d):
         """Format range filter datetime to the closest aggregation interval."""
@@ -265,7 +266,6 @@ class StatAggregator(object):
                            _index=index_name,
                            _type=self.aggregation_doc_type,
                            _source=aggregation_data)
-        self.last_index_written = index_name
 
     def run(self, start_date=None, end_date=None, update_bookmark=True):
         """Calculate statistics aggregations."""
@@ -312,7 +312,8 @@ class StatAggregator(object):
         query = Search(
             using=self.client,
             index=self.aggregation_alias,
-            doc_type=self.bookmark_doc_type
+        ).filter(
+            'term', aggregation_type=self.name
         ).sort({'date': {'order': 'desc'}})
 
         range_args = {}
@@ -332,7 +333,8 @@ class StatAggregator(object):
         aggs_query = Search(
             using=self.client,
             index=self.aggregation_alias,
-            doc_type=self.aggregation_doc_type
+        ).filter(
+            'term', aggregation_type=self.name
         ).extra(_source=False)
 
         range_args = {}
@@ -348,7 +350,8 @@ class StatAggregator(object):
         bookmarks_query = Search(
             using=self.client,
             index=self.aggregation_alias,
-            doc_type=self.bookmark_doc_type
+        ).filter(
+            'term', aggregation_type=self.name
         ).sort({'date': {'order': 'desc'}})
 
         if range_args:
@@ -361,8 +364,7 @@ class StatAggregator(object):
                     affected_indices.add(doc.meta.index)
                     yield dict(_index=doc.meta.index,
                                _op_type='delete',
-                               _id=doc.meta.id,
-                               _type=doc.meta.doc_type)
+                               _id=doc.meta.id)
                 current_search_client.indices.flush(
                     index=','.join(affected_indices), wait_if_ongoing=True)
         bulk(self.client, _delete_actions(), refresh=True)
