@@ -12,8 +12,10 @@ from __future__ import absolute_import, print_function
 
 import os
 from base64 import b64encode
+from math import ceil
 
 import six
+from elasticsearch_dsl import Search
 from flask import current_app, request, session
 from flask_login import current_user
 from geolite2 import geolite2
@@ -30,6 +32,22 @@ def get_anonymization_salt(ts):
         salt = b64encode(salt_bytes).decode('utf-8')
         current_cache.set(salt_key, salt, timeout=60 * 60 * 24)
     return salt
+
+
+def get_size(client, index, agg_field):
+    """Function to help us define the size for our search query."""
+    body = {
+        "aggs": {
+            "size_count": {
+                "cardinality": {
+                    "field": agg_field
+                }
+            }
+        }
+    }
+    count = Search(using=client, index=index).update_from_dict(body).count()
+    # NOTE: we increase the count by 10% in order to be safe
+    return ceil(count + count * 0.1)
 
 
 def get_geoip(ip):

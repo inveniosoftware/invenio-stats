@@ -19,6 +19,8 @@ from elasticsearch.helpers import bulk
 from elasticsearch_dsl import Index, Search
 from invenio_search import current_search_client
 
+from .utils import get_size
+
 
 def filter_robots(query):
     """Modify an elasticsearch query so that robot events are filtered out."""
@@ -220,8 +222,11 @@ class StatAggregator(object):
             field='timestamp',
             interval=self.aggregation_interval
         )
+
         terms = hist.bucket(
-            'terms', 'terms', field=self.aggregation_field, size=0
+            'terms', 'terms', field=self.aggregation_field, size=get_size(
+                self.client, self.event_index, self.aggregation_field
+            )
         )
         top = terms.metric(
             'top_hit', 'top_hits', size=1, sort={'timestamp': 'desc'}
