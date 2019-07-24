@@ -41,13 +41,13 @@ Request a histogram of the number of downloads for a file:
 
 .. code-block:: console
 
-$ curl -XPOST localhost:5000/stats -H "Content-Type: application/json" -d '{"mystat": {"stat": "bucket-file-download-histogram", "params": {"start_date":"2016-12-18", "end_date":"2016-12-19", "interval": "day", "bucket_id": 20, "file_key": "file1.txt"}}}'
+$ curl -XPOST localhost:5000/stats -H "Content-Type: application/json" -d '{"mystat": {"stat": "bucket-file-download-histogram", "params": {"start_date":"2016-12-18", "end_date":"2016-12-19", "interval": "day", "bucket_id": 20, "file_key": "file1.txt"}}}'  # noqa
 
 Request a histogram of the number of downloads for a file:
 
 .. code-block:: console
 
-    $ curl -v -XPOST localhost:5000/stats -H "Content-Type: application/json" -d '{"mystat": {"stat": "bucket-file-download-total", "params": {"start_date":"2016-12-18", "end_date":"2016-12-19", "bucket_id": 20}}}'
+    $ curl -v -XPOST localhost:5000/stats -H "Content-Type: application/json" -d '{"mystat": {"stat": "bucket-file-download-total", "params": {"start_date":"2016-12-18", "end_date":"2016-12-19", "bucket_id": 20}}}'  # noqa
 
 To remove the example application data run:
 

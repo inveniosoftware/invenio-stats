@@ -191,11 +191,15 @@ def event_queues(app, event_entrypoints):
 @pytest.yield_fixture()
 def base_app():
     """Flask application fixture without InvenioStats."""
-    from invenio_stats.config import STATS_EVENTS
     instance_path = tempfile.mkdtemp()
     app_ = Flask('testapp', instance_path=instance_path)
     stats_events = {
-        'file-download': deepcopy(STATS_EVENTS['file-download']),
+        'file-download': {
+            'signal': 'invenio_files_rest.signals.file_downloaded',
+            'event_builders': [
+                'invenio_stats.contrib.event_builders.file_download_event_builder'
+            ]
+        },
         'record-view': {
             'signal': 'invenio_records_ui.signals.record_viewed',
             'event_builders': ['invenio_stats.contrib.event_builders'
