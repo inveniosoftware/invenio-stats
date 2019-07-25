@@ -168,9 +168,7 @@ def test_bookmark_removal(app, es_with_templates, mock_event_queue):
         [(2017, 6, 2, 15),  # second event on the same date
          (2017, 7, 1)]
     ]
-    indexer = EventsIndexer(
-        mock_event_queue
-    )
+    indexer = EventsIndexer(mock_event_queue)
     indexer.run()
     current_search_client.indices.refresh(index='*')
 
@@ -198,7 +196,7 @@ def test_bookmark_removal(app, es_with_templates, mock_event_queue):
         index='stats-file-download',
         doc_type='file-download-agg-bookmark').query('match_all')
     for bookmark in bookmarks:
-        res = current_search_client.delete(
+        current_search_client.delete(
             index=bookmark.meta.index, id=bookmark.meta.id,
             doc_type='file-download-agg-bookmark'
         )

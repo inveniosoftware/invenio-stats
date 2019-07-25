@@ -25,6 +25,73 @@ def filter_robots(query):
     return query.filter('term', is_robot=False)
 
 
+class BookmarkApi(object):
+    """Bookmark class."""
+
+    # NOTE: these mappings work up to ES_6
+    MAPPINGS = {
+        "mappings": {
+            "aggregation-bookmark": {
+                "date_detection": False,
+                "properties": {
+                    "date": {
+                        "type": "date",
+                        "format": "date_optional_time"
+                    },
+                    "aggregation_type": {
+                        "type": "string",
+                        "index": "not_analyzed"
+                    }
+                }
+            }
+        }
+    }
+
+    def __init__(self, client, index, agg_type):
+        """Construct bookmark instance."""
+        # NOTE: doc_type is going to be deprecated with ES_7
+        self.doc_type = 'aggregation-bookmark'
+        self.client = client
+        self.index = index
+        self.agg_type = agg_type
+
+    def _create_bookmark(self):
+        """Create a bookmark."""
+        pass
+
+    def set_bookmark(self):
+        """Set bookmark for starting next aggregation."""
+        def _success_date():
+            bookmark = {
+                'date': self.new_bookmark or datetime.datetime.utcnow().
+                strftime(self.doc_id_suffix),
+                'aggregation_type': self.agg_type
+            }
+            yield dict(
+                _index=self.index, _source=bookmark, _type=self.doc_type)
+
+        # TODO: no need for bulk indexing
+        bulk(self.client,
+             _success_date(),
+             stats_only=True)
+
+    def get_bookmark(self):
+        """Get a bookmark."""
+        pass
+
+    def list_bookmarks(self):
+        """List bookmarks."""
+        pass
+
+    def lower_limit(self):
+        """Calculate lower limit for bookmark."""
+        pass
+
+    def upper_limit(self):
+        """Calculate upper limit for bookmark."""
+        pass
+
+
 class StatAggregator(object):
     """Generic aggregation class.
 
@@ -143,10 +210,8 @@ class StatAggregator(object):
 
     def get_bookmark(self):
         """Get last aggregation date."""
-        if not Index(self.aggregation_alias,
-                     using=self.client).exists():
-            if not Index(self.event_index,
-                         using=self.client).exists():
+        if not Index(self.aggregation_alias, using=self.client).exists():
+            if not Index(self.event_index, using=self.client).exists():
                 return datetime.date.today()
             return self._get_oldest_event_timestamp()
 
@@ -169,27 +234,6 @@ class StatAggregator(object):
         bookmark = datetime.datetime.strptime(bookmarks[0].date,
                                               self.doc_id_suffix)
         return bookmark
-
-    def set_bookmark(self):
-        """Set bookmark for starting next aggregation."""
-        bookmark_index = 'aggregation-bookmark'
-        doc_type = 'aggregation_bookmark'
-
-        def _success_date():
-            bookmark = {
-                'date': self.new_bookmark or datetime.datetime.utcnow().
-                strftime(self.doc_id_suffix),
-                'aggregation_type': self.name
-            }
-
-            yield dict(_index=bookmark_index,
-                       _source=bookmark,
-                       _type=doc_type)
-        
-        # TODO: no need for bulk indexing
-        bulk(self.client,
-             _success_date(),
-             stats_only=True)
 
     def _format_range_dt(self, d):
         """Format range filter datetime to the closest aggregation interval."""
@@ -276,6 +320,7 @@ class StatAggregator(object):
         # Stop here if no bookmark could be estimated.
         if lower_limit is None:
             return
+
         upper_limit = min(
             end_date or datetime.datetime.max,  # ignore if `None`
             datetime.datetime.utcnow().replace(microsecond=0),
@@ -285,7 +330,9 @@ class StatAggregator(object):
         )
         while upper_limit <= datetime.datetime.utcnow():
             self.indices = set()
-            self.new_bookmark = upper_limit.strftime(self.doc_id_suffix)
+
+            # upper_limit.strftime(self.doc_id_suffix) has to go inside set_bookmark
+
             bulk(self.client,
                  self.agg_iter(lower_limit, upper_limit),
                  stats_only=True,
