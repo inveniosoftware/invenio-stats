@@ -47,7 +47,8 @@ def test_get_bookmark(app, indexed_events):
                               aggregation_field='file_id',
                               aggregation_interval='day')
     stat_agg.run()
-    assert stat_agg.get_bookmark() == datetime.datetime(2017, 1, 8)
+    assert stat_agg.bookmark_api.get_bookmark() == \
+        datetime.datetime(2017, 1, 8)
 
 
 def test_overwriting_aggregations(app, mock_event_queue, es_with_templates):
