@@ -47,33 +47,30 @@ class BookmarkApi(object):
         }
     }
 
-    def __init__(self, client, index, agg_type):
+    def __init__(self, client, agg_type):
         """Construct bookmark instance."""
         # NOTE: doc_type is going to be deprecated with ES_7
         self.doc_type = 'aggregation-bookmark'
+        self.index = 'bookmark-index'
         self.client = client
-        self.index = index
         self.agg_type = agg_type
 
     def _create_bookmark(self):
         """Create a bookmark."""
-        pass
+        if not Index(self.index, using=self.client).exists():
+            self.client.indices.create(index=self.index)
 
-    def set_bookmark(self):
+    def set_bookmark(self, new_date):
         """Set bookmark for starting next aggregation."""
         def _success_date():
             bookmark = {
-                'date': self.new_bookmark or datetime.datetime.utcnow().
-                strftime(self.doc_id_suffix),
+                'date': new_date,
                 'aggregation_type': self.agg_type
             }
             yield dict(
-                _index=self.index, _source=bookmark, _type=self.doc_type)
+                index=self.index, body=bookmark, doc_type=self.doc_type)
 
-        # TODO: no need for bulk indexing
-        bulk(self.client,
-             _success_date(),
-             stats_only=True)
+        self.client.index(_success_date(), stats_only=True)
 
     def get_bookmark(self):
         """Get a bookmark."""
@@ -83,13 +80,25 @@ class BookmarkApi(object):
         """List bookmarks."""
         pass
 
-    def lower_limit(self):
+    def lower_limit(self, start_date=None):
         """Calculate lower limit for bookmark."""
-        pass
+        return start_date or self.get_bookmark()
 
-    def upper_limit(self):
+    def upper_limit(self, start_date, end_date, batch_size):
         """Calculate upper limit for bookmark."""
-        pass
+        lower_limit = self.lower_limit(start_date)
+
+        # Stop here if no bookmark could be estimated.
+        if lower_limit is None:
+            return None
+
+        return min(
+            end_date or datetime.datetime.max,  # ignore if `None`
+            datetime.datetime.utcnow().replace(microsecond=0),
+            datetime.datetime.combine(
+                lower_limit + datetime.timedelta(batch_size),
+                datetime.datetime.min.time())
+        )
 
 
 class StatAggregator(object):
@@ -184,6 +193,8 @@ class StatAggregator(object):
         self.doc_id_suffix = self.supported_intervals[aggregation_interval]
         self.batch_size = batch_size
         self.event_index = 'events-stats-{}'.format(self.event)
+        self.indices = set()
+        self.bookmark_api = BookmarkApi(self.client, self.name)
 
     @property
     def aggregation_doc_type(self):
@@ -244,9 +255,9 @@ class StatAggregator(object):
 
     def agg_iter(self, lower_limit=None, upper_limit=None):
         """Aggregate and return dictionary to be indexed in ES."""
-        lower_limit = lower_limit or self.get_bookmark().isoformat()
-        upper_limit = upper_limit or (
-            datetime.datetime.utcnow().replace(microsecond=0).isoformat())
+        lower_limit = lower_limit or self.bookmark_api.lower_limit()
+        upper_limit = upper_limit or \
+            datetime.datetime.utcnow().replace(microsecond=0)
         aggregation_data = {}
 
         self.agg_query = Search(using=self.client,
@@ -316,22 +327,18 @@ class StatAggregator(object):
         # If no events have been indexed there is nothing to aggregate
         if not Index(self.event_index, using=self.client).exists():
             return
-        lower_limit = start_date or self.get_bookmark()
+        lower_limit = self.bookmark_api.lower_limit(start_date)
+
         # Stop here if no bookmark could be estimated.
         if lower_limit is None:
             return
 
-        upper_limit = min(
-            end_date or datetime.datetime.max,  # ignore if `None`
-            datetime.datetime.utcnow().replace(microsecond=0),
-            datetime.datetime.combine(
-                lower_limit + datetime.timedelta(self.batch_size),
-                datetime.datetime.min.time())
-        )
+        upper_limit = self.bookmark_api.upper_limit(start_date, end_date, self.batch_size)
+
         while upper_limit <= datetime.datetime.utcnow():
             self.indices = set()
 
-            # upper_limit.strftime(self.doc_id_suffix) has to go inside set_bookmark
+            upper_limit.strftime(self.doc_id_suffix)
 
             bulk(self.client,
                  self.agg_iter(lower_limit, upper_limit),
@@ -343,7 +350,9 @@ class StatAggregator(object):
                 wait_if_ongoing=True
             )
             if update_bookmark:
-                self.set_bookmark()
+                self.bookmark_api.set_bookmark(
+                    upper_limit or
+                    datetime.datetime.utcnow().strftime(self.doc_id_suffix))
             self.indices = set()
             lower_limit = lower_limit + datetime.timedelta(self.batch_size)
             upper_limit = min(
