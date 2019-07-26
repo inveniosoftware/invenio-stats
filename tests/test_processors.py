@@ -13,9 +13,11 @@ from datetime import datetime
 
 import pytest
 from conftest import _create_file_download_event
+from elasticsearch import VERSION as ES_VERSION
 from elasticsearch_dsl import Search
 from helpers import get_queue_size
 from invenio_queues.proxies import current_queues
+from invenio_search import current_search
 from mock import patch
 
 from invenio_stats.contrib.event_builders import build_file_unique_id, \
@@ -24,6 +26,7 @@ from invenio_stats.processors import EventsIndexer, anonymize_user, \
     flag_machines, flag_robots, hash_id
 from invenio_stats.proxies import current_stats
 from invenio_stats.tasks import process_events
+from invenio_stats.utils import get_doctype
 
 
 @pytest.mark.parametrize(
@@ -207,7 +210,7 @@ def test_events_indexer_preprocessors(app, mock_event_queue):
             _id=_id,
             _op_type='index',
             _index='events-stats-file-download-2017-01-01',
-            _type='stats-file-download',
+            _type=get_doctype('stats-file-download'),
             _source=event,
         ))
 
@@ -256,11 +259,14 @@ def test_double_clicks(app, mock_event_queue, es):
     current_queues.declare()
     current_stats.publish(event_type, events)
     process_events(['file-download'])
-    es.indices.refresh(index='*')
+    current_search.flush_and_refresh(index='*')
     res = es.search(
         index='events-stats-file-download-2000-06-01',
     )
-    assert res['hits']['total'] == 2
+    if ES_VERSION[0] < 7:
+        assert res['hits']['total'] == 2
+    else:
+        assert res['hits']['total']['value'] == 2
 
 
 def test_failing_processors(app, event_queues, es_with_templates, caplog):
@@ -301,7 +307,7 @@ def test_failing_processors(app, event_queues, es_with_templates, caplog):
     assert error_logs[0].msg == 'Error while processing event'
     assert error_logs[0].exc_info[1].args[0] == 'mocked-exception'
 
-    es.indices.refresh(index='*')
+    current_search.flush_and_refresh(index='*')
     assert get_queue_size('stats-file-download') == 0
     assert search.index('events-stats-file-download').count() == 3
     assert search.index('events-stats-file-download-2018-01-01').count() == 1

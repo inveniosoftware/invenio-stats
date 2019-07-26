@@ -12,15 +12,16 @@ from __future__ import absolute_import, print_function
 
 import datetime
 from collections import OrderedDict
+from copy import deepcopy
 
 import six
 from dateutil import parser
+from elasticsearch import VERSION as ES_VERSION
 from elasticsearch.helpers import bulk
 from elasticsearch_dsl import Index, Search
 from invenio_search import current_search_client
 
-from .utils import get_size
-
+from .utils import get_doctype, get_size
 
 SUPPORTED_INTERVAL = OrderedDict([
     ('hour', '%Y-%m-%dT%H'),
@@ -52,7 +53,8 @@ class BookmarkApi(object):
     It provides an interface that lets us interact with a bookmark.
     """
 
-    # NOTE: these mappings work up to ES_6
+    # NOTE: these work up to ES_6
+    # aggregation_type has type string due to ES_2
     MAPPINGS = {
         "mappings": {
             "aggregation-bookmark": {
@@ -63,13 +65,19 @@ class BookmarkApi(object):
                         "format": "date_optional_time"
                     },
                     "aggregation_type": {
-                        "type": "string",
-                        "index": "not_analyzed"
+                        "type": "string"
                     }
                 }
             }
         }
     }
+
+    MAPPINGS_ES7 = {
+        "mappings": deepcopy(
+            MAPPINGS['mappings']['aggregation-bookmark'])
+    }
+    MAPPINGS_ES7['mappings']['properties']['aggregation_type']['type'] = \
+        'keyword'
 
     def __init__(self, client, agg_type, event_index, agg_interval):
         """Construct bookmark instance.
@@ -78,7 +86,7 @@ class BookmarkApi(object):
         :param agg_type: aggregation type for the bookmark
         """
         # NOTE: doc_type is going to be deprecated with ES_7
-        self.doc_type = 'aggregation-bookmark'
+        self.doc_type = get_doctype('aggregation-bookmark')
         self.bookmark_index = 'bookmark-index'
         self.client = client
         self.agg_type = agg_type
@@ -91,18 +99,20 @@ class BookmarkApi(object):
         if not Index(self.bookmark_index, using=self.client).exists():
             # TODO: change the mapping accordingly to ES version
             self.client.indices.create(
-                index=self.bookmark_index, body=BookmarkApi.MAPPINGS)
+                index=self.bookmark_index, body=BookmarkApi.MAPPINGS
+                if ES_VERSION[0] < 7 else BookmarkApi.MAPPINGS_ES7)
 
     def set_bookmark(self, new_date):
         """Set bookmark for starting next aggregation."""
-        self.client.index(
-            index=self.bookmark_index,
-            body={
+        options = {
+            'index': self.bookmark_index,
+            'body': {
                 'date': new_date,
                 'aggregation_type': self.agg_type
             },
-            doc_type=self.doc_type
-        )
+            'doc_type': self.doc_type
+        }
+        self.client.index(**options)
 
     def get_bookmark(self):
         """Get last aggregation date."""
@@ -251,7 +261,7 @@ class StatAggregator(object):
             'cardinality', 'min', 'max', 'avg', 'sum', 'extended_stats',
             'geo_centroid', 'percentiles', 'stats'}
         if any(v not in self.allowed_metrics
-               for k, (v, _, _) in (metric_aggregation_fields or {}).items()):
+               for k, (v, _, _) in self.metric_aggregation_fields.items()):
             raise(ValueError('Metric aggregation type should be one of [{}]'
                              .format(', '.join(self.allowed_metrics))))
 
@@ -287,14 +297,10 @@ class StatAggregator(object):
         upper_limit = upper_limit or \
             datetime.datetime.utcnow().replace(microsecond=0).isoformat()
         aggregation_data = {}
-
-        self.agg_query = Search(using=self.client,
-                                index=self.event_index) \
+        self.agg_query = Search(using=self.client, index=self.event_index) \
             .filter('range', timestamp={
-                'gte': format_range_dt(
-                    lower_limit, self.aggregation_interval),
-                'lte': format_range_dt(
-                    upper_limit, self.aggregation_interval)
+                'gte': format_range_dt(lower_limit, self.aggregation_interval),
+                'lte': format_range_dt(upper_limit, self.aggregation_interval)
             })
 
         # apply query modifiers
@@ -307,7 +313,6 @@ class StatAggregator(object):
             field='timestamp',
             interval=self.aggregation_interval
         )
-
         terms = hist.bucket(
             'terms', 'terms', field=self.aggregation_field, size=get_size(
                 self.client, self.event_index, self.aggregation_field
@@ -353,8 +358,9 @@ class StatAggregator(object):
                                   interval_date.strftime(
                                       self.doc_id_suffix)),
                            _index=index_name,
-                           _type=self.aggregation_doc_type,
-                           _source=aggregation_data)
+                           _type=get_doctype(self.aggregation_doc_type),
+                           _source=aggregation_data
+                           )
         self.has_events = False if index_name is None else True
 
     def run(self, start_date=None, end_date=None, update_bookmark=True):
@@ -374,16 +380,18 @@ class StatAggregator(object):
         while upper_limit <= datetime.datetime.utcnow() and self.has_events:
             self.indices = set()
 
-            bulk(self.client,
-                 self.agg_iter(lower_limit, upper_limit),
-                 stats_only=True,
-                 chunk_size=50)
+            bulk(
+                self.client,
+                self.agg_iter(lower_limit, upper_limit),
+                stats_only=True,
+                chunk_size=50
+            )
             # Flush all indices which have been modified
             current_search_client.indices.flush(
                 index=','.join(self.indices),
                 wait_if_ongoing=True
             )
-            if update_bookmark:
+            if update_bookmark and self.has_events:
                 self.bookmark_api.set_bookmark(
                     upper_limit.strftime(self.doc_id_suffix) or
                     datetime.datetime.utcnow().strftime(self.doc_id_suffix))
@@ -406,7 +414,7 @@ class StatAggregator(object):
         aggs_query = Search(
             using=self.client,
             index=self.aggregation_alias,
-            doc_type=self.aggregation_doc_type
+            doc_type=get_doctype(self.aggregation_doc_type)
         ).extra(_source=False)
 
         range_args = {}

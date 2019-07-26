@@ -18,8 +18,8 @@ history = open('CHANGES.rst').read()
 tests_require = [
     'check-manifest>=0.25',
     'coverage>=4.0',
-    'elasticsearch-dsl<5,>=2.0.0',
-    'elasticsearch<5,>=2.0.0',
+    'elasticsearch-dsl<8,>=2.0.0',
+    'elasticsearch<8,>=2.0.0',
     'invenio-accounts>=1.0.1',
     'invenio-db>=1.0.2',
     'invenio-oauth2server>=1.0.1',
@@ -47,6 +47,9 @@ extras_require = {
     ],
     'elasticsearch6': [
         'invenio-search[elasticsearch6]>={}'.format(invenio_search_version)
+    ],
+    'elasticsearch7': [
+        'invenio-search[elasticsearch7]>={}'.format(invenio_search_version)
     ],
     'tests': tests_require,
 }

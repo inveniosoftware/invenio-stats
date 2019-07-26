@@ -16,6 +16,7 @@ from math import ceil
 
 import six
 from elasticsearch_dsl import Search
+from elasticsearch import VERSION as ES_VERSION
 from flask import current_app, request, session
 from flask_login import current_user
 from geolite2 import geolite2
@@ -45,9 +46,16 @@ def get_size(client, index, agg_field):
             }
         }
     }
-    count = Search(using=client, index=index).update_from_dict(body).count()
+    search = Search(using=client, index=index)
+    search.update_from_dict(body)
+    count = search.count()
     # NOTE: we increase the count by 10% in order to be safe
-    return ceil(count + count * 0.1)
+    return int(ceil(count + count * 0.1))
+
+
+def get_doctype(doc_type):
+    """Configure doc_type value according to ES version."""
+    return doc_type if ES_VERSION[0] < 7 else '_doc'
 
 
 def get_geoip(ip):
