@@ -20,6 +20,14 @@ from elasticsearch_dsl import Index, Search
 from invenio_search import current_search_client
 
 
+SUPPORTED_INTERVAL = OrderedDict([
+    ('hour', '%Y-%m-%dT%H'),
+    ('day', '%Y-%m-%d'),
+    ('month', '%Y-%m'),
+    ('year', '%Y')
+])
+
+
 def filter_robots(query):
     """Modify an elasticsearch query so that robot events are filtered out."""
     return query.filter('term', is_robot=False)
@@ -61,7 +69,7 @@ class BookmarkApi(object):
         }
     }
 
-    def __init__(self, client, agg_type, event_index):
+    def __init__(self, client, agg_type, event_index, agg_interval):
         """Construct bookmark instance.
 
         :param client: elasticsearch client
@@ -73,6 +81,7 @@ class BookmarkApi(object):
         self.client = client
         self.agg_type = agg_type
         self.event_index = event_index
+        self.agg_interval = agg_interval
         self._create_bookmark()
 
     def _create_bookmark(self):
@@ -110,7 +119,8 @@ class BookmarkApi(object):
         if len(bookmarks) == 0:
             return self._get_oldest_event_timestamp()
 
-        return datetime.datetime.strptime(bookmarks[0].date, '%Y-%m-%d')
+        return datetime.datetime.strptime(
+            bookmarks[0].date, SUPPORTED_INTERVAL[self.agg_interval])
 
     def _get_oldest_event_timestamp(self):
         """Search for the oldest event timestamp."""
@@ -129,8 +139,7 @@ class BookmarkApi(object):
             return None
         return parser.parse(result[0]['timestamp'])
 
-    def list_bookmarks(self, start_date=None, end_date=None, limit=None,
-                       agg_interval=None):
+    def list_bookmarks(self, start_date=None, end_date=None, limit=None):
         """List bookmarks."""
         query = Search(
             using=self.client,
@@ -142,7 +151,7 @@ class BookmarkApi(object):
         range_args = {}
         if start_date:
             range_args['gte'] = format_range_dt(
-                start_date.replace(microsecond=0), agg_interval)
+                start_date.replace(microsecond=0), self.agg_interval)
         if end_date:
             range_args['lte'] = format_range_dt(
                 end_date.replace(microsecond=0))
@@ -249,22 +258,19 @@ class StatAggregator(object):
         self.index_interval = index_interval
         self.query_modifiers = (query_modifiers if query_modifiers is not None
                                 else [filter_robots])
-        self.supported_intervals = OrderedDict([('hour', '%Y-%m-%dT%H'),
-                                                ('day', '%Y-%m-%d'),
-                                                ('month', '%Y-%m'),
-                                                ('year', '%Y')])
-        if list(self.supported_intervals.keys()).index(aggregation_interval) \
-                > list(self.supported_intervals.keys()).index(index_interval):
+        if list(SUPPORTED_INTERVAL.keys()).index(aggregation_interval) \
+                > list(SUPPORTED_INTERVAL.keys()).index(index_interval):
             raise(ValueError('Aggregation interval should be'
                              ' shorter than index interval'))
-        self.index_name_suffix = self.supported_intervals[index_interval]
-        self.doc_id_suffix = self.supported_intervals[aggregation_interval]
+        self.index_name_suffix = SUPPORTED_INTERVAL[index_interval]
+        self.doc_id_suffix = SUPPORTED_INTERVAL[aggregation_interval]
         self.batch_size = batch_size
         self.event_index = 'events-stats-{}'.format(self.event)
         self.indices = set()
         self.has_events = True
         self.bookmark_api = BookmarkApi(
-            self.client, self.aggregation_doc_type, self.event_index)
+            self.client, self.aggregation_doc_type,
+            self.event_index, self.aggregation_interval)
 
     @property
     def aggregation_doc_type(self):
@@ -388,8 +394,7 @@ class StatAggregator(object):
 
     def list_bookmarks(self, start_date=None, end_date=None, limit=None):
         """List the aggregation's bookmarks."""
-        return self.bookmark_api.list_bookmarks(start_date, end_date, limit,
-                                                self.aggregation_interval)
+        return self.bookmark_api.list_bookmarks(start_date, end_date, limit)
 
     def delete(self, start_date=None, end_date=None):
         """Delete aggregation documents."""
