@@ -21,7 +21,8 @@ from flask import current_app
 from invenio_search import current_search_client
 from pytz import utc
 
-from .utils import get_anonymization_salt, get_geoip, obj_or_import_string
+from .utils import get_anonymization_salt, get_doctype, get_geoip, \
+    obj_or_import_string
 
 
 def anonymize_user(doc):
@@ -159,7 +160,7 @@ class EventsIndexer(object):
         """
         self.queue = queue
         self.client = client or current_search_client
-        self.doctype = queue.routing_key
+        self.doctype = get_doctype(queue.routing_key)
         self.index = '{0}-{1}'.format(prefix, self.queue.routing_key)
         self.suffix = suffix
         # load the preprocessors

@@ -15,6 +15,7 @@ from base64 import b64encode
 from math import ceil
 
 import six
+from elasticsearch import VERSION as ES_VERSION
 from elasticsearch_dsl import Search
 from flask import current_app, request, session
 from flask_login import current_user
@@ -48,6 +49,11 @@ def get_size(client, index, agg_field):
     count = Search(using=client, index=index).update_from_dict(body).count()
     # NOTE: we increase the count by 10% in order to be safe
     return ceil(count + count * 0.1)
+
+  
+def get_doctype(doc_type):
+    """Configure doc_type value according to ES version."""
+    return doc_type if ES_VERSION[0] < 7 else '_doc'
 
 
 def get_geoip(ip):
