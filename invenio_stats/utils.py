@@ -33,7 +33,7 @@ def get_anonymization_salt(ts):
     return salt
 
 
-def get_doc_type(doc_type):
+def get_doctype(doc_type):
     """Configure doc_type value according to ES version."""
     return doc_type if ES_VERSION[0] < 7 else '_doc'
 

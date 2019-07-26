@@ -21,7 +21,7 @@ from elasticsearch.helpers import bulk
 from elasticsearch_dsl import Index, Search
 from invenio_search import current_search_client
 
-from .utils import get_doc_type
+from .utils import get_doctype
 
 SUPPORTED_INTERVAL = OrderedDict([
     ('hour', '%Y-%m-%dT%H'),
@@ -84,7 +84,7 @@ class BookmarkApi(object):
         :param agg_type: aggregation type for the bookmark
         """
         # NOTE: doc_type is going to be deprecated with ES_7
-        self.doc_type = get_doc_type('aggregation-bookmark')
+        self.doc_type = get_doctype('aggregation-bookmark')
         self.bookmark_index = 'bookmark-index'
         self.client = client
         self.agg_type = agg_type
@@ -285,7 +285,7 @@ class StatAggregator(object):
     @property
     def aggregation_doc_type(self):
         """Get document type for the aggregation."""
-        return get_doc_type('{0}-{1}-aggregation'.format(
+        return get_doctype('{0}-{1}-aggregation'.format(
             self.event, self.aggregation_interval))
 
     def agg_iter(self, lower_limit=None, upper_limit=None):

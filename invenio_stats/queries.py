@@ -16,6 +16,7 @@ from elasticsearch_dsl import Search
 from invenio_search import current_search_client
 
 from .errors import InvalidRequestInputError
+from .utils import get_doctype
 
 
 class ESQuery(object):
@@ -33,7 +34,7 @@ class ESQuery(object):
         self.index = index
         self.client = client or current_search_client
         self.query_name = query_name
-        self.doc_type = doc_type
+        self.doc_type = get_doctype(doc_type)
 
     def extract_date(self, date):
         """Extract date from string if necessary.
