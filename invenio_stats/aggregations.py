@@ -418,7 +418,7 @@ class StatAggregator(object):
             using=self.client,
             index=self.bookmark_api.bookmark_index,
         ).filter(
-            'term', aggregation_type=self.name
+            'term', aggregation_type=self.aggregation_doc_type
         ).sort({'date': {'order': 'desc'}})
 
         if range_args:
@@ -431,7 +431,8 @@ class StatAggregator(object):
                     affected_indices.add(doc.meta.index)
                     yield dict(_index=doc.meta.index,
                                _op_type='delete',
-                               _id=doc.meta.id)
+                               _id=doc.meta.id,
+                               _type=doc.meta.doc_type)
                 current_search_client.indices.flush(
                     index=','.join(affected_indices), wait_if_ongoing=True)
         bulk(self.client, _delete_actions(), refresh=True)

@@ -136,7 +136,7 @@ def _aggregations_process(aggregation_types=None,
 def _aggregations_delete(aggregation_types=None,
                          start_date=None, end_date=None):
     """Delete computed aggregations."""
-    aggregation_types = (aggregation_types or
+    aggregation_types = (aggregation_types._get_current_object() or
                          list(current_stats.enabled_aggregations))
     for a in aggregation_types:
         aggr_cfg = current_stats.aggregations[a]
