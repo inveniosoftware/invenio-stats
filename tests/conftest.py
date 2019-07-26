@@ -290,6 +290,7 @@ def es(app):
 @pytest.yield_fixture()
 def es_with_templates(app, es):
     """Provide elasticsearch access, create and clean indices and templates."""
+    import wdb; wdb.set_trace()
     list(current_search.put_templates())
     yield current_search_client
 

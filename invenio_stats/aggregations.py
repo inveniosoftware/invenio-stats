@@ -64,8 +64,7 @@ class BookmarkApi(object):
                         "format": "date_optional_time"
                     },
                     "aggregation_type": {
-                        "type": "string",
-                        "index": "not_analyzed"
+                        "type": "keyword"
                     }
                 }
             }

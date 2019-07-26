@@ -13,6 +13,7 @@ from datetime import datetime
 
 import pytest
 from conftest import _create_file_download_event
+from elasticsearch import VERSION as ES_VERSION
 from elasticsearch_dsl import Search
 from helpers import get_queue_size
 from invenio_queues.proxies import current_queues
@@ -260,7 +261,10 @@ def test_double_clicks(app, mock_event_queue, es):
     res = es.search(
         index='events-stats-file-download-2000-06-01',
     )
-    assert res['hits']['total'] == 2
+    if ES_VERSION[0] < 7:
+        assert res['hits']['total'] == 2
+    else:
+        assert res['hits']['total']['value'] == 2
 
 
 def test_failing_processors(app, event_queues, es_with_templates, caplog):

@@ -1,8 +1,7 @@
 {
   "template": "events-stats-record-view-*",
   "settings": {
-    "index.mapper.dynamic": false,
-    "index": {
+\    "index": {
       "refresh_interval": "5s"
     }
   },
@@ -19,28 +18,22 @@
         "format": "strict_date_hour_minute_second"
       },
       "record_id": {
-        "type": "string",
-        "index": "not_analyzed"
+        "type": "keyword"
       },
       "pid_type": {
-        "type": "string",
-        "index": "not_analyzed"
+        "type": "keyword"
       },
       "pid_value": {
-        "type": "string",
-        "index": "not_analyzed"
+        "type": "keyword"
       },
       "labels": {
-        "type": "string",
-        "index": "not_analyzed"
+        "type": "keyword"
       },
       "country": {
-        "type": "string",
-        "index": "not_analyzed"
+        "type": "keyword"
       },
       "visitor_id": {
-        "type": "string",
-        "index": "not_analyzed"
+        "type": "keyword"
       }
     }
   },
