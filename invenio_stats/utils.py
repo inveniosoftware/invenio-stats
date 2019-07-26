@@ -12,9 +12,11 @@ from __future__ import absolute_import, print_function
 
 import os
 from base64 import b64encode
+from math import ceil
 
 import six
 from elasticsearch import VERSION as ES_VERSION
+from elasticsearch_dsl import Search
 from flask import current_app, request, session
 from flask_login import current_user
 from geolite2 import geolite2
@@ -33,6 +35,22 @@ def get_anonymization_salt(ts):
     return salt
 
 
+def get_size(client, index, agg_field):
+    """Function to help us define the size for our search query."""
+    body = {
+        "aggs": {
+            "size_count": {
+                "cardinality": {
+                    "field": agg_field
+                }
+            }
+        }
+    }
+    count = Search(using=client, index=index).update_from_dict(body).count()
+    # NOTE: we increase the count by 10% in order to be safe
+    return ceil(count + count * 0.1)
+
+  
 def get_doctype(doc_type):
     """Configure doc_type value according to ES version."""
     return doc_type if ES_VERSION[0] < 7 else '_doc'

@@ -16,7 +16,7 @@ from elasticsearch_dsl import Search
 from invenio_search import current_search_client
 
 from .errors import InvalidRequestInputError
-from .utils import get_doctype
+from .utils import get_doctype, get_size
 
 
 class ESQuery(object):
@@ -260,7 +260,11 @@ class ESTermsQuery(ESQuery):
         if self.aggregated_fields:
             cur_agg = base_agg
             for term in self.aggregated_fields:
-                cur_agg = cur_agg.bucket(term, 'terms', field=term, size=0)
+                cur_agg = cur_agg.bucket(
+                    term, 'terms', field=term, size=get_size(
+                        self.client, self.index, term
+                    )
+                )
                 _apply_metric_aggs(cur_agg)
 
         if self.copy_fields:
