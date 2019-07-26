@@ -194,12 +194,15 @@ def test_bookmark_removal(app, es_with_templates, mock_event_queue):
     # Delete all bookmarks
     bookmarks = Search(
         using=current_search_client,
-        index='stats-file-download',
-        doc_type='file-download-agg-bookmark').query('match_all')
+        index='bookmark-index',
+        doc_type='aggregation-bookmark'
+        ).filter(
+            'term', aggregation_type='file-download-day-aggregation'
+        ).query('match_all')
     for bookmark in bookmarks:
         current_search_client.delete(
             index=bookmark.meta.index, id=bookmark.meta.id,
-            doc_type='file-download-agg-bookmark'
+            doc_type='aggregation-bookmark'
         )
     current_search_client.indices.refresh(index='*')
     # the aggregations should have been overwritten

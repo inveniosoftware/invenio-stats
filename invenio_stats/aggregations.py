@@ -262,9 +262,9 @@ class StatAggregator(object):
         self.batch_size = batch_size
         self.event_index = 'events-stats-{}'.format(self.event)
         self.indices = set()
-        self.no_events = False
+        self.has_events = True
         self.bookmark_api = BookmarkApi(
-            self.client, self.name, self.event_index)
+            self.client, self.aggregation_doc_type, self.event_index)
 
     @property
     def aggregation_doc_type(self):
@@ -302,7 +302,7 @@ class StatAggregator(object):
         terms = hist.bucket(
             'terms', 'terms', field=self.aggregation_field, size=0
         )
-        top = terms.metric(
+        terms.metric(
             'top_hit', 'top_hits', size=1, sort={'timestamp': 'desc'}
         )
         for dst, (metric, src, opts) in self.metric_aggregation_fields.items():
@@ -344,7 +344,7 @@ class StatAggregator(object):
                            _index=index_name,
                            _type=self.aggregation_doc_type,
                            _source=aggregation_data)
-        self.no_events = True if index_name is None else False
+        self.has_events = False if index_name is None else True
 
     def run(self, start_date=None, end_date=None, update_bookmark=True):
         """Calculate statistics aggregations."""
@@ -360,7 +360,7 @@ class StatAggregator(object):
         upper_limit = self.bookmark_api.get_upper_limit(
             start_date, end_date, self.batch_size)
 
-        while upper_limit <= datetime.datetime.utcnow() and not self.no_events:
+        while upper_limit <= datetime.datetime.utcnow() and self.has_events:
             self.indices = set()
 
             bulk(self.client,
