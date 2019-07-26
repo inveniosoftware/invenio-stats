@@ -12,13 +12,16 @@ from __future__ import absolute_import, print_function
 
 import datetime
 from collections import OrderedDict
+from copy import deepcopy
 
 import six
 from dateutil import parser
+from elasticsearch import VERSION as ES_VERSION
 from elasticsearch.helpers import bulk
 from elasticsearch_dsl import Index, Search
 from invenio_search import current_search_client
 
+from .utils import get_doc_type
 
 SUPPORTED_INTERVAL = OrderedDict([
     ('hour', '%Y-%m-%dT%H'),
@@ -50,7 +53,7 @@ class BookmarkApi(object):
     It provides an interface that lets us interact with a bookmark.
     """
 
-    # NOTE: these mappings work up to ES_6
+    # NOTE: these work up to ES_6
     MAPPINGS = {
         "mappings": {
             "aggregation-bookmark": {
@@ -69,6 +72,11 @@ class BookmarkApi(object):
         }
     }
 
+    MAPPINGS_ES7 = {
+        "mappings": deepcopy(
+            MAPPINGS['mappings']['aggregation-bookmark'])
+    }
+
     def __init__(self, client, agg_type, event_index, agg_interval):
         """Construct bookmark instance.
 
@@ -76,7 +84,7 @@ class BookmarkApi(object):
         :param agg_type: aggregation type for the bookmark
         """
         # NOTE: doc_type is going to be deprecated with ES_7
-        self.doc_type = 'aggregation-bookmark'
+        self.doc_type = get_doc_type('aggregation-bookmark')
         self.bookmark_index = 'bookmark-index'
         self.client = client
         self.agg_type = agg_type
@@ -89,18 +97,20 @@ class BookmarkApi(object):
         if not Index(self.bookmark_index, using=self.client).exists():
             # TODO: change the mapping accordingly to ES version
             self.client.indices.create(
-                index=self.bookmark_index, body=BookmarkApi.MAPPINGS)
+                index=self.bookmark_index, body=BookmarkApi.MAPPINGS
+                if ES_VERSION[0] < 7 else BookmarkApi.MAPPINGS_ES7)
 
     def set_bookmark(self, new_date):
         """Set bookmark for starting next aggregation."""
-        self.client.index(
-            index=self.bookmark_index,
-            body={
+        options = {
+            'index': self.bookmark_index,
+            'body': {
                 'date': new_date,
                 'aggregation_type': self.agg_type
             },
-            doc_type=self.doc_type
-        )
+            'doc_type': self.doc_type
+        }
+        self.client.index(**options)
 
     def get_bookmark(self):
         """Get last aggregation date."""
@@ -275,8 +285,8 @@ class StatAggregator(object):
     @property
     def aggregation_doc_type(self):
         """Get document type for the aggregation."""
-        return '{0}-{1}-aggregation'.format(
-            self.event, self.aggregation_interval)
+        return get_doc_type('{0}-{1}-aggregation'.format(
+            self.event, self.aggregation_interval))
 
     def agg_iter(self, lower_limit=None, upper_limit=None):
         """Aggregate and return dictionary to be indexed in ES."""

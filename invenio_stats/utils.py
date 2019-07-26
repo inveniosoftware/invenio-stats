@@ -14,6 +14,7 @@ import os
 from base64 import b64encode
 
 import six
+from elasticsearch import VERSION as ES_VERSION
 from flask import current_app, request, session
 from flask_login import current_user
 from geolite2 import geolite2
@@ -30,6 +31,11 @@ def get_anonymization_salt(ts):
         salt = b64encode(salt_bytes).decode('utf-8')
         current_cache.set(salt_key, salt, timeout=60 * 60 * 24)
     return salt
+
+
+def get_doc_type(doc_type):
+    """Configure doc_type value according to ES version."""
+    return doc_type if ES_VERSION[0] < 7 else '_doc'
 
 
 def get_geoip(ip):
