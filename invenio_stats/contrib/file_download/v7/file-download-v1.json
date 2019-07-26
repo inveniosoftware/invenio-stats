@@ -7,19 +7,17 @@
     }
   },
   "mappings": {
-    "_default_": {
-      "dynamic_templates": [
-        {
-          "date_fields": {
-            "match_mapping_type": "date",
-            "mapping": {
-              "type": "date",
-              "format": "strict_date_hour_minute_second"
-            }
+    "dynamic_templates": [
+      {
+        "date_fields": {
+          "match_mapping_type": "date",
+          "mapping": {
+            "type": "date",
+            "format": "strict_date_hour_minute_second"
           }
         }
-      ]
-    },
+      }
+    ],
     "_all": {
       "enabled": false
     },
