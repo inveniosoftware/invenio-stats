@@ -20,6 +20,7 @@ from invenio_stats import current_stats
 from invenio_stats.aggregations import StatAggregator, filter_robots
 from invenio_stats.processors import EventsIndexer
 from invenio_stats.tasks import aggregate_events, process_events
+from invenio_stats.utils import get_doctype
 
 
 def test_wrong_intervals(app):
@@ -72,7 +73,6 @@ def test_overwriting_aggregations(app, mock_event_queue, es_with_templates):
             return cls(*cls.current_date)
 
     # Send some events
-    event_type = 'file-download'
     mock_event_queue.consume.return_value = [
         _create_file_download_event(date) for date in
         [(2017, 6, 1), (2017, 6, 2, 10)]
@@ -111,7 +111,6 @@ def test_overwriting_aggregations(app, mock_event_queue, es_with_templates):
     with patch('datetime.datetime', NewDate):
         aggregate_events(['file-download-agg'])
     current_search.flush_and_refresh(index='*')
-
     res = current_search_client.search(
         index='stats-file-download',
         version=True
@@ -190,15 +189,14 @@ def test_bookmark_removal(app, es_with_templates, mock_event_queue):
     aggregate_and_check_version(1)
 
     # Delete all bookmarks
-    bookmarks = Search(
-        using=current_search_client,
-        index='bookmark-index',
-        ).filter(
-            'term', aggregation_type='file-download-day-aggregation'
-        ).execute()
+    bookmarks = Search(using=current_search_client, index='bookmark-index') \
+        .filter('term', aggregation_type='file-download-day-aggregation') \
+        .execute()
+
     for bookmark in bookmarks:
         current_search_client.delete(
-            index=bookmark.meta.index, id=bookmark.meta.id
+            index=bookmark.meta.index, id=bookmark.meta.id,
+            doc_type=get_doctype('aggregation-bookmark')
         )
 
     current_search.flush_and_refresh(index='*')
@@ -213,6 +211,7 @@ def test_bookmark_removal(app, es_with_templates, mock_event_queue):
                                end_date=datetime.date(2015, 2, 3))],
                          indirect=['indexed_events'])
 def test_date_range(app, es, event_queues, indexed_events):
+    """Test date ranges."""
     aggregate_events(['file-download-agg'])
     current_search.flush_and_refresh(index='*')
     query = Search(using=current_search_client,
@@ -249,7 +248,6 @@ def test_filter_robots(app, es, event_queues, indexed_events, with_robots):
     query = Search(
         using=current_search_client,
         index='stats-file-download',
-        doc_type='file-download-day-aggregation'
     )[0:30].sort('file_id')
     results = query.execute()
     assert len(results) == 3

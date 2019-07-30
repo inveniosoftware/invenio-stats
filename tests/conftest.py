@@ -123,7 +123,6 @@ def query_entrypoints(custom_permission_factory):
         query_class=CustomQuery,
         query_config=dict(
             index='stats-file-download',
-            doc_type='file-download-day-aggregation',
             copy_fields=dict(
                 bucket_id='bucket_id',
             ),
@@ -138,7 +137,6 @@ def query_entrypoints(custom_permission_factory):
         query_class=CustomQuery,
         query_config=dict(
             index='stats-file-download',
-            doc_type='file-download-day-aggregation',
             copy_fields=dict(
                 bucket_id='bucket_id',
             ),

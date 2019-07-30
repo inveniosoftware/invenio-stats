@@ -16,17 +16,15 @@ from elasticsearch_dsl import Search
 from invenio_search import current_search_client
 
 from .errors import InvalidRequestInputError
-from .utils import get_doctype, get_size
+from .utils import get_size
 
 
 class ESQuery(object):
     """Elasticsearch query."""
 
-    def __init__(self, query_name, doc_type, index, client=None,
-                 *args, **kwargs):
+    def __init__(self, query_name, index, client=None, *args, **kwargs):
         """Constructor.
 
-        :param doc_type: queried document type.
         :param index: queried index.
         :param client: elasticsearch client used to query.
         """
@@ -34,7 +32,6 @@ class ESQuery(object):
         self.index = index
         self.client = client or current_search_client
         self.query_name = query_name
-        self.doc_type = get_doctype(doc_type)
 
     def extract_date(self, date):
         """Extract date from string if necessary.
@@ -110,9 +107,8 @@ class ESDateHistogramQuery(ESQuery):
 
     def build_query(self, interval, start_date, end_date, **kwargs):
         """Build the elasticsearch query."""
-        agg_query = Search(using=self.client,
-                           index=self.index,
-                           doc_type=self.doc_type)[0:0]
+        agg_query = Search(using=self.client, index=self.index)[0:0]
+
         if start_date is not None or end_date is not None:
             time_range = {}
             if start_date is not None:
@@ -234,9 +230,8 @@ class ESTermsQuery(ESQuery):
 
     def build_query(self, start_date, end_date, **kwargs):
         """Build the elasticsearch query."""
-        agg_query = Search(using=self.client,
-                           index=self.index,
-                           doc_type=self.doc_type)[0:0]
+        agg_query = Search(using=self.client, index=self.index)[0:0]
+
         if start_date is not None or end_date is not None:
             time_range = {}
             if start_date is not None:
