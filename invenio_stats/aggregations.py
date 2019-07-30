@@ -19,7 +19,7 @@ from dateutil import parser
 from elasticsearch import VERSION as ES_VERSION
 from elasticsearch.helpers import bulk
 from elasticsearch_dsl import Index, Search
-from invenio_search import current_search_client
+from invenio_search import current_search_client, current_search
 
 from .utils import get_doctype, get_size
 
@@ -36,15 +36,14 @@ def filter_robots(query):
     return query.filter('term', is_robot=False)
 
 
-def format_range_dt(d, interval):
+def format_range_dt(dt, interval):
     """Format range filter datetime to the closest aggregation interval."""
     dt_rounding_map = {
         'hour': 'h', 'day': 'd', 'month': 'M', 'year': 'y'}
 
-    if not isinstance(d, six.string_types):
-        d = d.isoformat()
-    return '{0}||/{1}'.format(
-        d, dt_rounding_map[interval])
+    if not isinstance(dt, six.string_types):
+        dt = dt.isoformat()
+    return '{0}||/{1}'.format(dt, dt_rounding_map[interval])
 
 
 class BookmarkApi(object):
@@ -54,7 +53,6 @@ class BookmarkApi(object):
     """
 
     # NOTE: these work up to ES_6
-    # aggregation_type has type string due to ES_2
     MAPPINGS = {
         "mappings": {
             "aggregation-bookmark": {
@@ -65,7 +63,7 @@ class BookmarkApi(object):
                         "format": "date_optional_time"
                     },
                     "aggregation_type": {
-                        "type": "string"
+                        "type": "keyword"
                     }
                 }
             }
@@ -73,11 +71,8 @@ class BookmarkApi(object):
     }
 
     MAPPINGS_ES7 = {
-        "mappings": deepcopy(
-            MAPPINGS['mappings']['aggregation-bookmark'])
+        "mappings": deepcopy(MAPPINGS['mappings']['aggregation-bookmark'])
     }
-    MAPPINGS_ES7['mappings']['properties']['aggregation_type']['type'] = \
-        'keyword'
 
     def __init__(self, client, agg_type, event_index, agg_interval):
         """Construct bookmark instance.
@@ -292,10 +287,9 @@ class StatAggregator(object):
 
     def agg_iter(self, lower_limit=None, upper_limit=None):
         """Aggregate and return dictionary to be indexed in ES."""
-        lower_limit = lower_limit or self.bookmark_api.get_lower_limit() \
-            .isoformat()
+        lower_limit = lower_limit or self.bookmark_api.get_lower_limit()
         upper_limit = upper_limit or \
-            datetime.datetime.utcnow().replace(microsecond=0).isoformat()
+            datetime.datetime.utcnow().replace(microsecond=0)
         aggregation_data = {}
         self.agg_query = Search(using=self.client, index=self.event_index) \
             .filter('range', timestamp={
@@ -326,6 +320,7 @@ class StatAggregator(object):
 
         results = self.agg_query.execute()
         index_name = None
+
         for interval in results.aggregations['histogram'].buckets:
             interval_date = datetime.datetime.strptime(
                 interval['key_as_string'], '%Y-%m-%dT%H:%M:%S')
@@ -353,6 +348,7 @@ class StatAggregator(object):
                                     interval_date.strftime(
                                         self.index_name_suffix))
                 self.indices.add(index_name)
+
                 yield dict(_id='{0}-{1}'.
                            format(aggregation['key'],
                                   interval_date.strftime(
@@ -368,6 +364,7 @@ class StatAggregator(object):
         # If no events have been indexed there is nothing to aggregate
         if not Index(self.event_index, using=self.client).exists():
             return
+
         lower_limit = self.bookmark_api.get_lower_limit(start_date)
 
         # Stop here if no bookmark could be estimated.
@@ -387,15 +384,12 @@ class StatAggregator(object):
                 chunk_size=50
             )
             # Flush all indices which have been modified
-            current_search_client.indices.flush(
-                index=','.join(self.indices),
-                wait_if_ongoing=True
-            )
+            current_search.flush_and_refresh(index='*')
             if update_bookmark and self.has_events:
                 self.bookmark_api.set_bookmark(
                     upper_limit.strftime(self.doc_id_suffix) or
                     datetime.datetime.utcnow().strftime(self.doc_id_suffix))
-            self.indices = set()
+
             lower_limit = lower_limit + datetime.timedelta(self.batch_size)
             upper_limit = min(
                 end_date or datetime.datetime.max,  # ignore if `None``

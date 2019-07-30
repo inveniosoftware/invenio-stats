@@ -92,7 +92,6 @@ def register_queries():
             query_class=ESDateHistogramQuery,
             query_config=dict(
                 index='stats-file-download',
-                doc_type='file-download-day-aggregation',
                 copy_fields=dict(
                     bucket_id='bucket_id',
                     file_key='file_key',
@@ -108,7 +107,6 @@ def register_queries():
             query_class=ESTermsQuery,
             query_config=dict(
                 index='stats-file-download',
-                doc_type='file-download-day-aggregation',
                 copy_fields=dict(
                     # bucket_id='bucket_id',
                 ),
