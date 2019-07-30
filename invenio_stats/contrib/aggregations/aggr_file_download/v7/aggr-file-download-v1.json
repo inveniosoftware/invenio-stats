@@ -17,9 +17,6 @@
         }
       }
     ],
-    "_all": {
-      "enabled": false
-    },
     "date_detection": false,
     "dynamic": false,
     "numeric_detection": false,
@@ -29,8 +26,10 @@
         "format": "date_optional_time"
       },
       "count": {
-        "type": "integer",
-        "index": "not_analyzed"
+        "type": "integer"
+      },
+      "unique_count": {
+        "type": "integer"
       },
       "file_id": {
         "type": "keyword"
@@ -43,6 +42,9 @@
       },
       "collection": {
         "type": "keyword"
+      },
+      "volume": {
+        "type": "double"
       }
     }
   },

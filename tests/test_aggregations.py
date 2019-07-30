@@ -9,7 +9,6 @@
 """Aggregation tests."""
 
 import datetime
-import time
 
 import pytest
 from conftest import _create_file_download_event
@@ -47,6 +46,7 @@ def test_get_bookmark(app, indexed_events):
                               aggregation_field='file_id',
                               aggregation_interval='day')
     stat_agg.run()
+    current_search.flush_and_refresh(index='*')
     assert stat_agg.bookmark_api.get_bookmark() == \
         datetime.datetime(2017, 1, 8)
 
@@ -63,6 +63,7 @@ def test_overwriting_aggregations(app, mock_event_queue, es_with_templates):
     """
     class NewDate(datetime.datetime):
         """datetime.datetime mock."""
+
         # Aggregate at 12:00, thus the day will be aggregated again later
         current_date = (2017, 6, 2, 12)
 
@@ -77,16 +78,14 @@ def test_overwriting_aggregations(app, mock_event_queue, es_with_templates):
         [(2017, 6, 1), (2017, 6, 2, 10)]
     ]
 
-    indexer = EventsIndexer(
-        mock_event_queue
-    )
+    indexer = EventsIndexer(mock_event_queue)
     indexer.run()
-    current_search_client.indices.refresh(index='*')
+    current_search.flush_and_refresh(index='*')
 
     # Aggregate events
     with patch('datetime.datetime', NewDate):
         aggregate_events(['file-download-agg'])
-    current_search_client.indices.refresh(index='*')
+    current_search.flush_and_refresh(index='*')
 
     # Send new events, some on the last aggregated day and some far
     # in the future.
@@ -105,17 +104,16 @@ def test_overwriting_aggregations(app, mock_event_queue, es_with_templates):
         mock_event_queue
     )
     indexer.run()
-    current_search_client.indices.refresh(index='*')
+    current_search.flush_and_refresh(index='*')
 
     # Aggregate again. The aggregation should start from the last bookmark.
     NewDate.current_date = (2017, 7, 2)
     with patch('datetime.datetime', NewDate):
         aggregate_events(['file-download-agg'])
-    current_search_client.indices.refresh(index='*')
+    current_search.flush_and_refresh(index='*')
 
     res = current_search_client.search(
         index='stats-file-download',
-        doc_type='file-download-day-aggregation',
         version=True
     )
     for hit in res['hits']['hits']:
@@ -145,8 +143,10 @@ def test_aggregation_without_events(app, es_with_templates):
     # have been indexed but are not yet searchable (before index refresh).
     Index('events-stats-file-download-2017',
           using=current_search_client).create()
+
     # Wait for the index to be available
-    time.sleep(1)
+    current_search.flush_and_refresh(index='*')
+
     # Aggregate events
     StatAggregator(name='test-file-download',
                    event='file-download',
@@ -171,7 +171,7 @@ def test_bookmark_removal(app, es_with_templates, mock_event_queue):
     ]
     indexer = EventsIndexer(mock_event_queue)
     indexer.run()
-    current_search_client.indices.refresh(index='*')
+    current_search.flush_and_refresh(index='*')
 
     def aggregate_and_check_version(expected_version):
         # Aggregate events
@@ -180,31 +180,28 @@ def test_bookmark_removal(app, es_with_templates, mock_event_queue):
                        aggregation_field='file_id',
                        aggregation_interval='day',
                        query_modifiers=[]).run()
-        current_search_client.indices.refresh(index='*')
+        current_search.flush_and_refresh(index='*')
         res = current_search_client.search(
-            index='stats-file-download',
-            doc_type='file-download-day-aggregation',
-            version=True
-        )
+            index='stats-file-download', version=True)
         for hit in res['hits']['hits']:
             assert hit['_version'] == expected_version
 
     aggregate_and_check_version(1)
     aggregate_and_check_version(1)
+
     # Delete all bookmarks
     bookmarks = Search(
         using=current_search_client,
         index='bookmark-index',
-        doc_type='aggregation-bookmark'
         ).filter(
             'term', aggregation_type='file-download-day-aggregation'
-        ).query('match_all')
+        ).execute()
     for bookmark in bookmarks:
         current_search_client.delete(
-            index=bookmark.meta.index, id=bookmark.meta.id,
-            doc_type='aggregation-bookmark'
+            index=bookmark.meta.index, id=bookmark.meta.id
         )
-    current_search_client.indices.refresh(index='*')
+
+    current_search.flush_and_refresh(index='*')
     # the aggregations should have been overwritten
     aggregate_and_check_version(2)
 
@@ -217,8 +214,7 @@ def test_bookmark_removal(app, es_with_templates, mock_event_queue):
                          indirect=['indexed_events'])
 def test_date_range(app, es, event_queues, indexed_events):
     aggregate_events(['file-download-agg'])
-    current_search_client.indices.refresh(index='*')
-
+    current_search.flush_and_refresh(index='*')
     query = Search(using=current_search_client,
                    index='stats-file-download')[0:30].sort('file_id')
     results = query.execute()
@@ -249,7 +245,7 @@ def test_filter_robots(app, es, event_queues, indexed_events, with_robots):
                    aggregation_field='file_id',
                    aggregation_interval='day',
                    query_modifiers=query_modifiers).run()
-    current_search_client.indices.refresh(index='*')
+    current_search.flush_and_refresh(index='*')
     query = Search(
         using=current_search_client,
         index='stats-file-download',
@@ -264,7 +260,6 @@ def test_filter_robots(app, es, event_queues, indexed_events, with_robots):
 
 def test_metric_aggregations(app, event_queues, es_with_templates):
     """Test aggregation metrics."""
-    es = es_with_templates
     current_stats.publish(
         'file-download',
         [_create_file_download_event(date, user_id='1') for date in
@@ -273,24 +268,29 @@ def test_metric_aggregations(app, event_queues, es_with_templates):
           (2018, 1, 1, 14, 10), (2018, 1, 1, 14, 20), (2018, 1, 1, 14, 30),
           (2018, 1, 1, 15, 10), (2018, 1, 1, 15, 20), (2018, 1, 1, 15, 30)]])
     process_events(['file-download'])
-    es.indices.refresh(index='*')
+    current_search.flush_and_refresh(index='*')
 
-    StatAggregator(name='file-download-agg',
-                   client=current_search_client,
-                   event='file-download',
-                   aggregation_field='file_id',
-                   metric_aggregation_fields={
-                       'unique_count': ('cardinality', 'unique_session_id',
-                                        {'precision_threshold': 1000}),
-                       'volume': ('sum', 'size', {})
-                   },
-                   aggregation_interval='day').run()
-    es.indices.refresh(index='*')
+    stat_agg = StatAggregator(
+        name='file-download-agg',
+        client=current_search_client,
+        event='file-download',
+        aggregation_field='file_id',
+        metric_aggregation_fields={
+            'unique_count': (
+                'cardinality',
+                'unique_session_id',
+                {'precision_threshold': 3000}
+            ),
+            'volume': ('sum', 'size', {})
+        },
+        aggregation_interval='day'
+    )
+    stat_agg.run()
+    current_search.flush_and_refresh(index='*')
 
     query = Search(
         using=current_search_client,
         index='stats-file-download',
-        doc_type='file-download-day-aggregation'
     )
 
     results = query.execute()

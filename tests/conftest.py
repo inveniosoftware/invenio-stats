@@ -50,7 +50,7 @@ from invenio_stats import InvenioStats
 from invenio_stats.contrib.event_builders import build_file_unique_id, \
     build_record_unique_id, file_download_event_builder
 from invenio_stats.contrib.registrations import register_queries
-from invenio_stats.processors import EventsIndexer
+from invenio_stats.processors import anonymize_user, EventsIndexer
 from invenio_stats.tasks import aggregate_events
 from invenio_stats.views import blueprint
 
@@ -290,7 +290,6 @@ def es(app):
 @pytest.yield_fixture()
 def es_with_templates(app, es):
     """Provide elasticsearch access, create and clean indices and templates."""
-    import wdb; wdb.set_trace()
     list(current_search.put_templates())
     yield current_search_client
 
@@ -515,11 +514,11 @@ def generate_events(app, file_number=5, event_number=100, robot_event_number=0,
     EventsIndexer(
         mock_queue,
         preprocessors=[
-            build_file_unique_id
+            build_file_unique_id, anonymize_user
         ],
         double_click_window=0
     ).run()
-    current_search_client.indices.refresh(index='*')
+    current_search.flush_and_refresh(index='*')
 
 
 @pytest.yield_fixture()
@@ -538,7 +537,7 @@ def aggregated_events(app, es, mock_user_ctx, request):
         pass
     generate_events(app=app, **request.param)
     aggregate_events(['file-download-agg'])
-    current_search_client.indices.flush(index='*')
+    current_search.flush_and_refresh(index='*')
     yield
 
 

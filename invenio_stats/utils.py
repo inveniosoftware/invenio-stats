@@ -46,11 +46,13 @@ def get_size(client, index, agg_field):
             }
         }
     }
-    count = Search(using=client, index=index).update_from_dict(body).count()
+    search = Search(using=client, index=index)
+    search.update_from_dict(body)
+    count = search.count()
     # NOTE: we increase the count by 10% in order to be safe
-    return ceil(count + count * 0.1)
+    return int(ceil(count + count * 0.1))
 
-  
+
 def get_doctype(doc_type):
     """Configure doc_type value according to ES version."""
     return doc_type if ES_VERSION[0] < 7 else '_doc'

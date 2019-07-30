@@ -6,9 +6,6 @@
     }
   },
   "mappings": {
-    "_all": {
-      "enabled": false
-    },
     "date_detection": false,
     "dynamic": false,
     "numeric_detection": false,
@@ -18,8 +15,7 @@
         "format": "date_optional_time"
       },
       "count": {
-        "type": "integer",
-        "index": "not_analyzed"
+        "type": "integer"
       },
       "record_id": {
         "type": "keyword"

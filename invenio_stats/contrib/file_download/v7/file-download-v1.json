@@ -17,9 +17,6 @@
         }
       }
     ],
-    "_all": {
-      "enabled": false
-    },
     "date_detection": false,
     "dynamic": false,
     "numeric_detection": false,
@@ -48,6 +45,15 @@
       },
       "collection": {
         "type": "keyword"
+      },
+      "is_robot": {
+        "type": "boolean"
+      },
+      "unique_session_id": {
+        "type": "keyword"
+      },
+      "size": {
+        "type": "double"
       }
     }
   },
