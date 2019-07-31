@@ -17,6 +17,9 @@
       "count": {
         "type": "integer"
       },
+      "unique_count": {
+        "type": "integer"
+      },
       "record_id": {
         "type": "keyword"
       },

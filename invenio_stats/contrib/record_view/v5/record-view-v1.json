@@ -20,40 +20,31 @@
           "format": "strict_date_hour_minute_second"
         },
         "record_id": {
-          "type": "string",
-          "index": "not_analyzed"
+          "type": "keyword"
         },
         "pid_type": {
-          "type": "string",
-          "index": "not_analyzed"
+          "type": "keyword"
         },
         "pid_value": {
-          "type": "string",
-          "index": "not_analyzed"
+          "type": "keyword"
         },
         "labels": {
-          "type": "string",
-          "index": "not_analyzed"
+          "type": "keyword"
         },
         "country": {
-          "type": "string",
-          "index": "not_analyzed"
+          "type": "keyword"
         },
         "visitor_id": {
-          "type": "string",
-          "index": "not_analyzed"
+          "type": "keyword"
         },
         "unique_session_id": {
-          "type": "string",
-          "index": "not_analyzed"
+          "type": "keyword"
         },
         "referrer": {
-          "type": "string",
-          "index": "not_analyzed"
+          "type": "keyword"
         },
         "is_robot": {
-          "type": "boolean",
-          "index": "not_analyzed"
+          "type": "boolean"
         }
       }
     }

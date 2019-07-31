@@ -50,7 +50,7 @@ from invenio_stats import InvenioStats
 from invenio_stats.contrib.event_builders import build_file_unique_id, \
     build_record_unique_id, file_download_event_builder
 from invenio_stats.contrib.registrations import register_queries
-from invenio_stats.processors import anonymize_user, EventsIndexer
+from invenio_stats.processors import EventsIndexer, anonymize_user
 from invenio_stats.tasks import aggregate_events
 from invenio_stats.views import blueprint
 

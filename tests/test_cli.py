@@ -175,6 +175,7 @@ def test_aggregations_delete(script_info, event_queues, es, aggregated_events):
 
     current_search.flush_and_refresh(index='*')
     agg_alias = search.index('stats-file-download')
+
     assert agg_alias.count() == 21
     assert search.index('bookmark-index').count() == 4
     assert agg_alias.doc_type('file-download-day-aggregation').count() == 21

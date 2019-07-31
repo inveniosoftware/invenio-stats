@@ -16,7 +16,7 @@ from elasticsearch_dsl import Search
 from invenio_search import current_search_client
 
 from .errors import InvalidRequestInputError
-from .utils import get_size
+from .utils import get_bucket_size
 
 
 class ESQuery(object):
@@ -256,7 +256,7 @@ class ESTermsQuery(ESQuery):
             cur_agg = base_agg
             for term in self.aggregated_fields:
                 cur_agg = cur_agg.bucket(
-                    term, 'terms', field=term, size=get_size(
+                    term, 'terms', field=term, size=get_bucket_size(
                         self.client, self.index, term
                     )
                 )

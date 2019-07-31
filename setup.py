@@ -16,20 +16,18 @@ readme = open('README.rst').read()
 history = open('CHANGES.rst').read()
 
 tests_require = [
-    'check-manifest>=0.25',
+    'check-manifest>=0.35',
     'coverage>=4.0',
-    'elasticsearch-dsl<8,>=2.0.0',
-    'elasticsearch<8,>=2.0.0',
     'invenio-accounts>=1.0.1',
     'invenio-db>=1.0.2',
     'invenio-oauth2server>=1.0.1',
     'invenio-records>=1.0.0',
     'isort>=4.2.15',
-    'mock>=1.0.0',
+    'mock>=1.3.0',
     'pydocstyle>=1.0.0',
     'pytest-cov>=1.8.0',
     'pytest-pep8>=1.0.6',
-    'pytest>=2.8.0',
+    'pytest>=3.8.1,<4',
     'python-dateutil>=2.6.0',
 ]
 
@@ -54,11 +52,15 @@ extras_require = {
     'tests': tests_require,
 }
 
-extras_require['all'] = [
-    'invenio-records-ui>=1.0.1',
-]
-
-for reqs in extras_require.values():
+extras_require['all'] = ['invenio-records-ui>=1.0.1']
+for name, reqs in extras_require.items():
+    if name[0] == ':' or name in (
+        'elasticsearch2',
+        'elasticsearch5',
+        'elasticsearch6',
+        'elasticsearch7'
+    ):
+        continue
     extras_require['all'].extend(reqs)
 
 setup_requires = [

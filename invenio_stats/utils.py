@@ -15,8 +15,8 @@ from base64 import b64encode
 from math import ceil
 
 import six
-from elasticsearch_dsl import Search
 from elasticsearch import VERSION as ES_VERSION
+from elasticsearch_dsl import Search
 from flask import current_app, request, session
 from flask_login import current_user
 from geolite2 import geolite2
@@ -35,7 +35,7 @@ def get_anonymization_salt(ts):
     return salt
 
 
-def get_size(client, index, agg_field):
+def get_bucket_size(client, index, agg_field):
     """Function to help us define the size for our search query."""
     body = {
         "aggs": {

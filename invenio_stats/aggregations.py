@@ -19,9 +19,9 @@ from dateutil import parser
 from elasticsearch import VERSION as ES_VERSION
 from elasticsearch.helpers import bulk
 from elasticsearch_dsl import Index, Search
-from invenio_search import current_search_client, current_search
+from invenio_search import current_search, current_search_client
 
-from .utils import get_doctype, get_size
+from .utils import get_bucket_size, get_doctype
 
 SUPPORTED_INTERVAL = OrderedDict([
     ('hour', '%Y-%m-%dT%H'),
@@ -46,7 +46,7 @@ def format_range_dt(dt, interval):
     return '{0}||/{1}'.format(dt, dt_rounding_map[interval])
 
 
-class BookmarkApi(object):
+class BookmarkAPI(object):
     """Bookmark API class.
 
     It provides an interface that lets us interact with a bookmark.
@@ -70,6 +70,7 @@ class BookmarkApi(object):
         }
     }
 
+    # NOTE: For ES7 mappings need one-level of less nesting
     MAPPINGS_ES7 = {
         "mappings": deepcopy(MAPPINGS['mappings']['aggregation-bookmark'])
     }
@@ -92,10 +93,9 @@ class BookmarkApi(object):
     def _create_bookmark(self):
         """Create a bookmark."""
         if not Index(self.bookmark_index, using=self.client).exists():
-            # TODO: change the mapping accordingly to ES version
             self.client.indices.create(
-                index=self.bookmark_index, body=BookmarkApi.MAPPINGS
-                if ES_VERSION[0] < 7 else BookmarkApi.MAPPINGS_ES7)
+                index=self.bookmark_index, body=BookmarkAPI.MAPPINGS
+                if ES_VERSION[0] < 7 else BookmarkAPI.MAPPINGS_ES7)
 
     def set_bookmark(self, new_date):
         """Set bookmark for starting next aggregation."""
@@ -188,6 +188,19 @@ class BookmarkApi(object):
         )
 
 
+ALLOWED_METRICS = {
+    'avg',
+    'cardinality',
+    'extended_stats',
+    'geo_centroid',
+    'max',
+    'min',
+    'percentiles',
+    'stats',
+    'sum',
+}
+
+
 class StatAggregator(object):
     """Generic aggregation class.
 
@@ -219,7 +232,7 @@ class StatAggregator(object):
     is used to aggregate new events without having to redo the old ones.
     """
 
-    def __init__(self, name, event, client=None,
+    def __init__(self, aggregation_name, event, client=None,
                  aggregation_field=None,
                  metric_aggregation_fields=None,
                  copy_fields=None,
@@ -246,44 +259,42 @@ class StatAggregator(object):
             fetched in one query. This number has to be coherent with the
             aggregation_interval.
         """
-        self.name = name
-        self.client = client or current_search_client
-        self.event = event
-        self.aggregation_alias = 'stats-{}'.format(self.event)
+        self.aggregation_alias = 'stats-{}'.format(event)
         self.aggregation_field = aggregation_field
-        self.metric_aggregation_fields = metric_aggregation_fields or {}
-        self.allowed_metrics = {
-            'cardinality', 'min', 'max', 'avg', 'sum', 'extended_stats',
-            'geo_centroid', 'percentiles', 'stats'}
-        if any(v not in self.allowed_metrics
-               for k, (v, _, _) in self.metric_aggregation_fields.items()):
-            raise(ValueError('Metric aggregation type should be one of [{}]'
-                             .format(', '.join(self.allowed_metrics))))
-
-        self.copy_fields = copy_fields or {}
         self.aggregation_interval = aggregation_interval
+        self.aggregation_name = aggregation_name
+        self.batch_size = batch_size
+        self.client = client or current_search_client
+        self.copy_fields = copy_fields or {}
+        self.doc_id_suffix = SUPPORTED_INTERVAL[aggregation_interval]
+        self.event = event
+        self.event_index = 'events-stats-{}'.format(event)
+        self.has_events = True
         self.index_interval = index_interval
+        self.index_name_suffix = SUPPORTED_INTERVAL[index_interval]
+        self.indices = set()
+        self.metric_aggregation_fields = metric_aggregation_fields or {}
         self.query_modifiers = (query_modifiers if query_modifiers is not None
                                 else [filter_robots])
+        self.bookmark_api = BookmarkAPI(
+            self.client, self.aggregation_name,
+            self.event_index, self.aggregation_interval)
+
+        if any(v not in ALLOWED_METRICS
+               for k, (v, _, _) in self.metric_aggregation_fields.items()):
+            raise(ValueError('Metric aggregation type should be one of [{}]'
+                             .format(', '.join(ALLOWED_METRICS))))
+
         if list(SUPPORTED_INTERVAL.keys()).index(aggregation_interval) \
                 > list(SUPPORTED_INTERVAL.keys()).index(index_interval):
             raise(ValueError('Aggregation interval should be'
                              ' shorter than index interval'))
-        self.index_name_suffix = SUPPORTED_INTERVAL[index_interval]
-        self.doc_id_suffix = SUPPORTED_INTERVAL[aggregation_interval]
-        self.batch_size = batch_size
-        self.event_index = 'events-stats-{}'.format(self.event)
-        self.indices = set()
-        self.has_events = True
-        self.bookmark_api = BookmarkApi(
-            self.client, self.aggregation_doc_type,
-            self.event_index, self.aggregation_interval)
 
     @property
     def aggregation_doc_type(self):
         """Get document type for the aggregation."""
-        return '{0}-{1}-aggregation'.format(
-            self.event, self.aggregation_interval)
+        return get_doctype('{0}-{1}-aggregation'.format(
+            self.event, self.aggregation_interval))
 
     def agg_iter(self, lower_limit=None, upper_limit=None):
         """Aggregate and return dictionary to be indexed in ES."""
@@ -301,16 +312,16 @@ class StatAggregator(object):
         for modifier in self.query_modifiers:
             self.agg_query = modifier(self.agg_query)
 
-        hist = self.agg_query.aggs.bucket(
+        histogram = self.agg_query.aggs.bucket(
             'histogram',
             'date_histogram',
             field='timestamp',
             interval=self.aggregation_interval
         )
-        terms = hist.bucket(
-            'terms', 'terms', field=self.aggregation_field, size=get_size(
-                self.client, self.event_index, self.aggregation_field
-            )
+        terms = histogram.bucket(
+            'terms', 'terms', field=self.aggregation_field,
+            size=get_bucket_size(
+                self.client, self.event_index, self.aggregation_field)
         )
         terms.metric(
             'top_hit', 'top_hits', size=1, sort={'timestamp': 'desc'}
@@ -354,7 +365,7 @@ class StatAggregator(object):
                                   interval_date.strftime(
                                       self.doc_id_suffix)),
                            _index=index_name,
-                           _type=get_doctype(self.aggregation_doc_type),
+                           _type=self.aggregation_doc_type,
                            _source=aggregation_data
                            )
         self.has_events = False if index_name is None else True
@@ -408,7 +419,7 @@ class StatAggregator(object):
         aggs_query = Search(
             using=self.client,
             index=self.aggregation_alias,
-            doc_type=get_doctype(self.aggregation_doc_type)
+            doc_type=self.aggregation_doc_type
         ).extra(_source=False)
 
         range_args = {}
@@ -425,7 +436,7 @@ class StatAggregator(object):
             using=self.client,
             index=self.bookmark_api.bookmark_index,
         ).filter(
-            'term', aggregation_type=self.aggregation_doc_type
+            'term', aggregation_type=self.aggregation_name
         ).sort({'date': {'order': 'desc'}})
 
         if range_args:

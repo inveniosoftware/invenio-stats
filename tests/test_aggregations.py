@@ -41,7 +41,7 @@ def test_get_bookmark(app, indexed_events):
     """Test bookmark reading."""
     for t in current_search.put_templates(ignore=[400]):
         pass
-    stat_agg = StatAggregator(name='file-download-agg',
+    stat_agg = StatAggregator(aggregation_name='file-download-agg',
                               client=current_search_client,
                               event='file-download',
                               aggregation_field='file_id',
@@ -130,7 +130,7 @@ def test_aggregation_without_events(app, es_with_templates):
     have been created yet.
     """
     # Aggregate events
-    StatAggregator(name='file-download-agg',
+    StatAggregator(aggregation_name='file-download-agg',
                    event='file-download',
                    aggregation_field='file_id',
                    aggregation_interval='day',
@@ -147,7 +147,7 @@ def test_aggregation_without_events(app, es_with_templates):
     current_search.flush_and_refresh(index='*')
 
     # Aggregate events
-    StatAggregator(name='test-file-download',
+    StatAggregator(aggregation_name='test-file-download',
                    event='file-download',
                    aggregation_field='file_id',
                    aggregation_interval='day',
@@ -173,12 +173,13 @@ def test_bookmark_removal(app, es_with_templates, mock_event_queue):
     current_search.flush_and_refresh(index='*')
 
     def aggregate_and_check_version(expected_version):
-        # Aggregate events
-        StatAggregator(name='file-download-agg',
-                       event='file-download',
-                       aggregation_field='file_id',
-                       aggregation_interval='day',
-                       query_modifiers=[]).run()
+        StatAggregator(
+            aggregation_field='file_id',
+            aggregation_interval='day',
+            aggregation_name='file-download-agg',
+            event='file-download',
+            query_modifiers=[],
+        ).run()
         current_search.flush_and_refresh(index='*')
         res = current_search_client.search(
             index='stats-file-download', version=True)
@@ -187,16 +188,15 @@ def test_bookmark_removal(app, es_with_templates, mock_event_queue):
 
     aggregate_and_check_version(1)
     aggregate_and_check_version(1)
-
     # Delete all bookmarks
     bookmarks = Search(using=current_search_client, index='bookmark-index') \
-        .filter('term', aggregation_type='file-download-day-aggregation') \
+        .filter('term', aggregation_type='file-download-agg') \
         .execute()
 
     for bookmark in bookmarks:
         current_search_client.delete(
             index=bookmark.meta.index, id=bookmark.meta.id,
-            doc_type=get_doctype('aggregation-bookmark')
+            doc_type=get_doctype(bookmark.meta.doc_type)
         )
 
     current_search.flush_and_refresh(index='*')
@@ -238,7 +238,7 @@ def test_filter_robots(app, es, event_queues, indexed_events, with_robots):
     query_modifiers = []
     if not with_robots:
         query_modifiers = [filter_robots]
-    StatAggregator(name='file-download-agg',
+    StatAggregator(aggregation_name='file-download-agg',
                    client=current_search_client,
                    event='file-download',
                    aggregation_field='file_id',
@@ -269,7 +269,7 @@ def test_metric_aggregations(app, event_queues, es_with_templates):
     current_search.flush_and_refresh(index='*')
 
     stat_agg = StatAggregator(
-        name='file-download-agg',
+        aggregation_name='file-download-agg',
         client=current_search_client,
         event='file-download',
         aggregation_field='file_id',

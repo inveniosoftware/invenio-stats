@@ -120,7 +120,7 @@ def _aggregations_process(aggregation_types=None,
         # NOTE: aggregation_types is a LocalProxy so it needs to be casted
         # to be passed to celery
         aggregate_events.delay(
-            aggregation_types._get_current_object(),
+            list(aggregation_types),
             start_date=start_date, end_date=end_date,
             update_bookmark=update_bookmark)
         click.secho('Aggregations processing task sent...', fg='yellow')
@@ -136,12 +136,12 @@ def _aggregations_process(aggregation_types=None,
 def _aggregations_delete(aggregation_types=None,
                          start_date=None, end_date=None):
     """Delete computed aggregations."""
-    aggregation_types = (aggregation_types._get_current_object() or
+    aggregation_types = (list(aggregation_types) or
                          list(current_stats.enabled_aggregations))
     for a in aggregation_types:
         aggr_cfg = current_stats.aggregations[a]
         aggregator = aggr_cfg.aggregator_class(
-            name=aggr_cfg.name, **aggr_cfg.aggregator_config)
+            aggregation_name=aggr_cfg.name, **aggr_cfg.aggregator_config)
         aggregator.delete(start_date, end_date)
 
 
@@ -159,7 +159,7 @@ def _aggregations_list_bookmarks(aggregation_types=None,
     for a in aggregation_types:
         aggr_cfg = current_stats.aggregations[a]
         aggregator = aggr_cfg.aggregator_class(
-            name=aggr_cfg.name, **aggr_cfg.aggregator_config)
+            aggregation_name=aggr_cfg.name, **aggr_cfg.aggregator_config)
         bookmarks = aggregator.list_bookmarks(start_date, end_date, limit)
         click.echo('{}:'.format(a))
         for b in bookmarks:

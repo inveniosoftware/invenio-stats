@@ -18,8 +18,7 @@ matrix:
   fast_finish: true
   allow_failures:
     # To allow failures, you need to specify the full environment
-    - env: REQUIREMENTS=devel ES_URL=$ES2_DOWNLOAD_URL BROKER_URL=redis://localhost:6379/0
-    - env: REQUIREMENTS=devel ES_URL=$ES2_DOWNLOAD_URL BROKER_URL=amqp://localhost:5672//
+    - env: REQUIREMENTS=devel EXTRAS=all,elasticsearch7 ES_URL=$ES7_DOWNLOAD_URL
 
 cache:
   - pip
@@ -30,26 +29,24 @@ python:
 
 services:
   - redis-server
-  - rabbitmq
 
 addons:
   apt:
     packages:
       - graphviz
+      - rabbitmq-server
 
 env:
   global:
-    - ES2_DOWNLOAD_URL="https://download.elastic.co/elasticsearch/release/org/elasticsearch/distribution/tar/elasticsearch/2.4.5/elasticsearch-2.4.5.tar.gz"
-    - ES7_DOWNLOAD_URL="https://artifacts.elastic.co/downloads/elasticsearch/elasticsearch-7.0.1-linux-x86_64.tar.gz"
+    - ES5_DOWNLOAD_URL="https://artifacts.elastic.co/downloads/elasticsearch/elasticsearch-5.6.16.tar.gz"
+    - ES6_DOWNLOAD_URL="https://artifacts.elastic.co/downloads/elasticsearch/elasticsearch-6.8.1.tar.gz"
+    - ES7_DOWNLOAD_URL="https://artifacts.elastic.co/downloads/elasticsearch/elasticsearch-7.2.0-linux-x86_64.tar.gz"
     - ES_HOST=127.0.0.1
   matrix:
-    - REQUIREMENTS=lowest ES_URL=$ES2_DOWNLOAD_URL BROKER_URL=redis://localhost:6379/0
-    - REQUIREMENTS=lowest ES_URL=$ES2_DOWNLOAD_URL BROKER_URL=amqp://localhost:5672//
-    - REQUIREMENTS=release ES_URL=$ES2_DOWNLOAD_URL BROKER_URL=redis://localhost:6379/0
-    - REQUIREMENTS=release ES_URL=$ES2_DOWNLOAD_URL BROKER_URL=amqp://localhost:5672// DEPLOY=true
-    - REQUIREMENTS=release EXTRAS=all,elasticsearch7 ES_URL=$ES7_DOWNLOAD_URL
-    - REQUIREMENTS=devel ES_URL=$ES2_DOWNLOAD_URL BROKER_URL=redis://localhost:6379/0
-    - REQUIREMENTS=devel ES_URL=$ES2_DOWNLOAD_URL BROKER_URL=amqp://localhost:5672//
+    - REQUIREMENTS=lowest EXTRAS=all,elasticsearch5 ES_URL=$ES5_DOWNLOAD_URL
+    - REQUIREMENTS=lowest EXTRAS=all,elasticsearch6 ES_URL=$ES6_DOWNLOAD_URL
+    - REQUIREMENTS=release EXTRAS=all,elasticsearch6 ES_URL=$ES6_DOWNLOAD_URL
+    - REQUIREMENTS=release EXTRAS=all,elasticsearch7 ES_URL=$ES7_DOWNLOAD_URL DEPLOY=true
     - REQUIREMENTS=devel EXTRAS=all,elasticsearch7 ES_URL=$ES7_DOWNLOAD_URL
 
 before_install:
@@ -64,7 +61,7 @@ before_install:
 
 install:
   - "travis_retry pip install -r .travis-${REQUIREMENTS}-requirements.txt"
-  - "travis_retry pip install -e .[all]"
+  - "travis_retry pip install -e .[${EXTRAS}]"
 
 before_script:
   # Allow ES to start
