@@ -18,7 +18,7 @@ from invenio_stats import InvenioStats
 from invenio_stats.proxies import current_stats
 
 
-def test_register_receivers(base_app, event_entrypoints):
+def test_register_receivers(base_app):
     """Test signal-receiving/event-emitting functions registration."""
     try:
         _signals = Namespace()
@@ -52,7 +52,7 @@ def test_register_receivers(base_app, event_entrypoints):
         current_queues.delete()
 
 
-def test_failing_receiver(base_app, event_entrypoints, caplog):
+def test_failing_receiver(base_app, caplog):
     """Test failing signal receiver function."""
     try:
         _signals = Namespace()

@@ -23,11 +23,7 @@ from invenio_stats.queries import ESDateHistogramQuery, ESTermsQuery
 from invenio_stats.tasks import aggregate_events
 
 
-def test_index_prefix(config_with_index_prefix, app, event_queues,
-                      es_with_templates):
-    es = es_with_templates
-    search = Search(using=es)
-
+def test_index_prefix(config_with_index_prefix, app, es, event_queues):
     # 1) publish events in the queue
     current_stats.publish(
         'file-download',

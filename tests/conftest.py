@@ -178,7 +178,7 @@ def date_range(start_date, end_date):
 
 
 @pytest.fixture()
-def event_queues(app, event_entrypoints):
+def event_queues(app):
     """Delete and declare test queues."""
     current_queues.delete()
     try:
@@ -189,7 +189,7 @@ def event_queues(app, event_entrypoints):
 
 
 @pytest.fixture()
-def base_app():
+def base_app(event_entrypoints):
     """Flask application fixture without InvenioStats."""
     from invenio_stats.config import STATS_EVENTS
     instance_path = tempfile.mkdtemp()
@@ -278,6 +278,7 @@ def es(app):
     current_search_client.indices.delete(index='*')
     current_search_client.indices.delete_template('*')
     list(current_search.create())
+    list(current_search.put_templates())
     try:
         yield current_search_client
     finally:
@@ -296,13 +297,6 @@ def config_with_index_prefix(app):
 
     # set the original value back
     app.config['SEARCH_INDEX_PREFIX'] = original_value
-
-
-@pytest.fixture()
-def es_with_templates(app, es):
-    """Provide elasticsearch access, create and clean indices and templates."""
-    list(current_search.put_templates())
-    yield current_search_client
 
 
 @pytest.fixture()
@@ -456,7 +450,7 @@ def mock_datetime():
 
 @pytest.fixture()
 def mock_event_queue(app, mock_datetime, request_headers, objects,
-                     event_entrypoints, mock_user_ctx):
+                     mock_user_ctx):
     """Create a mock queue containing a few file download events."""
     mock_queue = Mock()
     mock_queue.routing_key = 'stats-file-download'
@@ -478,9 +472,6 @@ def generate_events(app, file_number=5, event_number=100, robot_event_number=0,
                     end_date=datetime.date(2017, 1, 7)):
     """Queued events for processing tests."""
     current_queues.declare()
-
-    for t in current_search.put_templates(ignore=[400]):
-        pass
 
     def _unique_ts_gen():
         ts = 0
@@ -535,8 +526,6 @@ def generate_events(app, file_number=5, event_number=100, robot_event_number=0,
 @pytest.fixture()
 def indexed_events(app, es, mock_user_ctx, request):
     """Parametrized pre indexed sample events."""
-    for t in current_search.put_templates(ignore=[400]):
-        pass
     generate_events(app=app, **request.param)
     yield
 
