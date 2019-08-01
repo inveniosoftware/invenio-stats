@@ -115,7 +115,7 @@ def test_anonymize_user(mock_anonymization_salt,
     assert event['unique_session_id'] == exp_unique_session_id
 
 
-def test_anonymiation_salt(base_app):
+def test_anonymiation_salt(app):
     """Test anonymization salt for different days."""
     event = anonymize_user({
         'ip_address': '131.169.180.47', 'user_id': '100',
@@ -269,9 +269,8 @@ def test_double_clicks(app, mock_event_queue, es):
         assert res['hits']['total']['value'] == 2
 
 
-def test_failing_processors(app, event_queues, es_with_templates, caplog):
+def test_failing_processors(app, es, event_queues, caplog):
     """Test events that raise an exception when processed."""
-    es = es_with_templates
     search = Search(using=es)
 
     current_queues.declare()
