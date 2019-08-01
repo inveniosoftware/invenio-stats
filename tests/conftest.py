@@ -162,8 +162,9 @@ def query_entrypoints(custom_permission_factory):
 
 
 @pytest.yield_fixture()
-def mock_anonymization_salt():
+def mock_anonymization_salt(app):
     """Mock the "get_anonymization_salt" function."""
+    # NOTE: passing app, for warnings.simplefilter to work.
     with patch('invenio_stats.processors.get_anonymization_salt',
                return_value='test-salt'):
         yield

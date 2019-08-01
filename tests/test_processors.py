@@ -219,7 +219,6 @@ def test_events_indexer_preprocessors(app, mock_event_queue):
 
 def test_events_indexer_id_windowing(app, mock_event_queue):
     """Check that EventsIndexer applies time windows to ids."""
-
     indexer = EventsIndexer(mock_event_queue, preprocessors=[],
                             double_click_window=180)
 
@@ -289,7 +288,7 @@ def test_failing_processors(app, es, event_queues, caplog):
 
     queue = current_queues.queues['stats-file-download']
     indexer = EventsIndexer(queue, preprocessors=[_raises_on_second_call])
-
+    current_search.flush_and_refresh('*')
     assert get_queue_size('stats-file-download') == 4
     assert not es.indices.exists('events-stats-file-download-2018-01-01')
     assert not es.indices.exists('events-stats-file-download-2018-01-02')
