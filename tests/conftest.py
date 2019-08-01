@@ -49,9 +49,11 @@ from six import BytesIO
 from sqlalchemy_utils.functions import create_database, database_exists
 
 from invenio_stats import InvenioStats
+from invenio_stats.aggregations import StatAggregator
 from invenio_stats.contrib.event_builders import build_file_unique_id, \
     build_record_unique_id, file_download_event_builder
-from invenio_stats.contrib.registrations import register_queries
+from invenio_stats.contrib.registrations import register_aggregations, \
+    register_queries
 from invenio_stats.processors import EventsIndexer, anonymize_user
 from invenio_stats.tasks import aggregate_events
 from invenio_stats.views import blueprint
@@ -114,6 +116,63 @@ def event_entrypoints():
 
 
 @pytest.yield_fixture()
+def aggregations_entrypoints():
+    """Same as event_entrypoints for aggregations."""
+    from pkg_resources import EntryPoint
+    entrypoint = EntryPoint('invenio_stats', 'aggregations')
+    data = []
+    result = []
+    conf = [dict(
+        aggregation_name='file-download-agg',
+        templates='invenio_stats.contrib.aggregations.aggr_file_download',
+        aggregator_class=StatAggregator,
+        aggregator_config=dict(
+            client=current_search_client,
+            event='file-download',
+            aggregation_field='unique_id',
+            aggregation_interval='day',
+            copy_fields=dict(
+                file_key='file_key',
+                bucket_id='bucket_id',
+                file_id='file_id',
+            ),
+            metric_aggregation_fields={
+                'unique_count': ('cardinality', 'unique_session_id',
+                                 {'precision_threshold': 1000}),
+                'volume': ('sum', 'size', {}),
+            },
+        )), dict(
+        aggregation_name='record-view-agg',
+        templates='invenio_stats.contrib.aggregations.aggr_record_view',
+        aggregator_class=StatAggregator,
+        aggregator_config=dict(
+            client=current_search_client,
+            event='record-view',
+            aggregation_field='unique_id',
+            aggregation_interval='day',
+            copy_fields=dict(
+                record_id='record_id',
+                pid_type='pid_type',
+                pid_value='pid_value',
+            ),
+            metric_aggregation_fields={
+                'unique_count': ('cardinality', 'unique_session_id',
+                                 {'precision_threshold': 1000}),
+            },
+        ))]
+
+    result += conf
+    result += register_aggregations()
+    entrypoint.load = lambda conf=conf: (lambda: result)
+    data.append(entrypoint)
+
+    entrypoints = mock_iter_entry_points_factory(
+        data, 'invenio_stats.aggregations')
+    with patch('invenio_stats.ext.iter_entry_points', entrypoints):
+        yield result
+
+
+@pytest.yield_fixture()
 def query_entrypoints(custom_permission_factory):
     """Same as event_entrypoints for queries."""
     from pkg_resources import EntryPoint
@@ -156,8 +215,7 @@ def query_entrypoints(custom_permission_factory):
 
     entrypoints = mock_iter_entry_points_factory(data, 'invenio_stats.queries')
 
-    with patch('invenio_stats.ext.iter_entry_points',
-               entrypoints):
+    with patch('invenio_stats.ext.iter_entry_points', entrypoints):
         yield result
 
 
@@ -262,7 +320,7 @@ def base_app():
 
 
 @pytest.yield_fixture()
-def app(base_app, event_entrypoints):
+def app(base_app, event_entrypoints, aggregations_entrypoints):
     """Flask application fixture with InvenioStats."""
     base_app.register_blueprint(blueprint)
     InvenioStats(base_app)
@@ -523,7 +581,7 @@ def generate_events(app, file_number=5, event_number=100, robot_event_number=0,
 
 
 @pytest.yield_fixture()
-def indexed_events(app, es, mock_user_ctx, event_entrypoints, request):
+def indexed_events(app, es, mock_user_ctx, request):
     """Parametrized pre indexed sample events."""
     generate_events(app=app, **request.param)
     yield
@@ -532,8 +590,6 @@ def indexed_events(app, es, mock_user_ctx, event_entrypoints, request):
 @pytest.yield_fixture()
 def aggregated_events(app, es, mock_user_ctx, request):
     """Parametrized pre indexed sample events."""
-    for t in current_search.put_templates(ignore=[400]):
-        pass
     generate_events(app=app, **request.param)
     aggregate_events(['file-download-agg'])
     current_search.flush_and_refresh(index='*')
