@@ -15,6 +15,7 @@ import os
 import shutil
 import tempfile
 import uuid
+import warnings
 from contextlib import contextmanager
 from copy import deepcopy
 
@@ -22,6 +23,7 @@ from copy import deepcopy
 # login_oauth2_user(valid, oauth) is included
 import invenio_oauth2server.views.server  # noqa
 import pytest
+from arrow.factory import ArrowParseWarning
 from flask import Flask, appcontext_pushed, g
 from flask.cli import ScriptInfo
 from flask_celeryext import FlaskCeleryExt
@@ -191,11 +193,20 @@ def event_queues(app):
 @pytest.yield_fixture()
 def base_app():
     """Flask application fixture without InvenioStats."""
-    from invenio_stats.config import STATS_EVENTS
+    # NOTE: We silence the warning from Arrow library, read more at
+    # https://github.com/crsmithdev/arrow/issues/612
+    warnings.simplefilter("ignore", ArrowParseWarning)
+
     instance_path = tempfile.mkdtemp()
     app_ = Flask('testapp', instance_path=instance_path)
     stats_events = {
-        'file-download': deepcopy(STATS_EVENTS['file-download']),
+        'file-download': {
+            'signal': 'invenio_files_rest.signals.file_downloaded',
+            'event_builders': [
+                'invenio_stats.contrib.event_builders'
+                '.file_download_event_builder'
+            ]
+        },
         'record-view': {
             'signal': 'invenio_records_ui.signals.record_viewed',
             'event_builders': ['invenio_stats.contrib.event_builders'
@@ -511,7 +522,7 @@ def generate_events(app, file_number=5, event_number=100, robot_event_number=0,
 
 
 @pytest.yield_fixture()
-def indexed_events(app, es, mock_user_ctx, request):
+def indexed_events(app, es, mock_user_ctx, event_entrypoints, request):
     """Parametrized pre indexed sample events."""
     generate_events(app=app, **request.param)
     yield

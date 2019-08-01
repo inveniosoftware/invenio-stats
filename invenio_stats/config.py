@@ -23,14 +23,7 @@ by the ``STATS_EVENTS`` config variable. An event will be generated for each
 signal sent.
 """
 
-STATS_EVENTS = {
-    'file-download': {
-        'signal': 'invenio_files_rest.signals.file_downloaded',
-        'event_builders': [
-            'invenio_stats.contrib.event_builders.file_download_event_builder'
-        ]
-    },
-}
+STATS_EVENTS = {}
 """Enabled Events.
 
 Each key is the name of an event. A queue will be created for each event.
@@ -50,15 +43,10 @@ is the name of the emitted event.
 """
 
 
-STATS_AGGREGATIONS = {
-    'file-download-agg': {},
-}
+STATS_AGGREGATIONS = {}
 
 
-STATS_QUERIES = {
-    'bucket-file-download-histogram': {},
-    'bucket-file-download-total': {},
-}
+STATS_QUERIES = {}
 
 
 STATS_PERMISSION_FACTORY = default_permission_factory

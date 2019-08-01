@@ -118,23 +118,12 @@ setup(
         'invenio_base.api_blueprints': [
             'invenio_files_rest = invenio_stats.views:blueprint',
         ],
-        'invenio_search.templates': [
-            'invenio_stats = invenio_stats.templates:register_templates',
-        ],
         'invenio_queues.queues': [
             'invenio_stats = invenio_stats.queues:declare_queues',
-        ],
-        'invenio_stats.events': [
-            'invenio_stats = '
-            'invenio_stats.contrib.registrations:register_events'
         ],
         'invenio_stats.aggregations': [
             'invenio_stats = '
             'invenio_stats.contrib.registrations:register_aggregations'
-        ],
-        'invenio_stats.queries': [
-            'invenio_stats = '
-            'invenio_stats.contrib.registrations:register_queries'
         ]
     },
     extras_require=extras_require,
