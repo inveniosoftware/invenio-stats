@@ -121,49 +121,9 @@ def aggregations_entrypoints():
     from pkg_resources import EntryPoint
     entrypoint = EntryPoint('invenio_stats', 'aggregations')
     data = []
-    result = []
-    conf = [dict(
-        aggregation_name='file-download-agg',
-        templates='invenio_stats.contrib.aggregations.aggr_file_download',
-        aggregator_class=StatAggregator,
-        aggregator_config=dict(
-            client=current_search_client,
-            event='file-download',
-            aggregation_field='unique_id',
-            aggregation_interval='day',
-            copy_fields=dict(
-                file_key='file_key',
-                bucket_id='bucket_id',
-                file_id='file_id',
-            ),
-            metric_aggregation_fields={
-                'unique_count': ('cardinality', 'unique_session_id',
-                                 {'precision_threshold': 1000}),
-                'volume': ('sum', 'size', {}),
-            },
-        )), dict(
-        aggregation_name='record-view-agg',
-        templates='invenio_stats.contrib.aggregations.aggr_record_view',
-        aggregator_class=StatAggregator,
-        aggregator_config=dict(
-            client=current_search_client,
-            event='record-view',
-            aggregation_field='unique_id',
-            aggregation_interval='day',
-            copy_fields=dict(
-                record_id='record_id',
-                pid_type='pid_type',
-                pid_value='pid_value',
-            ),
-            metric_aggregation_fields={
-                'unique_count': ('cardinality', 'unique_session_id',
-                                 {'precision_threshold': 1000}),
-            },
-        ))]
-
-    result += conf
-    result += register_aggregations()
-    entrypoint.load = lambda conf=conf: (lambda: result)
+    result = register_aggregations()
+    result = register_aggregations()
+    entrypoint.load = lambda **_: register_aggregations
     data.append(entrypoint)
 
     entrypoints = mock_iter_entry_points_factory(
@@ -250,7 +210,7 @@ def event_queues(app):
 
 
 @pytest.yield_fixture()
-def base_app():
+def base_app(event_entrypoints, aggregations_entrypoints):
     """Flask application fixture without InvenioStats."""
     # NOTE: We silence the warning from Arrow library, read more at
     # https://github.com/crsmithdev/arrow/issues/612
@@ -320,7 +280,7 @@ def base_app():
 
 
 @pytest.yield_fixture()
-def app(base_app, event_entrypoints, aggregations_entrypoints):
+def app(base_app):
     """Flask application fixture with InvenioStats."""
     base_app.register_blueprint(blueprint)
     InvenioStats(base_app)
