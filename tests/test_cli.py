@@ -20,9 +20,8 @@ from invenio_stats import current_stats
 from invenio_stats.cli import stats
 
 
-def test_events_process(script_info, event_queues, es_with_templates):
+def test_events_process(es, script_info, event_queues):
     """Test "events process" CLI command."""
-    es = es_with_templates
     search = Search(using=es)
     runner = CliRunner()
 

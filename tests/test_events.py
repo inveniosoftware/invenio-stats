@@ -12,7 +12,7 @@ from invenio_queues.proxies import current_queues
 from invenio_stats.proxies import current_stats
 
 
-def test_event_queues_declare(app, event_entrypoints):
+def test_event_queues_declare(app):
     """Test that event queues are declared properly."""
     try:
         for event in current_stats.events.values():
@@ -24,7 +24,7 @@ def test_event_queues_declare(app, event_entrypoints):
         current_queues.delete()
 
 
-def test_publish_and_consume_events(app, event_entrypoints):
+def test_publish_and_consume_events(app):
     """Test that events are published and consumed properly."""
     try:
         event_type = 'file-download'
