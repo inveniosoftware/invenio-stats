@@ -15,6 +15,7 @@ import os
 import shutil
 import tempfile
 import uuid
+import warnings
 from contextlib import contextmanager
 from copy import deepcopy
 
@@ -22,6 +23,7 @@ from copy import deepcopy
 # login_oauth2_user(valid, oauth) is included
 import invenio_oauth2server.views.server  # noqa
 import pytest
+from arrow.factory import ArrowParseWarning
 from flask import Flask, appcontext_pushed, g
 from flask.cli import ScriptInfo
 from flask_celeryext import FlaskCeleryExt
@@ -49,7 +51,8 @@ from sqlalchemy_utils.functions import create_database, database_exists
 from invenio_stats import InvenioStats
 from invenio_stats.contrib.event_builders import build_file_unique_id, \
     build_record_unique_id, file_download_event_builder
-from invenio_stats.contrib.registrations import register_queries
+from invenio_stats.contrib.registrations import register_events, \
+    register_queries
 from invenio_stats.processors import EventsIndexer, anonymize_user
 from invenio_stats.tasks import aggregate_events
 from invenio_stats.views import blueprint
@@ -67,48 +70,6 @@ def mock_iter_entry_points_factory(data, mocked_group):
             for x in iter_entry_points(group=group, name=name):
                 yield x
     return entrypoints
-
-
-@pytest.fixture()
-def event_entrypoints():
-    """Declare some events by mocking the invenio_stats.events entrypoint.
-
-    It yields a list like [{event_type: <event_type_name>}, ...].
-    """
-    data = []
-    result = []
-    for idx in range(5):
-        event_type_name = 'event_{}'.format(idx)
-        from pkg_resources import EntryPoint
-        entrypoint = EntryPoint(event_type_name, event_type_name)
-        conf = dict(event_type=event_type_name,
-                    templates='invenio_stats.contrib.record_view',
-                    processor_class=EventsIndexer)
-        entrypoint.load = lambda conf=conf: (lambda: [conf])
-        data.append(entrypoint)
-        result.append(conf)
-
-    # including file-download
-    from pkg_resources import EntryPoint
-    entrypoint = EntryPoint('invenio_files_rest', 'test_dir')
-    conf = dict(event_type='file-download',
-                templates='invenio_stats.contrib.file_download',
-                processor_class=EventsIndexer)
-    entrypoint.load = lambda conf=conf: (lambda: [conf])
-    data.append(entrypoint)
-
-    # including record-view
-    entrypoint = EntryPoint('invenio_records_ui', 'test_dir')
-    conf = dict(event_type='record-view',
-                templates='invenio_stats.contrib.record_view',
-                processor_class=EventsIndexer)
-    entrypoint.load = lambda conf=conf: (lambda: [conf])
-    data.append(entrypoint)
-
-    entrypoints = mock_iter_entry_points_factory(data, 'invenio_stats.events')
-
-    with patch('invenio_stats.ext.iter_entry_points', entrypoints):
-        yield result
 
 
 @pytest.fixture()
@@ -151,11 +112,8 @@ def query_entrypoints(custom_permission_factory):
     result += register_queries()
     entrypoint.load = lambda conf=conf: (lambda: result)
     data.append(entrypoint)
-
     entrypoints = mock_iter_entry_points_factory(data, 'invenio_stats.queries')
-
-    with patch('invenio_stats.ext.iter_entry_points',
-               entrypoints):
+    with patch('invenio_stats.ext.iter_entry_points', entrypoints):
         yield result
 
 
@@ -188,21 +146,27 @@ def event_queues(app):
         current_queues.delete()
 
 
+def mock_stats_events_config():
+    """Create events for the tests."""
+    stats_events = {}
+    stats_events = register_events()
+    for idx in range(5):
+        event_name = 'event_{}'.format(idx)
+        stats_events[event_name] = {
+            'event_type': event_name,
+            'processor_class': EventsIndexer,
+            'templates': 'invenio_stats.contrib.record_view',
+        }
+    return stats_events
+
+
 @pytest.fixture()
-def base_app(event_entrypoints):
+def base_app():
     """Flask application fixture without InvenioStats."""
-    from invenio_stats.config import STATS_EVENTS
+    warnings.simplefilter("ignore", ArrowParseWarning)
+
     instance_path = tempfile.mkdtemp()
     app_ = Flask('testapp', instance_path=instance_path)
-    stats_events = {
-        'file-download': deepcopy(STATS_EVENTS['file-download']),
-        'record-view': {
-            'signal': 'invenio_records_ui.signals.record_viewed',
-            'event_builders': ['invenio_stats.contrib.event_builders'
-                               '.record_view_event_builder']
-        }
-    }
-    stats_events.update({'event_{}'.format(idx): {} for idx in range(5)})
     app_.config.update(dict(
         CELERY_ALWAYS_EAGER=True,
         CELERY_TASK_ALWAYS_EAGER=True,
@@ -229,7 +193,7 @@ def base_app(event_entrypoints):
                        'bucket-file-download-total': {},
                        'test-query': {},
                        'test-query2': {}},
-        STATS_EVENTS=stats_events,
+        STATS_EVENTS=mock_stats_events_config(),
         STATS_AGGREGATIONS={'file-download-agg': {}}
     ))
     FlaskCeleryExt(app_)
@@ -252,6 +216,7 @@ def base_app(event_entrypoints):
 @pytest.fixture()
 def app(base_app):
     """Flask application fixture with InvenioStats."""
+    warnings.simplefilter("ignore", ArrowParseWarning)
     base_app.register_blueprint(blueprint)
     InvenioStats(base_app)
     yield base_app

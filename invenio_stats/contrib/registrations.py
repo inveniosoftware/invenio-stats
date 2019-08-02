@@ -18,28 +18,42 @@ from invenio_stats.queries import ESDateHistogramQuery, ESTermsQuery
 
 def register_events():
     """Register sample events."""
-    return [
-        dict(
-            event_type='file-download',
-            templates='invenio_stats.contrib.file_download',
-            processor_class=EventsIndexer,
-            processor_config=dict(
-                preprocessors=[
+    return {
+        'file-download': {
+            'event_type': 'file-download',
+            'templates': 'invenio_stats.contrib.file_download',
+            'signal': 'invenio_files_rest.signals.file_downloaded',
+            'event_builders': [
+                'invenio_stats.contrib.event_builders'
+                '.file_download_event_builder'
+            ],
+            'processor_class': EventsIndexer,
+            'processor_config': {
+                'preprocessors': [
                     flag_robots,
                     anonymize_user,
                     build_file_unique_id
-                ])),
-        dict(
-            event_type='record-view',
-            templates='invenio_stats.contrib.record_view',
-            processor_class=EventsIndexer,
-            processor_config=dict(
-                preprocessors=[
+                ]
+            }
+        },
+        'record-view': {
+            'event_type': 'record-view',
+            'templates': 'invenio_stats.contrib.record_view',
+            'signal': 'invenio_records_ui.signals.record_viewed',
+            'event_builders': [
+                'invenio_stats.contrib.event_builders'
+                '.record_view_event_builder'
+            ],
+            'processor_class': EventsIndexer,
+            'processor_config': {
+                'preprocessors': [
                     flag_robots,
                     anonymize_user,
                     build_record_unique_id
-                ]))
-    ]
+                ]
+            }
+        }
+    }
 
 
 def register_aggregations():

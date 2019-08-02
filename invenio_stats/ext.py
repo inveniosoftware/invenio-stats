@@ -28,38 +28,15 @@ class _InvenioStatsState(object):
     """State object for Invenio stats."""
 
     def __init__(self, app,
-                 entry_point_group_events,
                  entry_point_group_aggs,
                  entry_point_group_queries):
         self.app = app
         self.exchange = app.config['STATS_MQ_EXCHANGE']
-        self.enabled_events = app.config['STATS_EVENTS']
+        self.stats_events = app.config['STATS_EVENTS']
         self.enabled_aggregations = app.config['STATS_AGGREGATIONS']
         self.enabled_queries = app.config['STATS_QUERIES']
-        self.entry_point_group_events = entry_point_group_events
         self.entry_point_group_aggs = entry_point_group_aggs
         self.entry_point_group_queries = entry_point_group_queries
-
-    @cached_property
-    def _events_config(self):
-        """Load events configuration."""
-        # import iter_entry_points here so that it can be mocked in tests
-        result = {}
-        for ep in iter_entry_points(
-                group=self.entry_point_group_events):
-            for cfg in ep.load()():
-                if cfg['event_type'] not in self.enabled_events:
-                    continue
-                elif cfg['event_type'] in result:
-                    raise DuplicateEventError(
-                        'Duplicate event {0} in entry point '
-                        '{1}'.format(cfg['event_type'], ep.name))
-                # Update the default configuration with env/overlay config.
-                cfg.update(
-                    self.enabled_events[cfg['event_type']] or {}
-                )
-                result[cfg['event_type']] = cfg
-        return result
 
     @cached_property
     def events(self):
@@ -68,23 +45,17 @@ class _InvenioStatsState(object):
                                   'processor_class', 'processor_config'])
         # import iter_entry_points here so that it can be mocked in tests
         result = {}
-        config = self._events_config
 
-        for event in self.enabled_events:
-            if event not in config.keys():
-                raise UnknownEventError(
-                    'Unknown event {0} '.format(event))
-
-        for cfg in config.values():
+        for event_config in self.stats_events.values():
             queue = current_queues.queues[
-                'stats-{}'.format(cfg['event_type'])]
-            result[cfg['event_type']] = EventConfig(
+                'stats-{}'.format(event_config['event_type'])]
+            result[event_config['event_type']] = EventConfig(
                 queue=queue,
-                config=cfg,
-                templates=cfg['templates'],
-                processor_class=cfg['processor_class'],
+                config=event_config,
+                templates=event_config['templates'],
+                processor_class=event_config['processor_class'],
                 processor_config=dict(
-                    queue=queue, **cfg.get('processor_config', {})
+                    queue=queue, **event_config.get('processor_config', {})
                 )
             )
         return result
@@ -207,7 +178,6 @@ class InvenioStats(object):
             self.init_app(app, **kwargs)
 
     def init_app(self, app,
-                 entry_point_group_events='invenio_stats.events',
                  entry_point_group_aggs='invenio_stats.aggregations',
                  entry_point_group_queries='invenio_stats.queries'):
         """Flask application initialization."""
@@ -215,12 +185,10 @@ class InvenioStats(object):
 
         state = _InvenioStatsState(
             app,
-            entry_point_group_events=entry_point_group_events,
             entry_point_group_aggs=entry_point_group_aggs,
             entry_point_group_queries=entry_point_group_queries
         )
         self._state = app.extensions['invenio-stats'] = state
-
         if app.config['STATS_REGISTER_RECEIVERS']:
             signal_receivers = {key: value for key, value in
                                 app.config.get('STATS_EVENTS', {}).items()

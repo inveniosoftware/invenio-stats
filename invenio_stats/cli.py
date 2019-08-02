@@ -31,12 +31,12 @@ def lazy_result(f):
 
 @lazy_result
 def _validate_event_type(ctx, param, value):
-    invalid_values = set(value) - set(current_stats.enabled_events)
+    invalid_values = set(value) - set(current_stats.stats_events)
     if invalid_values:
         raise click.BadParameter(
             'Invalid event type(s): {}. Valid values: {}'.format(
                 ', '.join(invalid_values),
-                ', '.join(current_stats.enabled_events)))
+                ', '.join(current_stats.stats_events)))
     return value
 
 
@@ -82,7 +82,7 @@ def events():
 @with_appcontext
 def _events_process(event_types=None, eager=False):
     """Process stats events."""
-    event_types = event_types or list(current_stats.enabled_events)
+    event_types = event_types or current_stats.stats_events.keys()
     if eager:
         process_events.apply((event_types,), throw=True)
         click.secho('Events processed successfully.', fg='green')

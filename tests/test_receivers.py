@@ -32,14 +32,12 @@ def test_register_receivers(base_app):
             event.update(dict(event_param2=event['event_param1'] + 1))
             return event
 
-        base_app.config.update(dict(
-            STATS_EVENTS=dict(
-                event_0=dict(
-                    signal=my_signal,
-                    event_builders=[event_builder1, event_builder2]
-                )
-            )
-        ))
+        # NOTE: event_0 already exists from the mocked events decorate further.
+        base_app.config['STATS_EVENTS']['event_0'].update({
+            'signal': my_signal,
+            'event_builders': [event_builder1, event_builder2]
+        })
+
         InvenioStats(base_app)
         current_queues.declare()
         my_signal.send(base_app, signal_param=42)
@@ -61,14 +59,12 @@ def test_failing_receiver(base_app, caplog):
         def failing_event_builder(event, sender_app):
             raise Exception('builder-exception')
 
-        base_app.config.update(dict(
-            STATS_EVENTS=dict(
-                event_0=dict(
-                    signal=my_signal,
-                    event_builders=[failing_event_builder]
-                )
-            )
-        ))
+        # NOTE: event_0 already exists from the mocked events decorate further.
+        base_app.config['STATS_EVENTS']['event_0'].update({
+            'signal': my_signal,
+            'event_builders': [failing_event_builder]
+        })
+
         InvenioStats(base_app)
         current_queues.declare()
 
