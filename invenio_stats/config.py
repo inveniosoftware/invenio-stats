@@ -45,9 +45,7 @@ You can find a sampe of STATS_EVENT configuration in the `registrations.py`
 """
 
 
-STATS_AGGREGATIONS = {
-    'file-download-agg': {},
-}
+STATS_AGGREGATIONS = {}
 
 
 STATS_QUERIES = {}

@@ -53,12 +53,12 @@ def _parse_date(ctx, param, value):
 
 @lazy_result
 def _validate_aggregation_type(ctx, param, value):
-    invalid_values = set(value) - set(current_stats.enabled_aggregations)
+    invalid_values = set(value) - set(current_stats.stats_aggregations)
     if invalid_values:
         raise click.BadParameter(
             'Invalid aggregation type(s): {}. Valid values: {}'.format(
                 ', '.join(invalid_values),
-                ', '.join(current_stats.enabled_aggregations)))
+                ', '.join(current_stats.stats_aggregations)))
     return value
 
 
@@ -108,7 +108,7 @@ def _aggregations_process(aggregation_types=None,
                           update_bookmark=False, eager=False):
     """Process stats aggregations."""
     aggregation_types = (aggregation_types or
-                         list(current_stats.enabled_aggregations))
+                         current_stats.stats_aggregations.keys())
     if eager:
         aggregate_events.apply(
             (aggregation_types,),
@@ -137,7 +137,7 @@ def _aggregations_delete(aggregation_types=None,
                          start_date=None, end_date=None):
     """Delete computed aggregations."""
     aggregation_types = (list(aggregation_types) or
-                         list(current_stats.enabled_aggregations))
+                         current_stats.stats_aggregations.keys())
     for a in aggregation_types:
         aggr_cfg = current_stats.aggregations[a]
         aggregator = aggr_cfg.aggregator_class(
@@ -155,7 +155,7 @@ def _aggregations_list_bookmarks(aggregation_types=None,
                                  start_date=None, end_date=None, limit=None):
     """List aggregation bookmarks."""
     aggregation_types = (aggregation_types or
-                         list(current_stats.enabled_aggregations))
+                         current_stats.stats_aggregations.keys())
     for a in aggregation_types:
         aggr_cfg = current_stats.aggregations[a]
         aggregator = aggr_cfg.aggregator_class(

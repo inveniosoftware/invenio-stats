@@ -27,13 +27,12 @@ from .utils import load_or_import_from_config
 class _InvenioStatsState(object):
     """State object for Invenio stats."""
 
-    def __init__(self, app, entry_point_group_aggs):
+    def __init__(self, app):
         self.app = app
         self.exchange = app.config['STATS_MQ_EXCHANGE']
+        self.stats_aggregations = app.config['STATS_AGGREGATIONS']
         self.stats_events = app.config['STATS_EVENTS']
-        self.enabled_aggregations = app.config['STATS_AGGREGATIONS']
         self.stats_queries = app.config['STATS_QUERIES']
-        self.entry_point_group_aggs = entry_point_group_aggs
 
     @cached_property
     def events(self):
@@ -58,26 +57,6 @@ class _InvenioStatsState(object):
         return result
 
     @cached_property
-    def _aggregations_config(self):
-        """Load aggregation configurations."""
-        result = {}
-        for ep in iter_entry_points(
-                group=self.entry_point_group_aggs):
-            for cfg in ep.load()():
-                if cfg['aggregation_name'] not in self.enabled_aggregations:
-                    continue
-                elif cfg['aggregation_name'] in result:
-                    raise DuplicateAggregationError(
-                        'Duplicate aggregation {0} in entry point '
-                        '{1}'.format(cfg['event_type'], ep.name))
-                # Update the default configuration with env/overlay config.
-                cfg.update(
-                    self.enabled_aggregations[cfg['aggregation_name']] or {}
-                )
-                result[cfg['aggregation_name']] = cfg
-        return result
-
-    @cached_property
     def aggregations(self):
         AggregationConfig = namedtuple(
             'AggregationConfig',
@@ -85,20 +64,14 @@ class _InvenioStatsState(object):
              'aggregator_config']
         )
         result = {}
-        config = self._aggregations_config
 
-        for aggregation in self.enabled_aggregations:
-            if aggregation not in config.keys():
-                raise UnknownAggregationError(
-                    'Unknown aggregation {0} '.format(aggregation))
-
-        for cfg in config.values():
-            result[cfg['aggregation_name']] = AggregationConfig(
-                name=cfg['aggregation_name'],
-                config=cfg,
-                templates=cfg['templates'],
-                aggregator_class=cfg['aggregator_class'],
-                aggregator_config=cfg.get('aggregator_config', {})
+        for agg_config in self.stats_aggregations.values():
+            result[agg_config['aggregation_name']] = AggregationConfig(
+                name=agg_config['aggregation_name'],
+                config=agg_config,
+                templates=agg_config['templates'],
+                aggregator_class=agg_config['aggregator_class'],
+                aggregator_config=agg_config.get('aggregator_config', {})
             )
         return result
 
@@ -149,15 +122,11 @@ class InvenioStats(object):
         if app:
             self.init_app(app, **kwargs)
 
-    def init_app(self, app,
-                 entry_point_group_aggs='invenio_stats.aggregations'):
+    def init_app(self, app):
         """Flask application initialization."""
         self.init_config(app)
 
-        state = _InvenioStatsState(
-            app,
-            entry_point_group_aggs=entry_point_group_aggs
-        )
+        state = _InvenioStatsState(app)
         self._state = app.extensions['invenio-stats'] = state
         if app.config['STATS_REGISTER_RECEIVERS']:
             signal_receivers = {key: value for key, value in

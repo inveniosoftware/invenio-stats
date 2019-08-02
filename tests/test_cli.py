@@ -70,6 +70,7 @@ def test_events_process(es, script_info, event_queues):
     current_stats.publish(
         'record-view', [_create_record_view_event((2018, 2, 1, 10))])
 
+    current_search.flush_and_refresh(index='*')
     # Process all event types via a celery task
     result = runner.invoke(
         stats, ['events', 'process'], obj=script_info)
@@ -182,7 +183,7 @@ def test_aggregations_delete(script_info, event_queues, es, aggregated_events):
 
     # Delete all aggregations
     result = runner.invoke(
-        stats, ['aggregations', 'delete', '--yes'],
+        stats, ['aggregations', 'delete', 'file-download-agg', '--yes'],
         obj=script_info)
     assert result.exit_code == 0
 
