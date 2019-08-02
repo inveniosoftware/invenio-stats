@@ -15,7 +15,6 @@ import os
 import shutil
 import tempfile
 import uuid
-import warnings
 from contextlib import contextmanager
 from copy import deepcopy
 
@@ -23,7 +22,6 @@ from copy import deepcopy
 # login_oauth2_user(valid, oauth) is included
 import invenio_oauth2server.views.server  # noqa
 import pytest
-from arrow.factory import ArrowParseWarning
 from flask import Flask, appcontext_pushed, g
 from flask.cli import ScriptInfo
 from flask_celeryext import FlaskCeleryExt
@@ -51,8 +49,8 @@ from sqlalchemy_utils.functions import create_database, database_exists
 from invenio_stats import InvenioStats
 from invenio_stats.contrib.event_builders import build_file_unique_id, \
     build_record_unique_id, file_download_event_builder
-from invenio_stats.contrib.registrations import register_events, \
-    register_queries
+from invenio_stats.contrib.registrations import register_aggregations, \
+    register_events, register_queries
 from invenio_stats.processors import EventsIndexer, anonymize_user
 from invenio_stats.tasks import aggregate_events
 from invenio_stats.views import blueprint
@@ -100,6 +98,11 @@ def mock_stats_events_config():
     return stats_events
 
 
+def mock_stats_aggregations_config():
+    """Create aggreations config for the tests."""
+    return register_aggregations()
+
+
 @pytest.fixture()
 def mock_stats_queries_config(app, custom_permission_factory):
     """Create queries config for the tests."""
@@ -144,8 +147,6 @@ def mock_stats_queries_config(app, custom_permission_factory):
 @pytest.fixture()
 def base_app():
     """Flask application fixture without InvenioStats."""
-    warnings.simplefilter("ignore", ArrowParseWarning)
-
     instance_path = tempfile.mkdtemp()
     app_ = Flask('testapp', instance_path=instance_path)
     app_.config.update(dict(
@@ -172,7 +173,7 @@ def base_app():
         SERVER_NAME='localhost',
         STATS_QUERIES={},
         STATS_EVENTS=mock_stats_events_config(),
-        STATS_AGGREGATIONS={'file-download-agg': {}}
+        STATS_AGGREGATIONS=mock_stats_aggregations_config()
     ))
     FlaskCeleryExt(app_)
     InvenioAccounts(app_)
@@ -194,7 +195,6 @@ def base_app():
 @pytest.fixture()
 def app(base_app):
     """Flask application fixture with InvenioStats."""
-    warnings.simplefilter("ignore", ArrowParseWarning)
     base_app.register_blueprint(blueprint)
     InvenioStats(base_app)
     yield base_app
