@@ -12,8 +12,7 @@ import json
 from flask import url_for
 
 
-def test_post_request(app, db, query_entrypoints,
-                      users, custom_permission_factory,
+def test_post_request(app, db, users, mock_stats_queries_config,
                       sample_histogram_query_data):
     """Test post request to stats API."""
     with app.test_client() as client:
@@ -37,9 +36,9 @@ def test_post_request(app, db, query_entrypoints,
         assert resp.status_code == 400
 
 
-def test_unauthorized_request(app, query_entrypoints,
-                              custom_permission_factory,
-                              sample_histogram_query_data, users):
+def test_unauthorized_request(app, sample_histogram_query_data, users,
+                              mock_stats_queries_config,
+                              custom_permission_factory):
     """Test rejecting unauthorized requests."""
 
     def client_req(user):

@@ -50,10 +50,7 @@ STATS_AGGREGATIONS = {
 }
 
 
-STATS_QUERIES = {
-    'bucket-file-download-histogram': {},
-    'bucket-file-download-total': {},
-}
+STATS_QUERIES = {}
 
 
 STATS_PERMISSION_FACTORY = default_permission_factory
