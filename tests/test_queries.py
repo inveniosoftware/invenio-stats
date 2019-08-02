@@ -22,13 +22,16 @@ from invenio_stats.queries import ESDateHistogramQuery, ESTermsQuery
                                start_date=datetime.date(2017, 1, 1),
                                end_date=datetime.date(2017, 1, 7))],
                          indirect=['aggregated_events'])
-def test_histogram_query(app, event_queues, aggregated_events):
+def test_histogram_query(app, event_queues, aggregated_events,
+                         mock_stats_queries_config):
     """Test that the histogram query returns the correct
     results for each day."""
     # reading the configuration as it is registered from registrations.py
     query_configs = register_queries()
-    histo_query = ESDateHistogramQuery(query_name='test_histo',
-                                       **query_configs[0]['query_config'])
+    histo_query = ESDateHistogramQuery(
+        query_name='test_histo',
+        **query_configs['bucket-file-download-histogram']['query_config']
+    )
     results = histo_query.run(bucket_id='B0000000000000000000000000000001',
                               file_key='test.pdf',
                               start_date=datetime.datetime(2017, 1, 1),
@@ -43,11 +46,14 @@ def test_histogram_query(app, event_queues, aggregated_events):
                                start_date=datetime.date(2017, 1, 1),
                                end_date=datetime.date(2017, 1, 7))],
                          indirect=['aggregated_events'])
-def test_terms_query(app, event_queues, aggregated_events):
+def test_terms_query(app, event_queues, aggregated_events,
+                     mock_stats_queries_config):
     """Test that the terms query returns the correct total count."""
     query_configs = register_queries()
-    terms_query = ESTermsQuery(query_name='test_total_count',
-                               **query_configs[1]['query_config'])
+    terms_query = ESTermsQuery(
+        query_name='test_total_count',
+        **query_configs['bucket-file-download-total']['query_config']
+    )
     results = terms_query.run(bucket_id='B0000000000000000000000000000001',
                               start_date=datetime.datetime(2017, 1, 1),
                               end_date=datetime.datetime(2017, 1, 7))

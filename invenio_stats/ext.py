@@ -27,16 +27,13 @@ from .utils import load_or_import_from_config
 class _InvenioStatsState(object):
     """State object for Invenio stats."""
 
-    def __init__(self, app,
-                 entry_point_group_aggs,
-                 entry_point_group_queries):
+    def __init__(self, app, entry_point_group_aggs):
         self.app = app
         self.exchange = app.config['STATS_MQ_EXCHANGE']
         self.stats_events = app.config['STATS_EVENTS']
         self.enabled_aggregations = app.config['STATS_AGGREGATIONS']
-        self.enabled_queries = app.config['STATS_QUERIES']
+        self.stats_queries = app.config['STATS_QUERIES']
         self.entry_point_group_aggs = entry_point_group_aggs
-        self.entry_point_group_queries = entry_point_group_queries
 
     @cached_property
     def events(self):
@@ -106,47 +103,22 @@ class _InvenioStatsState(object):
         return result
 
     @cached_property
-    def _queries_config(self):
-        """Load queries configuration."""
-        result = {}
-        for ep in iter_entry_points(group=self.entry_point_group_queries):
-            for cfg in ep.load()():
-                if cfg['query_name'] not in self.enabled_queries:
-                    continue
-                elif cfg['query_name'] in result:
-                    raise DuplicateQueryError(
-                        'Duplicate query {0} in entry point '
-                        '{1}'.format(cfg['query'], ep.name))
-                # Update the default configuration with env/overlay config.
-                cfg.update(
-                    self.enabled_queries[cfg['query_name']] or {}
-                )
-                result[cfg['query_name']] = cfg
-        return result
-
-    @cached_property
     def queries(self):
         QueryConfig = namedtuple(
             'QueryConfig',
             ['query_class', 'query_config', 'permission_factory', 'config']
         )
         result = {}
-        config = self._queries_config
 
-        for query in self.enabled_queries:
-            if query not in config.keys():
-                raise UnknownQueryError(
-                    'Unknown query {0} '.format(query))
-
-        for cfg in config.values():
-            result[cfg['query_name']] = QueryConfig(
-                config=cfg,
-                query_class=cfg['query_class'],
+        for query_config in self.stats_queries.values():
+            result[query_config['query_name']] = QueryConfig(
+                config=query_config,
+                query_class=query_config['query_class'],
                 query_config=dict(
-                    query_name=cfg['query_name'],
-                    **cfg.get('query_config', {})
+                    query_name=query_config['query_name'],
+                    **query_config.get('query_config', {})
                 ),
-                permission_factory=cfg.get('permission_factory')
+                permission_factory=query_config.get('permission_factory')
             )
         return result
 
@@ -178,15 +150,13 @@ class InvenioStats(object):
             self.init_app(app, **kwargs)
 
     def init_app(self, app,
-                 entry_point_group_aggs='invenio_stats.aggregations',
-                 entry_point_group_queries='invenio_stats.queries'):
+                 entry_point_group_aggs='invenio_stats.aggregations'):
         """Flask application initialization."""
         self.init_config(app)
 
         state = _InvenioStatsState(
             app,
-            entry_point_group_aggs=entry_point_group_aggs,
-            entry_point_group_queries=entry_point_group_queries
+            entry_point_group_aggs=entry_point_group_aggs
         )
         self._state = app.extensions['invenio-stats'] = state
         if app.config['STATS_REGISTER_RECEIVERS']:

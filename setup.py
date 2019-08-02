@@ -128,10 +128,6 @@ setup(
             'invenio_stats = '
             'invenio_stats.contrib.registrations:register_aggregations'
         ],
-        'invenio_stats.queries': [
-            'invenio_stats = '
-            'invenio_stats.contrib.registrations:register_queries'
-        ]
     },
     extras_require=extras_require,
     install_requires=install_requires,

@@ -58,65 +58,6 @@ from invenio_stats.tasks import aggregate_events
 from invenio_stats.views import blueprint
 
 
-def mock_iter_entry_points_factory(data, mocked_group):
-    """Create a mock iter_entry_points function."""
-    from pkg_resources import iter_entry_points
-
-    def entrypoints(group, name=None):
-        if group == mocked_group:
-            for entrypoint in data:
-                yield entrypoint
-        else:
-            for x in iter_entry_points(group=group, name=name):
-                yield x
-    return entrypoints
-
-
-@pytest.yield_fixture()
-def query_entrypoints(custom_permission_factory):
-    """Same as event_entrypoints for queries."""
-    from pkg_resources import EntryPoint
-    entrypoint = EntryPoint('invenio_stats', 'queries')
-    data = []
-    result = []
-    conf = [dict(
-        query_name='test-query',
-        query_class=CustomQuery,
-        query_config=dict(
-            index='stats-file-download',
-            copy_fields=dict(
-                bucket_id='bucket_id',
-            ),
-            required_filters=dict(
-                bucket_id='bucket_id',
-            )
-        ),
-        permission_factory=custom_permission_factory
-    ),
-        dict(
-        query_name='test-query2',
-        query_class=CustomQuery,
-        query_config=dict(
-            index='stats-file-download',
-            copy_fields=dict(
-                bucket_id='bucket_id',
-            ),
-            required_filters=dict(
-                bucket_id='bucket_id',
-            )
-        ),
-        permission_factory=custom_permission_factory
-    )]
-
-    result += conf
-    result += register_queries()
-    entrypoint.load = lambda conf=conf: (lambda: result)
-    data.append(entrypoint)
-    entrypoints = mock_iter_entry_points_factory(data, 'invenio_stats.queries')
-    with patch('invenio_stats.ext.iter_entry_points', entrypoints):
-        yield result
-
-
 @pytest.yield_fixture()
 def mock_anonymization_salt():
     """Mock the "get_anonymization_salt" function."""
@@ -147,8 +88,7 @@ def event_queues(app):
 
 
 def mock_stats_events_config():
-    """Create events for the tests."""
-    stats_events = {}
+    """Create events config for the tests."""
     stats_events = register_events()
     for idx in range(5):
         event_name = 'event_{}'.format(idx)
@@ -158,6 +98,47 @@ def mock_stats_events_config():
             'templates': 'invenio_stats.contrib.record_view',
         }
     return stats_events
+
+
+@pytest.yield_fixture()
+def mock_stats_queries_config(app, custom_permission_factory):
+    """Create queries config for the tests."""
+    stats_queries = register_queries()
+
+    conf = {
+        'test-query': dict(
+            query_name='test-query',
+            query_class=CustomQuery,
+            query_config=dict(
+                index='stats-file-download',
+                copy_fields=dict(
+                    bucket_id='bucket_id',
+                ),
+                required_filters=dict(
+                    bucket_id='bucket_id',
+                )
+            ),
+            permission_factory=custom_permission_factory
+        ),
+        'test-query2': dict(
+            query_name='test-query2',
+            query_class=CustomQuery,
+            query_config=dict(
+                index='stats-file-download',
+                copy_fields=dict(
+                    bucket_id='bucket_id',
+                ),
+                required_filters=dict(
+                    bucket_id='bucket_id',
+                )
+            ),
+            permission_factory=custom_permission_factory
+        )
+    }
+
+    stats_queries.update(conf)
+    app.config['STATS_QUERIES'].update(stats_queries)
+    return stats_queries
 
 
 @pytest.yield_fixture()
@@ -189,10 +170,7 @@ def base_app():
         ),
         SECRET_KEY='asecretkey',
         SERVER_NAME='localhost',
-        STATS_QUERIES={'bucket-file-download-histogram': {},
-                       'bucket-file-download-total': {},
-                       'test-query': {},
-                       'test-query2': {}},
+        STATS_QUERIES={},
         STATS_EVENTS=mock_stats_events_config(),
         STATS_AGGREGATIONS={'file-download-agg': {}}
     ))

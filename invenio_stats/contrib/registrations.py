@@ -100,11 +100,11 @@ def register_aggregations():
 
 def register_queries():
     """Register queries."""
-    return [
-        dict(
-            query_name='bucket-file-download-histogram',
-            query_class=ESDateHistogramQuery,
-            query_config=dict(
+    return {
+        'bucket-file-download-histogram': {
+            'query_name': 'bucket-file-download-histogram',
+            'query_class': ESDateHistogramQuery,
+            'query_config': dict(
                 index='stats-file-download',
                 copy_fields=dict(
                     bucket_id='bucket_id',
@@ -115,19 +115,16 @@ def register_queries():
                     file_key='file_key',
                 )
             )
-        ),
-        dict(
+        },
+        'bucket-file-download-total': dict(
             query_name='bucket-file-download-total',
             query_class=ESTermsQuery,
             query_config=dict(
                 index='stats-file-download',
-                copy_fields=dict(
-                    # bucket_id='bucket_id',
-                ),
                 required_filters=dict(
                     bucket_id='bucket_id',
                 ),
                 aggregated_fields=['file_key']
             )
-        ),
-    ]
+        )
+    }
