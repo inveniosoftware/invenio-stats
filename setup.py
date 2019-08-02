@@ -124,10 +124,6 @@ setup(
         'invenio_queues.queues': [
             'invenio_stats = invenio_stats.queues:declare_queues',
         ],
-        'invenio_stats.events': [
-            'invenio_stats = '
-            'invenio_stats.contrib.registrations:register_events'
-        ],
         'invenio_stats.aggregations': [
             'invenio_stats = '
             'invenio_stats.contrib.registrations:register_aggregations'

@@ -23,14 +23,7 @@ by the ``STATS_EVENTS`` config variable. An event will be generated for each
 signal sent.
 """
 
-STATS_EVENTS = {
-    'file-download': {
-        'signal': 'invenio_files_rest.signals.file_downloaded',
-        'event_builders': [
-            'invenio_stats.contrib.event_builders.file_download_event_builder'
-        ]
-    },
-}
+STATS_EVENTS = {}
 """Enabled Events.
 
 Each key is the name of an event. A queue will be created for each event.
@@ -47,6 +40,8 @@ is the name of the emitted event.
     can update it. Keep in mind that these functions will run synchronously
     during the creation of the event, meaning that if the signal is sent during
     a request they will increase the response time.
+
+You can find a sampe of STATS_EVENT configuration in the `registrations.py`
 """
 
 

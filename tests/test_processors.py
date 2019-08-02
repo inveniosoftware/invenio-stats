@@ -290,6 +290,7 @@ def test_failing_processors(app, es, event_queues, caplog):
     queue = current_queues.queues['stats-file-download']
     indexer = EventsIndexer(queue, preprocessors=[_raises_on_second_call])
 
+    current_search.flush_and_refresh(index='*')
     assert get_queue_size('stats-file-download') == 4
     assert not es.indices.exists('events-stats-file-download-2018-01-01')
     assert not es.indices.exists('events-stats-file-download-2018-01-02')
