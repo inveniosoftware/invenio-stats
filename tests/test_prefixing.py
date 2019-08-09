@@ -23,7 +23,8 @@ from invenio_stats.queries import ESDateHistogramQuery, ESTermsQuery
 from invenio_stats.tasks import aggregate_events
 
 
-def test_index_prefix(config_with_index_prefix, app, es, event_queues):
+def test_index_prefix(config_with_index_prefix, app, es, event_queues,
+                      mock_stats_queries_config):
     # 1) publish events in the queue
     current_stats.publish(
         'file-download',
@@ -55,9 +56,10 @@ def test_index_prefix(config_with_index_prefix, app, es, event_queues):
     es.indices.exists(index_prefix + 'stats-file-download-2018-01')
 
     # 4) queries
-    query_configs = register_queries()
-    histo_query = ESDateHistogramQuery(query_name='test_histo',
-                                       **query_configs[0]['query_config'])
+    histo_query_name = 'bucket-file-download-histogram'
+    histo_query = ESDateHistogramQuery(
+        query_name=histo_query_name,
+        **mock_stats_queries_config[histo_query_name]['query_config'])
     results = histo_query.run(bucket_id='B0000000000000000000000000000001',
                               file_key='test.pdf',
                               start_date=datetime.datetime(2018, 1, 1),
@@ -66,8 +68,10 @@ def test_index_prefix(config_with_index_prefix, app, es, event_queues):
     for day_result in results['buckets']:
         assert int(day_result['value']) == 1
 
-    terms_query = ESTermsQuery(query_name='test_total_count',
-                               **query_configs[1]['query_config'])
+    terms_query_name = 'bucket-file-download-total'
+    terms_query = ESTermsQuery(
+        query_name=terms_query_name,
+        **mock_stats_queries_config[terms_query_name]['query_config'])
     results = terms_query.run(bucket_id='B0000000000000000000000000000001',
                               start_date=datetime.datetime(2018, 1, 1),
                               end_date=datetime.datetime(2018, 1, 7))
