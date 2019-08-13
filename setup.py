@@ -20,6 +20,7 @@ tests_require = [
     'coverage>=4.0',
     'invenio-accounts>=1.0.1',
     'invenio-db>=1.0.2',
+    'invenio-files-rest>=1.0.0a23',
     'invenio-oauth2server>=1.0.1',
     'invenio-records>=1.0.0',
     'invenio-records-ui>=1.0.1',
