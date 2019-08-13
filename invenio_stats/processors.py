@@ -13,7 +13,6 @@ from __future__ import absolute_import, print_function
 import hashlib
 from time import mktime
 
-import arrow
 import elasticsearch
 from counter_robots import is_machine, is_robot
 from dateutil import parser
@@ -60,7 +59,7 @@ def anonymize_user(doc):
     # one hour. timeslice represents the hour of the day in which
     # the event has been generated and together with user info it determines
     # the 'User Session'
-    timestamp = arrow.get(doc.get('timestamp'))
+    timestamp = parser.parse(doc.get('timestamp'))
     timeslice = timestamp.strftime('%Y%m%d%H')
     salt = get_anonymization_salt(timestamp)
 
@@ -181,8 +180,8 @@ class EventsIndexer(object):
                         break
                 if msg is None:
                     continue
-                suffix = arrow.get(msg.get('timestamp')).strftime(self.suffix)
                 ts = parser.parse(msg.get('timestamp'))
+                suffix = ts.strftime(self.suffix)
                 # Truncate timestamp to keep only seconds. This is to improve
                 # elasticsearch performances.
                 ts = ts.replace(microsecond=0)

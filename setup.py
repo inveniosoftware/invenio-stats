@@ -68,7 +68,6 @@ setup_requires = [
 ]
 
 install_requires = [
-    'arrow>=0.7.0',
     'counter-robots>=2018.6',
     'Flask>=0.11.1',
     'invenio-cache>=1.0.0',
