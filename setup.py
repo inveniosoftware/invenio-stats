@@ -22,13 +22,13 @@ tests_require = [
     'invenio-db>=1.0.2',
     'invenio-oauth2server>=1.0.1',
     'invenio-records>=1.0.0',
+    'invenio-records-ui>=1.0.1',
     'isort>=4.2.15',
     'mock>=1.3.0',
     'pydocstyle>=1.0.0',
     'pytest-cov>=1.8.0',
     'pytest-pep8>=1.0.6',
     'pytest>=3.8.1,<4',
-    'python-dateutil>=2.6.0',
 ]
 
 invenio_search_version = '1.2.0'
@@ -52,7 +52,7 @@ extras_require = {
     'tests': tests_require,
 }
 
-extras_require['all'] = ['invenio-records-ui>=1.0.1']
+extras_require['all'] = []
 for name, reqs in extras_require.items():
     if name[0] == ':' or name in (
         'elasticsearch2',
