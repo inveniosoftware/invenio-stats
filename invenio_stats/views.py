@@ -72,7 +72,7 @@ class StatsQueryResource(ContentNegotiatedMethodView):
                     abort(403, message)
                 abort(401, message)
             try:
-                query = query_cfg.query_class(**query_cfg.query_config)
+                query = query_cfg.cls(**query_cfg.params)
                 result[query_name] = query.run(**params)
             except ValueError as e:
                 raise InvalidRequestInputError(e.args[0])

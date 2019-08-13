@@ -29,36 +29,30 @@ def lazy_result(f):
     return decorated
 
 
-@lazy_result
-def _validate_event_type(ctx, param, value):
-    invalid_values = set(value) - set(current_stats.stats_events)
-    if invalid_values:
-        raise click.BadParameter(
-            'Invalid event type(s): {}. Valid values: {}'.format(
-                ', '.join(invalid_values),
-                ', '.join(current_stats.stats_events)))
-    return value
-
-
-def _verify_date(ctx, param, value):
-    if value:
-        dateutil_parse(value)
-        return value
-
-
 def _parse_date(ctx, param, value):
     if value:
         return dateutil_parse(value)
 
 
 @lazy_result
+def _validate_event_type(ctx, param, value):
+    invalid_values = set(value) - set(current_stats.events)
+    if invalid_values:
+        raise click.BadParameter(
+            'Invalid event type(s): {}. Valid values: {}'.format(
+                ', '.join(invalid_values),
+                ', '.join(current_stats.events)))
+    return value
+
+
+@lazy_result
 def _validate_aggregation_type(ctx, param, value):
-    invalid_values = set(value) - set(current_stats.stats_aggregations)
+    invalid_values = set(value) - set(current_stats.aggregations)
     if invalid_values:
         raise click.BadParameter(
             'Invalid aggregation type(s): {}. Valid values: {}'.format(
                 ', '.join(invalid_values),
-                ', '.join(current_stats.stats_aggregations)))
+                ', '.join(current_stats.aggregations)))
     return value
 
 
@@ -82,12 +76,15 @@ def events():
 @with_appcontext
 def _events_process(event_types=None, eager=False):
     """Process stats events."""
-    event_types = event_types or list(current_stats.stats_events.keys())
+    # NOTE: event_types is a LocalProxy so it needs to be casted to be passed
+    # to celery
+    event_types = list(event_types or current_stats.events)
+    process_task = process_events.si(event_types)
     if eager:
-        process_events.apply((event_types,), throw=True)
+        process_task.apply(throw=True)
         click.secho('Events processed successfully.', fg='green')
     else:
-        process_events.delay(event_types)
+        process_task.delay()
         click.secho('Events processing task sent...', fg='yellow')
 
 
@@ -98,8 +95,8 @@ def aggregations():
 
 @aggregations.command('process')
 @aggr_arg
-@click.option('--start-date', callback=_verify_date)
-@click.option('--end-date', callback=_verify_date)
+@click.option('--start-date', callback=_parse_date)
+@click.option('--end-date', callback=_parse_date)
 @click.option('--update-bookmark', '-b', is_flag=True)
 @click.option('--eager', '-e', is_flag=True)
 @with_appcontext
@@ -107,22 +104,20 @@ def _aggregations_process(aggregation_types=None,
                           start_date=None, end_date=None,
                           update_bookmark=False, eager=False):
     """Process stats aggregations."""
-    aggregation_types = (aggregation_types or
-                         list(current_stats.stats_aggregations.keys()))
+    # NOTE: aggregation_types is a LocalProxy so it needs to be casted to be
+    # passed to celery
+    aggregation_types = list(aggregation_types or current_stats.aggregations)
+    agg_task = aggregate_events.si(
+        aggregation_types,
+        start_date=start_date.isoformat() if start_date else None,
+        end_date=end_date.isoformat() if end_date else None,
+        update_bookmark=update_bookmark
+    )
     if eager:
-        aggregate_events.apply(
-            (aggregation_types,),
-            dict(start_date=start_date, end_date=end_date,
-                 update_bookmark=update_bookmark),
-            throw=True)
+        agg_task.apply(throw=True)
         click.secho('Aggregations processed successfully.', fg='green')
     else:
-        # NOTE: aggregation_types is a LocalProxy so it needs to be casted
-        # to be passed to celery
-        aggregate_events.delay(
-            list(aggregation_types),
-            start_date=start_date, end_date=end_date,
-            update_bookmark=update_bookmark)
+        agg_task.delay()
         click.secho('Aggregations processing task sent...', fg='yellow')
 
 
@@ -136,12 +131,11 @@ def _aggregations_process(aggregation_types=None,
 def _aggregations_delete(aggregation_types=None,
                          start_date=None, end_date=None):
     """Delete computed aggregations."""
-    aggregation_types = (list(aggregation_types) or
-                         list(current_stats.stats_aggregations.keys()))
+    aggregation_types = aggregation_types or current_stats.aggregations
     for a in aggregation_types:
         aggr_cfg = current_stats.aggregations[a]
-        aggregator = aggr_cfg.aggregator_class(
-            aggregation_name=aggr_cfg.name, **aggr_cfg.aggregator_config)
+        aggregator = aggr_cfg.cls(
+            aggregation_name=aggr_cfg.name, **aggr_cfg.params)
         aggregator.delete(start_date, end_date)
 
 
@@ -154,12 +148,11 @@ def _aggregations_delete(aggregation_types=None,
 def _aggregations_list_bookmarks(aggregation_types=None,
                                  start_date=None, end_date=None, limit=None):
     """List aggregation bookmarks."""
-    aggregation_types = (aggregation_types or
-                         list(current_stats.stats_aggregations.keys()))
+    aggregation_types = aggregation_types or current_stats.aggregations
     for a in aggregation_types:
         aggr_cfg = current_stats.aggregations[a]
-        aggregator = aggr_cfg.aggregator_class(
-            aggregation_name=aggr_cfg.name, **aggr_cfg.aggregator_config)
+        aggregator = aggr_cfg.cls(
+            aggregation_name=aggr_cfg.name, **aggr_cfg.params)
         bookmarks = aggregator.list_bookmarks(start_date, end_date, limit)
         click.echo('{}:'.format(a))
         for b in bookmarks:

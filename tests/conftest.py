@@ -91,8 +91,7 @@ def mock_stats_events_config():
     for idx in range(5):
         event_name = 'event_{}'.format(idx)
         stats_events[event_name] = {
-            'event_type': event_name,
-            'processor_class': EventsIndexer,
+            'cls': EventsIndexer,
             'templates': 'invenio_stats.contrib.record_view',
         }
     return stats_events
@@ -110,9 +109,8 @@ def mock_stats_queries_config(app, custom_permission_factory):
 
     conf = {
         'test-query': dict(
-            query_name='test-query',
-            query_class=CustomQuery,
-            query_config=dict(
+            cls=CustomQuery,
+            params=dict(
                 index='stats-file-download',
                 copy_fields=dict(
                     bucket_id='bucket_id',
@@ -124,9 +122,8 @@ def mock_stats_queries_config(app, custom_permission_factory):
             permission_factory=custom_permission_factory
         ),
         'test-query2': dict(
-            query_name='test-query2',
-            query_class=CustomQuery,
-            query_config=dict(
+            cls=CustomQuery,
+            params=dict(
                 index='stats-file-download',
                 copy_fields=dict(
                     bucket_id='bucket_id',
@@ -159,6 +156,8 @@ def base_app():
         SQLALCHEMY_DATABASE_URI=os.environ.get(
             'SQLALCHEMY_DATABASE_URI', 'sqlite://'),
         SQLALCHEMY_TRACK_MODIFICATIONS=True,
+        # Bump the ES client timeout for slower environments (like Travis CI)
+        SEARCH_CLIENT_CONFIG={'timeout': 30, 'max_retries': 5},
         TESTING=True,
         OAUTH2SERVER_CLIENT_ID_SALT_LEN=64,
         OAUTH2SERVER_CLIENT_SECRET_SALT_LEN=60,
@@ -586,7 +585,7 @@ class CustomQuery:
     """Mock query class."""
 
     def __init__(self, *args, **kwargs):
-        """Mock constructor to accept the query_config parameters."""
+        """Mock constructor."""
         pass
 
     def run(self, *args, **kwargs):

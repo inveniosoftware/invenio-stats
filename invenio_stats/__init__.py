@@ -34,8 +34,8 @@ module as well as their default configuration.
     def register_events():
        return [dict(event_type='file-download',
                     templates='contrib/file-download',
-                    processor_class=EventsIndexer,
-                    processor_config=dict(
+                    cls=EventsIndexer,
+                    params=dict(
                        preprocessors=[
                            flag_robots,
                            anonymize_user,
@@ -91,8 +91,8 @@ queue will store all events before they are processed.
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 It is possible to override the default configuration of an event by specifying
-different ``templates``, ``processor_class``, ``event_builders``, or
-``processor_config`` in the ``STATS_EVENTS`` config variable:
+different ``templates``, ``cls``, ``event_builders``, or
+``params`` in the ``STATS_EVENTS`` config variable:
 
 .. code-block:: python
 
@@ -102,8 +102,8 @@ different ``templates``, ``processor_class``, ``event_builders``, or
             event_builders=[
                 'invenio_stats.contrib.event_builders.file_download_event_builder'
             ],
-            processor_class: your_module.processors.CustomEventsIndexer,
-            processor_config=dict(
+            cls: your_module.processors.CustomEventsIndexer,
+            params=dict(
                 preprocessors=[
                     'invenio_stats.processors:flag_robots',
                     'invenio_stats.processors:anonymize_user',
@@ -198,8 +198,8 @@ queues are handled by Invenio-Queues.
 
 Invenio-Stats provides the task :py:func:`~invenio_stats.tasks.process_events`
 which will process every event from the queues. It will instantiate a
-**Processor** using the ``processor_class`` value from the event configuration
-and pass the ``processor_config`` as parameters.
+**Processor** using the ``cls`` value from the event configuration
+and pass the ``params`` as parameters.
 
 A processor is just a class which takes a *"queue"* as constructor parameter
 and has a ``run()`` method.
@@ -255,8 +255,8 @@ The function returns a dictionary with the configuration for the aggregations.
     def register_aggregations():
         return [dict(aggregation_name='file-download-agg',
                      templates='contrib/aggregations/aggr-file-download',
-                     aggregator_class=StatAggregator,
-                     aggregator_config=dict(
+                     cls=StatAggregator,
+                     params=dict(
                          client=current_search_client,
                          event='file-download',
                          aggregation_field='unique_id',
@@ -269,7 +269,7 @@ The function returns a dictionary with the configuration for the aggregations.
                      ))
                 ]
 
-An aggregator class must be specified. The dictionary ``aggregator_config``
+An aggregator class must be specified. The dictionary ``params``
 contains all the arguments given to its construtor. An Aggregator class is
 just required to have a ``run()`` method.
 
@@ -308,8 +308,8 @@ Again the registering function returns the configuraton for the query:
     return [
         dict(
             query_name='bucket-file-download-histogram',
-            query_class=ESDateHistogramQuery,
-            query_config=dict(
+            cls=ESDateHistogramQuery,
+            params=dict(
                 index='stats-file-download',
                 doc_type='file-download-day-aggregation',
                 copy_fields=dict(

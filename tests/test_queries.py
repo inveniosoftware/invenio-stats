@@ -24,13 +24,12 @@ from invenio_stats.queries import ESDateHistogramQuery, ESTermsQuery
                          indirect=['aggregated_events'])
 def test_histogram_query(app, event_queues, aggregated_events,
                          mock_stats_queries_config):
-    """Test that the histogram query returns the correct
-    results for each day."""
+    """Test histogram query daily results."""
     # reading the configuration as it is registered from registrations.py
     query_configs = register_queries()
     histo_query = ESDateHistogramQuery(
         query_name='test_histo',
-        **query_configs['bucket-file-download-histogram']['query_config']
+        **query_configs['bucket-file-download-histogram']['params']
     )
     results = histo_query.run(bucket_id='B0000000000000000000000000000001',
                               file_key='test.pdf',
@@ -52,7 +51,7 @@ def test_terms_query(app, event_queues, aggregated_events,
     query_configs = register_queries()
     terms_query = ESTermsQuery(
         query_name='test_total_count',
-        **query_configs['bucket-file-download-total']['query_config']
+        **query_configs['bucket-file-download-total']['params']
     )
     results = terms_query.run(bucket_id='B0000000000000000000000000000001',
                               start_date=datetime.datetime(2017, 1, 1),

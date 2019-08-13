@@ -59,7 +59,7 @@ def test_index_prefix(config_with_index_prefix, app, es, event_queues,
     histo_query_name = 'bucket-file-download-histogram'
     histo_query = ESDateHistogramQuery(
         query_name=histo_query_name,
-        **mock_stats_queries_config[histo_query_name]['query_config'])
+        **mock_stats_queries_config[histo_query_name]['params'])
     results = histo_query.run(bucket_id='B0000000000000000000000000000001',
                               file_key='test.pdf',
                               start_date=datetime.datetime(2018, 1, 1),
@@ -71,7 +71,7 @@ def test_index_prefix(config_with_index_prefix, app, es, event_queues,
     terms_query_name = 'bucket-file-download-total'
     terms_query = ESTermsQuery(
         query_name=terms_query_name,
-        **mock_stats_queries_config[terms_query_name]['query_config'])
+        **mock_stats_queries_config[terms_query_name]['params'])
     results = terms_query.run(bucket_id='B0000000000000000000000000000001',
                               start_date=datetime.datetime(2018, 1, 1),
                               end_date=datetime.datetime(2018, 1, 7))

@@ -17,5 +17,5 @@ def declare_queues():
         dict(
             name='stats-{0}'.format(event),
             exchange=current_stats.exchange
-        ) for event in current_stats.stats_events
+        ) for event in current_stats.events_config
     ]

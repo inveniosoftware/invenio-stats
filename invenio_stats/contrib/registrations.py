@@ -7,8 +7,6 @@
 # under the terms of the MIT License; see LICENSE file for more details.
 
 """Registration of contrib events."""
-from invenio_search import current_search_client
-
 from invenio_stats.aggregations import StatAggregator
 from invenio_stats.contrib.event_builders import build_file_unique_id, \
     build_record_unique_id
@@ -20,15 +18,14 @@ def register_events():
     """Register sample events."""
     return {
         'file-download': {
-            'event_type': 'file-download',
             'templates': 'invenio_stats.contrib.file_download',
             'signal': 'invenio_files_rest.signals.file_downloaded',
             'event_builders': [
                 'invenio_stats.contrib.event_builders'
                 '.file_download_event_builder'
             ],
-            'processor_class': EventsIndexer,
-            'processor_config': {
+            'cls': EventsIndexer,
+            'params': {
                 'preprocessors': [
                     flag_robots,
                     anonymize_user,
@@ -37,15 +34,14 @@ def register_events():
             }
         },
         'record-view': {
-            'event_type': 'record-view',
             'templates': 'invenio_stats.contrib.record_view',
             'signal': 'invenio_records_ui.signals.record_viewed',
             'event_builders': [
                 'invenio_stats.contrib.event_builders'
                 '.record_view_event_builder'
             ],
-            'processor_class': EventsIndexer,
-            'processor_config': {
+            'cls': EventsIndexer,
+            'params': {
                 'preprocessors': [
                     flag_robots,
                     anonymize_user,
@@ -60,11 +56,9 @@ def register_aggregations():
     """Register sample aggregations."""
     return {
         'file-download-agg': dict(
-            aggregation_name='file-download-agg',
             templates='invenio_stats.contrib.aggregations.aggr_file_download',
-            aggregator_class=StatAggregator,
-            aggregator_config=dict(
-                client=current_search_client,
+            cls=StatAggregator,
+            params=dict(
                 event='file-download',
                 aggregation_field='unique_id',
                 aggregation_interval='day',
@@ -81,11 +75,9 @@ def register_aggregations():
             )
         ),
         'record-view-agg': dict(
-            aggregation_name='record-view-agg',
             templates='invenio_stats.contrib.aggregations.aggr_record_view',
-            aggregator_class=StatAggregator,
-            aggregator_config=dict(
-                client=current_search_client,
+            cls=StatAggregator,
+            params=dict(
                 event='record-view',
                 aggregation_field='unique_id',
                 aggregation_interval='day',
@@ -107,29 +99,27 @@ def register_queries():
     """Register queries."""
     return {
         'bucket-file-download-histogram': {
-            'query_name': 'bucket-file-download-histogram',
-            'query_class': ESDateHistogramQuery,
-            'query_config': dict(
-                index='stats-file-download',
-                copy_fields=dict(
-                    bucket_id='bucket_id',
-                    file_key='file_key',
-                ),
-                required_filters=dict(
-                    bucket_id='bucket_id',
-                    file_key='file_key',
-                )
-            )
+            'cls': ESDateHistogramQuery,
+            'params': {
+                'index': 'stats-file-download',
+                'copy_fields': {
+                    'bucket_id': 'bucket_id',
+                    'file_key': 'file_key',
+                },
+                'required_filters': {
+                    'bucket_id': 'bucket_id',
+                    'file_key': 'file_key',
+                }
+            }
         },
-        'bucket-file-download-total': dict(
-            query_name='bucket-file-download-total',
-            query_class=ESTermsQuery,
-            query_config=dict(
-                index='stats-file-download',
-                required_filters=dict(
-                    bucket_id='bucket_id',
-                ),
-                aggregated_fields=['file_key']
-            )
-        )
+        'bucket-file-download-total': {
+            'cls': ESTermsQuery,
+            'params': {
+                'index': 'stats-file-download',
+                'required_filters': {
+                    'bucket_id': 'bucket_id',
+                },
+                'aggregated_fields': ['file_key']
+            }
+        }
     }

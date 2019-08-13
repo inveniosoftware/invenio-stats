@@ -13,15 +13,24 @@ from __future__ import absolute_import, print_function
 from collections import namedtuple
 
 from invenio_queues.proxies import current_queues
-from pkg_resources import iter_entry_points
 from werkzeug.utils import cached_property
 
 from . import config
 from .errors import DuplicateAggregationError, DuplicateEventError, \
     DuplicateQueryError, UnknownAggregationError, UnknownEventError, \
     UnknownQueryError
+from .processors import EventsIndexer
 from .receivers import register_receivers
-from .utils import load_or_import_from_config
+from .utils import load_or_import_from_config, obj_or_import_string
+
+_Event = namedtuple(
+    'Event', ['name', 'queue', 'templates', 'cls', 'params'])
+
+_Aggregation = namedtuple(
+    'Aggregation', ['name', 'templates', 'cls', 'params'])
+
+_Query = namedtuple(
+    'Query', ['name', 'cls', 'permission_factory', 'params'])
 
 
 class _InvenioStatsState(object):
@@ -30,68 +39,69 @@ class _InvenioStatsState(object):
     def __init__(self, app):
         self.app = app
         self.exchange = app.config['STATS_MQ_EXCHANGE']
-        self.stats_aggregations = app.config['STATS_AGGREGATIONS']
-        self.stats_events = app.config['STATS_EVENTS']
-        self.stats_queries = app.config['STATS_QUERIES']
+
+    @property
+    def events_config(self):
+        return self.app.config['STATS_EVENTS']
+
+    @property
+    def aggregations_config(self):
+        return self.app.config['STATS_AGGREGATIONS']
+
+    @property
+    def queries_config(self):
+        return self.app.config['STATS_QUERIES']
 
     @cached_property
     def events(self):
-        EventConfig = namedtuple('EventConfig',
-                                 ['queue', 'config', 'templates',
-                                  'processor_class', 'processor_config'])
-        # import iter_entry_points here so that it can be mocked in tests
+        """Configured events."""
         result = {}
+        for name, event in self.events_config.items():
+            event = obj_or_import_string(event)
+            if callable(event):
+                event = event(self.app)
 
-        for event_config in self.stats_events.values():
-            queue = current_queues.queues[
-                'stats-{}'.format(event_config['event_type'])]
-            result[event_config['event_type']] = EventConfig(
+            queue = current_queues.queues['stats-{}'.format(name)]
+            result[name] = _Event(
+                name=name,
                 queue=queue,
-                config=event_config,
-                templates=event_config['templates'],
-                processor_class=event_config['processor_class'],
-                processor_config=dict(
-                    queue=queue, **event_config.get('processor_config', {})
-                )
+                templates=event['templates'],
+                cls=obj_or_import_string(event['cls'], default=EventsIndexer),
+                params=dict(queue=queue, **event.get('params', {})),
             )
         return result
 
     @cached_property
     def aggregations(self):
-        AggregationConfig = namedtuple(
-            'AggregationConfig',
-            ['name', 'config', 'templates', 'aggregator_class',
-             'aggregator_config']
-        )
+        """Configured aggregations."""
         result = {}
+        for name, agg in self.aggregations_config.items():
+            agg = obj_or_import_string(agg)
+            if callable(agg):
+                agg = agg(self.app)
 
-        for agg_config in self.stats_aggregations.values():
-            result[agg_config['aggregation_name']] = AggregationConfig(
-                name=agg_config['aggregation_name'],
-                config=agg_config,
-                templates=agg_config['templates'],
-                aggregator_class=agg_config['aggregator_class'],
-                aggregator_config=agg_config.get('aggregator_config', {})
+            result[name] = _Aggregation(
+                name=name,
+                templates=agg['templates'],
+                cls=obj_or_import_string(agg['cls']),
+                params=agg.get('params', {})
             )
         return result
 
     @cached_property
     def queries(self):
-        QueryConfig = namedtuple(
-            'QueryConfig',
-            ['query_class', 'query_config', 'permission_factory', 'config']
-        )
+        """Configured queries."""
         result = {}
+        for name, query in self.queries_config.items():
+            query = obj_or_import_string(query)
+            if callable(query):
+                query = query(self.app)
 
-        for query_config in self.stats_queries.values():
-            result[query_config['query_name']] = QueryConfig(
-                config=query_config,
-                query_class=query_config['query_class'],
-                query_config=dict(
-                    query_name=query_config['query_name'],
-                    **query_config.get('query_config', {})
-                ),
-                permission_factory=query_config.get('permission_factory')
+            result[name] = _Query(
+                name=name,
+                cls=obj_or_import_string(query['cls']),
+                params=dict(name=name, **query.get('params', {})),
+                permission_factory=query.get('permission_factory'),
             )
         return result
 
