@@ -82,7 +82,7 @@ def events():
 @with_appcontext
 def _events_process(event_types=None, eager=False):
     """Process stats events."""
-    event_types = event_types or current_stats.stats_events.keys()
+    event_types = event_types or list(current_stats.stats_events.keys())
     if eager:
         process_events.apply((event_types,), throw=True)
         click.secho('Events processed successfully.', fg='green')
@@ -108,7 +108,7 @@ def _aggregations_process(aggregation_types=None,
                           update_bookmark=False, eager=False):
     """Process stats aggregations."""
     aggregation_types = (aggregation_types or
-                         current_stats.stats_aggregations.keys())
+                         list(current_stats.stats_aggregations.keys()))
     if eager:
         aggregate_events.apply(
             (aggregation_types,),
@@ -137,7 +137,7 @@ def _aggregations_delete(aggregation_types=None,
                          start_date=None, end_date=None):
     """Delete computed aggregations."""
     aggregation_types = (list(aggregation_types) or
-                         current_stats.stats_aggregations.keys())
+                         list(current_stats.stats_aggregations.keys()))
     for a in aggregation_types:
         aggr_cfg = current_stats.aggregations[a]
         aggregator = aggr_cfg.aggregator_class(
@@ -155,7 +155,7 @@ def _aggregations_list_bookmarks(aggregation_types=None,
                                  start_date=None, end_date=None, limit=None):
     """List aggregation bookmarks."""
     aggregation_types = (aggregation_types or
-                         current_stats.stats_aggregations.keys())
+                         list(current_stats.stats_aggregations.keys()))
     for a in aggregation_types:
         aggr_cfg = current_stats.aggregations[a]
         aggregator = aggr_cfg.aggregator_class(
