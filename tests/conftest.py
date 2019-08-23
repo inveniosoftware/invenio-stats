@@ -47,10 +47,10 @@ from six import BytesIO
 from sqlalchemy_utils.functions import create_database, database_exists
 
 from invenio_stats import InvenioStats
+from invenio_stats.contrib.config import AGGREGATIONS_CONFIG, EVENTS_CONFIG, \
+    QUERIES_CONFIG
 from invenio_stats.contrib.event_builders import build_file_unique_id, \
     build_record_unique_id, file_download_event_builder
-from invenio_stats.contrib.registrations import register_aggregations, \
-    register_events, register_queries
 from invenio_stats.processors import EventsIndexer, anonymize_user
 from invenio_stats.tasks import aggregate_events
 from invenio_stats.views import blueprint
@@ -85,9 +85,10 @@ def event_queues(app):
         current_queues.delete()
 
 
-def mock_stats_events_config():
-    """Create events config for the tests."""
-    stats_events = register_events()
+@pytest.fixture()
+def events_config():
+    """Events config for the tests."""
+    stats_events = deepcopy(EVENTS_CONFIG)
     for idx in range(5):
         event_name = 'event_{}'.format(idx)
         stats_events[event_name] = {
@@ -97,17 +98,17 @@ def mock_stats_events_config():
     return stats_events
 
 
-def mock_stats_aggregations_config():
-    """Create aggreations config for the tests."""
-    return register_aggregations()
+@pytest.fixture()
+def aggregations_config():
+    """Aggregations config for the tests."""
+    return deepcopy(AGGREGATIONS_CONFIG)
 
 
 @pytest.fixture()
-def mock_stats_queries_config(app, custom_permission_factory):
-    """Create queries config for the tests."""
-    stats_queries = register_queries()
-
-    conf = {
+def queries_config(app, custom_permission_factory):
+    """Queries config for the tests."""
+    stats_queries = deepcopy(QUERIES_CONFIG)
+    stats_queries.update({
         'test-query': dict(
             cls=CustomQuery,
             params=dict(
@@ -134,15 +135,18 @@ def mock_stats_queries_config(app, custom_permission_factory):
             ),
             permission_factory=custom_permission_factory
         )
-    }
+    })
 
-    stats_queries.update(conf)
-    app.config['STATS_QUERIES'].update(stats_queries)
-    return stats_queries
+    # store the original config value
+    original_value = app.config.get('STATS_QUERIES')
+    app.config['STATS_QUERIES'] = stats_queries
+    yield stats_queries
+    # set the original value back
+    app.config['STATS_QUERIES'] = original_value
 
 
 @pytest.fixture()
-def base_app():
+def base_app(events_config, aggregations_config):
     """Flask application fixture without InvenioStats."""
     instance_path = tempfile.mkdtemp()
     app_ = Flask('testapp', instance_path=instance_path)
@@ -171,8 +175,8 @@ def base_app():
         SECRET_KEY='asecretkey',
         SERVER_NAME='localhost',
         STATS_QUERIES={},
-        STATS_EVENTS=mock_stats_events_config(),
-        STATS_AGGREGATIONS=mock_stats_aggregations_config()
+        STATS_EVENTS=events_config,
+        STATS_AGGREGATIONS=aggregations_config,
     ))
     FlaskCeleryExt(app_)
     InvenioAccounts(app_)
