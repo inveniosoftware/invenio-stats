@@ -24,10 +24,10 @@ from invenio_stats.utils import get_doctype
 
 
 def test_wrong_intervals(app, es):
-    """Test aggregation with aggregation_interval > index_interval."""
+    """Test aggregation with interval > index_interval."""
     with pytest.raises(ValueError):
         StatAggregator('test-agg', 'test', es,
-                       aggregation_interval='month', index_interval='day')
+                       interval='month', index_interval='day')
 
 
 @pytest.mark.parametrize('indexed_events',
@@ -39,11 +39,11 @@ def test_wrong_intervals(app, es):
                          indirect=['indexed_events'])
 def test_get_bookmark(app, es, indexed_events):
     """Test bookmark reading."""
-    stat_agg = StatAggregator(aggregation_name='file-download-agg',
+    stat_agg = StatAggregator(name='file-download-agg',
                               client=es,
                               event='file-download',
-                              aggregation_field='file_id',
-                              aggregation_interval='day')
+                              field='file_id',
+                              interval='day')
     stat_agg.run()
     current_search.flush_and_refresh(index='*')
     assert stat_agg.bookmark_api.get_bookmark() == \
@@ -122,10 +122,10 @@ def test_aggregation_without_events(app, es):
     have been created yet.
     """
     # Aggregate events
-    StatAggregator(aggregation_name='file-download-agg',
+    StatAggregator(name='file-download-agg',
                    event='file-download',
-                   aggregation_field='file_id',
-                   aggregation_interval='day',
+                   field='file_id',
+                   interval='day',
                    query_modifiers=[]).run()
     assert not Index('stats-file-download', using=es).exists()
     # Create the index but without any event. This happens when the events
@@ -136,10 +136,10 @@ def test_aggregation_without_events(app, es):
     current_search.flush_and_refresh(index='*')
 
     # Aggregate events
-    StatAggregator(aggregation_name='test-file-download',
+    StatAggregator(name='test-file-download',
                    event='file-download',
-                   aggregation_field='file_id',
-                   aggregation_interval='day',
+                   field='file_id',
+                   interval='day',
                    query_modifiers=[]).run()
     assert not Index('stats-file-download', using=es).exists()
 
@@ -161,9 +161,9 @@ def test_bookmark_removal(app, es, mock_event_queue):
 
     def aggregate_and_check_version(expected_version):
         StatAggregator(
-            aggregation_field='file_id',
-            aggregation_interval='day',
-            aggregation_name='file-download-agg',
+            field='file_id',
+            interval='day',
+            name='file-download-agg',
             event='file-download',
             query_modifiers=[],
         ).run()
@@ -176,7 +176,7 @@ def test_bookmark_removal(app, es, mock_event_queue):
     aggregate_and_check_version(1)
     aggregate_and_check_version(1)
     # Delete all bookmarks
-    bookmarks = Search(using=es, index='bookmark-index') \
+    bookmarks = Search(using=es, index='stats-bookmarks') \
         .filter('term', aggregation_type='file-download-agg') \
         .execute()
 
@@ -225,11 +225,11 @@ def test_filter_robots(app, es, event_queues, indexed_events, with_robots):
     query_modifiers = []
     if not with_robots:
         query_modifiers = [filter_robots]
-    StatAggregator(aggregation_name='file-download-agg',
+    StatAggregator(name='file-download-agg',
                    client=es,
                    event='file-download',
-                   aggregation_field='file_id',
-                   aggregation_interval='day',
+                   field='file_id',
+                   interval='day',
                    query_modifiers=query_modifiers).run()
     current_search.flush_and_refresh(index='*')
     query = Search(using=es, index='stats-file-download')[0:30] \
@@ -254,11 +254,11 @@ def test_metric_aggregations(app, es, event_queues):
     current_search.flush_and_refresh(index='*')
 
     stat_agg = StatAggregator(
-        aggregation_name='file-download-agg',
+        name='file-download-agg',
         client=es,
         event='file-download',
-        aggregation_field='file_id',
-        metric_aggregation_fields={
+        field='file_id',
+        metric_fields={
             'unique_count': (
                 'cardinality',
                 'unique_session_id',
@@ -266,7 +266,7 @@ def test_metric_aggregations(app, es, event_queues):
             ),
             'volume': ('sum', 'size', {})
         },
-        aggregation_interval='day'
+        interval='day'
     )
     stat_agg.run()
     current_search.flush_and_refresh(index='*')

@@ -25,7 +25,7 @@ def test_histogram_query(app, event_queues, aggregated_events, queries_config):
     """Test histogram query daily results."""
     # reading the configuration as it is registered from registrations.py
     histo_query = ESDateHistogramQuery(
-        query_name='test_histo',
+        name='test_histo',
         **queries_config['bucket-file-download-histogram']['params']
     )
     results = histo_query.run(bucket_id='B0000000000000000000000000000001',
@@ -45,7 +45,7 @@ def test_histogram_query(app, event_queues, aggregated_events, queries_config):
 def test_terms_query(app, event_queues, aggregated_events, queries_config):
     """Test that the terms query returns the correct total count."""
     terms_query = ESTermsQuery(
-        query_name='test_total_count',
+        name='test_total_count',
         **queries_config['bucket-file-download-total']['params']
     )
     results = terms_query.run(bucket_id='B0000000000000000000000000000001',
