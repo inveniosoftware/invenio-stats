@@ -55,14 +55,14 @@ AGGREGATIONS_CONFIG = {
         cls=StatAggregator,
         params=dict(
             event='file-download',
-            aggregation_field='unique_id',
-            aggregation_interval='day',
+            field='unique_id',
+            interval='day',
             copy_fields=dict(
                 file_key='file_key',
                 bucket_id='bucket_id',
                 file_id='file_id',
             ),
-            metric_aggregation_fields={
+            metric_fields={
                 'unique_count': (
                     'cardinality', 'unique_session_id',
                     {'precision_threshold': 1000},
@@ -76,14 +76,14 @@ AGGREGATIONS_CONFIG = {
         cls=StatAggregator,
         params=dict(
             event='record-view',
-            aggregation_field='unique_id',
-            aggregation_interval='day',
+            field='unique_id',
+            interval='day',
             copy_fields=dict(
                 record_id='record_id',
                 pid_type='pid_type',
                 pid_value='pid_value',
             ),
-            metric_aggregation_fields={
+            metric_fields={
                 'unique_count': (
                     'cardinality', 'unique_session_id',
                     {'precision_threshold': 1000},

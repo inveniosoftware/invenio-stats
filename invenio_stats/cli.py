@@ -134,8 +134,7 @@ def _aggregations_delete(aggregation_types=None,
     aggregation_types = aggregation_types or current_stats.aggregations
     for a in aggregation_types:
         aggr_cfg = current_stats.aggregations[a]
-        aggregator = aggr_cfg.cls(
-            aggregation_name=aggr_cfg.name, **aggr_cfg.params)
+        aggregator = aggr_cfg.cls(name=aggr_cfg.name, **aggr_cfg.params)
         aggregator.delete(start_date, end_date)
 
 
@@ -151,8 +150,7 @@ def _aggregations_list_bookmarks(aggregation_types=None,
     aggregation_types = aggregation_types or current_stats.aggregations
     for a in aggregation_types:
         aggr_cfg = current_stats.aggregations[a]
-        aggregator = aggr_cfg.cls(
-            aggregation_name=aggr_cfg.name, **aggr_cfg.params)
+        aggregator = aggr_cfg.cls(name=aggr_cfg.name, **aggr_cfg.params)
         bookmarks = aggregator.list_bookmarks(start_date, end_date, limit)
         click.echo('{}:'.format(a))
         for b in bookmarks:

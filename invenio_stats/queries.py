@@ -23,16 +23,15 @@ from .utils import get_bucket_size
 class ESQuery(object):
     """Elasticsearch query."""
 
-    def __init__(self, query_name, index, client=None, *args, **kwargs):
+    def __init__(self, name, index, client=None, *args, **kwargs):
         """Constructor.
 
         :param index: queried index.
         :param client: elasticsearch client used to query.
         """
-        super(ESQuery, self).__init__()
+        self.name = name
         self.index = build_alias_name(index)
         self.client = client or current_search_client
-        self.query_name = query_name
 
     def extract_date(self, date):
         """Extract date from string if necessary.
@@ -45,11 +44,11 @@ class ESQuery(object):
             except ValueError:
                 raise ValueError(
                     'Invalid date format for statistic {}.'
-                ).format(self.query_name)
+                ).format(self.name)
         if not isinstance(date, datetime):
             raise TypeError(
                 'Invalid date type for statistic {}.'
-            ).format(self.query_name)
+            ).format(self.name)
         return date
 
     def run(self, *args, **kwargs):
@@ -98,12 +97,12 @@ class ESDateHistogramQuery(ESQuery):
         if interval not in self.allowed_intervals:
             raise InvalidRequestInputError(
                 'Invalid aggregation time interval for statistic {}.'
-            ).format(self.query_name)
+            ).format(self.name)
         if set(kwargs) < set(self.required_filters):
             raise InvalidRequestInputError(
                 'Missing one of the required parameters {0} in '
                 'query {1}'.format(set(self.required_filters.keys()),
-                                   self.query_name)
+                                   self.name)
             )
 
     def build_query(self, interval, start_date, end_date, **kwargs):
@@ -226,7 +225,7 @@ class ESTermsQuery(ESQuery):
             raise InvalidRequestInputError(
                 'Missing one of the required parameters {0} in '
                 'query {1}'.format(set(self.required_filters.keys()),
-                                   self.query_name)
+                                   self.name)
             )
 
     def build_query(self, start_date, end_date, **kwargs):

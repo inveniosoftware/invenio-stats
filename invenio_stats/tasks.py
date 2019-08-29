@@ -20,10 +20,10 @@ from .proxies import current_stats
 def process_events(event_types):
     """Index statistics events."""
     results = []
-    for e in event_types:
-        processor = current_stats.events[e].cls(
-            **current_stats.events[e].params)
-        results.append((e, processor.run()))
+    for event_name in event_types:
+        event_cfg = current_stats.events[event_name]
+        processor = event_cfg.cls(**event_cfg.params)
+        results.append((event_name, processor.run()))
     return results
 
 
@@ -34,9 +34,8 @@ def aggregate_events(aggregations, start_date=None, end_date=None,
     start_date = dateutil_parse(start_date) if start_date else None
     end_date = dateutil_parse(end_date) if end_date else None
     results = []
-    for a in aggregations:
-        aggr_cfg = current_stats.aggregations[a]
-        aggregator = aggr_cfg.cls(
-            aggregation_name=aggr_cfg.name, **aggr_cfg.params)
+    for aggr_name in aggregations:
+        aggr_cfg = current_stats.aggregations[aggr_name]
+        aggregator = aggr_cfg.cls(name=aggr_cfg.name, **aggr_cfg.params)
         results.append(aggregator.run(start_date, end_date, update_bookmark))
     return results

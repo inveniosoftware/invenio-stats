@@ -66,7 +66,7 @@ class _InvenioStatsState(object):
                 name=name,
                 queue=queue,
                 templates=event['templates'],
-                cls=obj_or_import_string(event['cls'], default=EventsIndexer),
+                cls=obj_or_import_string(event['cls']),
                 params=dict(queue=queue, **event.get('params', {})),
             )
         return result
@@ -100,7 +100,7 @@ class _InvenioStatsState(object):
             result[name] = _Query(
                 name=name,
                 cls=obj_or_import_string(query['cls']),
-                params=dict(name=name, **query.get('params', {})),
+                params=query.get('params', {}),
                 permission_factory=query.get('permission_factory'),
             )
         return result
