@@ -81,7 +81,7 @@ def test_overwriting_aggregations(app, es, mock_event_queue):
     current_search.flush_and_refresh(index='*')
 
     # Aggregate events
-    with patch('datetime.datetime', NewDate):
+    with patch('invenio_stats.aggregations.datetime', NewDate):
         aggregate_events(['file-download-agg'])
     current_search.flush_and_refresh(index='*')
 
@@ -103,7 +103,7 @@ def test_overwriting_aggregations(app, es, mock_event_queue):
 
     # Aggregate again. The aggregation should start from the last bookmark.
     NewDate.current_date = (2017, 7, 2)
-    with patch('datetime.datetime', NewDate):
+    with patch('invenio_stats.aggregations.datetime', NewDate):
         aggregate_events(['file-download-agg'])
     current_search.flush_and_refresh(index='*')
     res = es.search(index='stats-file-download', version=True)
