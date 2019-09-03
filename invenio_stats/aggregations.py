@@ -270,10 +270,8 @@ class StatAggregator(object):
         return get_doctype('{0}-{1}-aggregation'.format(
             self.event, self.interval))
 
-    def agg_iter(self, lower_limit=None, upper_limit=None):
+    def agg_iter(self, lower_limit, upper_limit):
         """Aggregate and return dictionary to be indexed in ES."""
-        lower_limit = lower_limit or self.bookmark_api.get_lower_limit()
-        upper_limit = upper_limit or datetime.utcnow()
         aggregation_data = {}
         self.agg_query = Search(using=self.client, index=self.event_index) \
             .filter('range', timestamp={
