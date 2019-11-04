@@ -198,7 +198,8 @@ class StatAggregator(object):
     def __init__(self, name, event, client=None,
                  field=None, metric_fields=None,
                  copy_fields=None, query_modifiers=None,
-                 interval='day', index_interval='month', batch_size=7):
+                 interval='day', index_interval='month', batch_size=7,
+                 other_aggregations=None):
         """Construct aggregator instance.
 
         :param event: aggregated event.
@@ -218,6 +219,7 @@ class StatAggregator(object):
         :param batch_size: max number of hours/days/months for which raw events
             are being fetched in one query. This number has to be coherent with
             the interval.
+        :param other_aggregations: function modifying the aggregation.
         """
         self.name = name
         self.event = event
@@ -236,7 +238,7 @@ class StatAggregator(object):
         self.query_modifiers = (query_modifiers if query_modifiers is not None
                                 else [filter_robots])
         self.bookmark_api = BookmarkAPI(self.client, self.name, self.interval)
-
+        self.other_aggregations = other_aggregations
         if any(v not in ALLOWED_METRICS
                for k, (v, _, _) in self.metric_fields.items()):
             raise(ValueError('Metric aggregation type should be one of [{}]'
@@ -295,6 +297,9 @@ class StatAggregator(object):
             size=get_bucket_size(
                 self.client, self.event_index, self.field)
         )
+
+        if self.other_aggregations:
+            terms = self.other_aggregations(terms, self.event_index)
         terms.metric(
             'top_hit', 'top_hits', size=1, sort={'timestamp': 'desc'}
         )
