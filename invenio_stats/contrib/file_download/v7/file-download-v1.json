@@ -1,5 +1,5 @@
 {
-  "template": "__SEARCH_INDEX_PREFIX__events-stats-file-download-*",
+  "index_patterns": ["__SEARCH_INDEX_PREFIX__events-stats-file-download-*"],
   "settings": {
     "index": {
       "refresh_interval": "5s"
