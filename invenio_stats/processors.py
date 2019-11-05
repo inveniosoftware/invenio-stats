@@ -64,35 +64,24 @@ def anonymize_user(doc):
     salt = get_anonymization_salt(timestamp)
 
     visitor_id = hashlib.sha224(salt.encode('utf-8'))
-    # TODO: include random salt here, that changes once a day.
-    # m.update(random_salt)
-    if user_id:
-        visitor_id.update(user_id.encode('utf-8'))
-    elif session_id:
-        visitor_id.update(session_id.encode('utf-8'))
-    elif ip and user_agent:
-        vid = '{}|{}|{}'.format(ip, user_agent, timeslice)
-        visitor_id.update(vid.encode('utf-8'))
-    else:
-        # TODO: add random data?
-        pass
-
     unique_session_id = hashlib.sha224(salt.encode('utf-8'))
     if user_id:
+        visitor_id.update(user_id.encode('utf-8'))
         sid = '{}|{}'.format(user_id, timeslice)
         unique_session_id.update(sid.encode('utf-8'))
     elif session_id:
+        visitor_id.update(session_id.encode('utf-8'))
         sid = '{}|{}'.format(session_id, timeslice)
         unique_session_id.update(sid.encode('utf-8'))
     elif ip and user_agent:
-        sid = '{}|{}|{}'.format(ip, user_agent, timeslice)
-        unique_session_id.update(sid.encode('utf-8'))
+        vsid = '{}|{}|{}'.format(ip, user_agent, timeslice)
+        visitor_id.update(vsid.encode('utf-8'))
+        unique_session_id.update(vsid.encode('utf-8'))
 
     doc.update(dict(
         visitor_id=visitor_id.hexdigest(),
         unique_session_id=unique_session_id.hexdigest()
     ))
-
     return doc
 
 

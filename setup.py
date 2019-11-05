@@ -32,7 +32,7 @@ tests_require = [
     'pytest>=3.8.1,<4',
 ]
 
-invenio_search_version = '1.2.0'
+invenio_search_version = '1.2.3'
 
 extras_require = {
     'docs': [

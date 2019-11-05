@@ -1,5 +1,5 @@
 {
-  "template": "__SEARCH_INDEX_PREFIX__stats-file-download-*",
+  "index_patterns": ["__SEARCH_INDEX_PREFIX__stats-file-download-*"],
   "settings": {
     "index": {
       "refresh_interval": "1m"
@@ -45,6 +45,9 @@
       },
       "volume": {
         "type": "double"
+      },
+      "unique_id": {
+        "type": "keyword"
       }
     }
   },

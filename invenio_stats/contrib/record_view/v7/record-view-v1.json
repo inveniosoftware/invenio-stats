@@ -1,5 +1,5 @@
 {
-  "template": "__SEARCH_INDEX_PREFIX__events-stats-record-view-*",
+  "index_patterns": ["__SEARCH_INDEX_PREFIX__events-stats-record-view-*"],
   "settings": {
     "index": {
       "refresh_interval": "5s"
@@ -34,6 +34,12 @@
       },
       "is_robot": {
         "type": "boolean"
+      },
+      "unique_id": {
+        "type": "keyword"
+      },
+      "unique_session_id": {
+        "type": "keyword"
       }
     }
   },
