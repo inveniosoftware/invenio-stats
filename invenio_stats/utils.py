@@ -15,6 +15,7 @@ from base64 import b64encode
 from math import ceil
 
 import six
+from dateutil.parser import parse as dateutil_parse
 from elasticsearch import VERSION as ES_VERSION
 from elasticsearch_dsl import Search
 from flask import current_app, request, session
@@ -35,22 +36,32 @@ def get_anonymization_salt(ts):
     return salt
 
 
-def get_bucket_size(client, index, agg_field):
-    """Function to help us define the size for our search query."""
-    body = {
-        "aggs": {
-            "size_count": {
-                "cardinality": {
-                    "field": agg_field
-                }
-            }
-        }
-    }
+def get_bucket_size(client, index, agg_field, start_date=None, end_date=None):
+    """Function to help us define the size for our search query.
+
+    :param client: search client
+    :param str index: prefixed search index
+    :param str agg_field: aggregation field
+    :param str start_date: string containing a formatted start date
+    :param str end_date: string containing a formatted end date
+
+    """
+    time_range = {}
+    if start_date is not None:
+        time_range['gte'] = start_date
+    if end_date is not None:
+        time_range['lte'] = end_date
+
     search = Search(using=client, index=index)
-    search.update_from_dict(body)
-    count = search.count()
+    if time_range:
+        search = search.filter('range', timestamp=time_range)
+    search.aggs.metric('unique_values', 'cardinality', field=agg_field)
+
+    result = search.execute()
+    unique_values = result.aggregations.unique_values.value
+
     # NOTE: we increase the count by 10% in order to be safe
-    return int(ceil(count + count * 0.1))
+    return int(ceil(unique_values + unique_values * 0.1))
 
 
 def get_doctype(doc_type):
