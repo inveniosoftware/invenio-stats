@@ -273,10 +273,12 @@ class StatAggregator(object):
     def agg_iter(self, lower_limit, upper_limit):
         """Aggregate and return dictionary to be indexed in ES."""
         aggregation_data = {}
+        start_date = format_range_dt(lower_limit, self.interval)
+        end_date = format_range_dt(upper_limit, self.interval)
         self.agg_query = Search(using=self.client, index=self.event_index) \
             .filter('range', timestamp={
-                'gte': format_range_dt(lower_limit, self.interval),
-                'lte': format_range_dt(upper_limit, self.interval)
+                'gte': start_date,
+                'lte': end_date
             })
 
         # apply query modifiers
@@ -290,11 +292,23 @@ class StatAggregator(object):
             field='timestamp',
             interval=self.interval
         )
-        terms = histogram.bucket(
-            'terms', 'terms', field=self.field,
-            size=get_bucket_size(
-                self.client, self.event_index, self.field)
-        )
+        bucket_size = get_bucket_size(
+                self.client,
+                self.event_index,
+                self.field,
+                start_date=start_date,
+                end_date=end_date
+            )
+        if bucket_size > 0:
+            terms = histogram.bucket(
+                'terms', 'terms', field=self.field,
+                size=bucket_size
+            )
+        else:
+            terms = histogram.bucket(
+                'terms', 'terms', field=self.field,
+            )
+
         terms.metric(
             'top_hit', 'top_hits', size=1, sort={'timestamp': 'desc'}
         )
