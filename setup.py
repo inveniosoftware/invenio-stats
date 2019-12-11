@@ -72,7 +72,7 @@ install_requires = [
     'counter-robots>=2018.6',
     'Flask>=0.11.1',
     'invenio-cache>=1.0.0',
-    'invenio-celery>=1.1.1',
+    # 'invenio-celery>=1.1.1',
     'invenio-queues>=1.0.0a2',
     'maxminddb-geolite2>=2017.0404',
     'python-dateutil>=2.6.1',
@@ -80,7 +80,7 @@ install_requires = [
     # pin max version of `kombu` because `invenio-celery`==1.1.1
     # requires `celery`<4.3 -> `kombu`<4.4
     # while `invenio-queues` requires `kombu`<5
-    'kombu>=4.2.0,<4.4',
+    # 'kombu>=4.2.0,<4.4',
 ]
 
 packages = find_packages()

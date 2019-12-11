@@ -25,6 +25,7 @@ import pytest
 from flask import Flask, appcontext_pushed, g
 from flask.cli import ScriptInfo
 from flask_celeryext import FlaskCeleryExt
+from helpers import mock_date
 from invenio_accounts import InvenioAccounts, InvenioAccountsREST
 from invenio_accounts.testutils import create_test_user
 from invenio_cache import InvenioCache
@@ -415,7 +416,8 @@ def mock_event_queue(app, mock_datetime, request_headers, objects,
 
 def generate_events(app, file_number=5, event_number=100, robot_event_number=0,
                     start_date=datetime.date(2017, 1, 1),
-                    end_date=datetime.date(2017, 1, 7)):
+                    end_date=datetime.date(2017, 1, 7),
+                    **kwargs):
     """Queued events for processing tests."""
     current_queues.declare()
 
@@ -479,10 +481,13 @@ def indexed_events(app, es, mock_user_ctx, request):
 @pytest.fixture()
 def aggregated_events(app, es, mock_user_ctx, request):
     """Parametrized pre indexed sample events."""
-    for t in current_search.put_templates(ignore=[400]):
-        pass
+    list(current_search.put_templates(ignore=[400]))
     generate_events(app=app, **request.param)
-    aggregate_events(['file-download-agg'])
+    run_date = request.param.get(
+        'run_date', request.param['end_date'].timetuple()[:3])
+
+    with patch('invenio_stats.aggregations.datetime', mock_date(*run_date)):
+        aggregate_events(['file-download-agg'])
     current_search.flush_and_refresh(index='*')
     yield
 

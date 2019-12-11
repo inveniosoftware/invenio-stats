@@ -8,6 +8,8 @@
 
 """Invenio Stats testing helpers."""
 
+import datetime
+
 from invenio_queues.proxies import current_queues
 
 
@@ -16,3 +18,16 @@ def get_queue_size(queue_name):
     queue = current_queues.queues[queue_name]
     _, size, _ = queue.queue.queue_declare(passive=True)
     return size
+
+
+def mock_date(*date_parts):
+    """Mocked 'datetime.utcnow()'."""
+    class MockDate(datetime.datetime):
+        """datetime.datetime mock."""
+
+        @classmethod
+        def utcnow(cls):
+            """Override to return 'current_date'."""
+            return cls(*date_parts)
+
+    return MockDate
