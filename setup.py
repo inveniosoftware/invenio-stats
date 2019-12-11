@@ -20,7 +20,7 @@ tests_require = [
     'coverage>=4.0',
     'invenio-accounts>=1.0.1',
     'invenio-db>=1.0.2',
-    'invenio-files-rest>=1.0.0a23',
+    'invenio-files-rest>=1.0.2,<1.0.3',
     'invenio-oauth2server>=1.0.1',
     'invenio-records>=1.0.0',
     'invenio-records-ui>=1.0.1',
@@ -72,10 +72,12 @@ install_requires = [
     'counter-robots>=2018.6',
     'Flask>=0.11.1',
     'invenio-cache>=1.0.0',
+    'invenio-celery>=1.0.1,<1.1.0',
     'invenio-queues>=1.0.0a2',
     'maxminddb-geolite2>=2017.0404',
     'python-dateutil>=2.6.1',
     'python-geoip>=1.2',
+    'six>=1.12',
 ]
 
 packages = find_packages()

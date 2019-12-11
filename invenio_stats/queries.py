@@ -195,7 +195,8 @@ class ESTermsQuery(ESQuery):
 
     def __init__(self, time_field='timestamp', copy_fields=None,
                  query_modifiers=None, required_filters=None,
-                 aggregated_fields=None, metric_fields=None, *args, **kwargs):
+                 aggregated_fields=None, metric_fields=None,
+                 max_bucket_size=10000, *args, **kwargs):
         """Constructor.
 
         :param time_field: name of the timestamp field.
@@ -218,6 +219,7 @@ class ESTermsQuery(ESQuery):
         self.required_filters = required_filters or {}
         self.aggregated_fields = aggregated_fields or []
         self.metric_fields = metric_fields or {'value': ('sum', 'count', {})}
+        self.max_bucket_size = max_bucket_size
 
     def validate_arguments(self, start_date, end_date, **kwargs):
         """Validate query arguments."""
@@ -256,10 +258,7 @@ class ESTermsQuery(ESQuery):
             cur_agg = base_agg
             for term in self.aggregated_fields:
                 cur_agg = cur_agg.bucket(
-                    term, 'terms', field=term, size=get_bucket_size(
-                        self.client, self.index, term
-                    )
-                )
+                    term, 'terms', field=term, size=self.max_bucket_size)
                 _apply_metric_aggs(cur_agg)
 
         if self.copy_fields:

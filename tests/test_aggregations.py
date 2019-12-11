@@ -13,6 +13,7 @@ import datetime
 import pytest
 from conftest import _create_file_download_event
 from elasticsearch_dsl import Index, Search
+from helpers import mock_date
 from invenio_search import current_search
 from mock import patch
 
@@ -44,10 +45,12 @@ def test_get_bookmark(app, es, indexed_events):
                               event='file-download',
                               field='file_id',
                               interval='day')
-    stat_agg.run()
+
+    with patch('invenio_stats.aggregations.datetime', mock_date(2017, 1, 7)):
+        stat_agg.run()
     current_search.flush_and_refresh(index='*')
     assert stat_agg.bookmark_api.get_bookmark() == \
-        datetime.datetime(2017, 1, 8)
+        datetime.datetime(2017, 1, 7)
 
 
 def test_overwriting_aggregations(app, es, mock_event_queue):
@@ -60,16 +63,6 @@ def test_overwriting_aggregations(app, es, mock_event_queue):
         overwrite the aggregation,
         by checking that the document version has increased.
     """
-    class NewDate(datetime.datetime):
-        """datetime.datetime mock."""
-
-        # Aggregate at 12:00, thus the day will be aggregated again later
-        current_date = (2017, 6, 2, 12)
-
-        @classmethod
-        def utcnow(cls):
-            return cls(*cls.current_date)
-
     # Send some events
     mock_event_queue.consume.return_value = [
         _create_file_download_event(date) for date in
@@ -81,7 +74,8 @@ def test_overwriting_aggregations(app, es, mock_event_queue):
     current_search.flush_and_refresh(index='*')
 
     # Aggregate events
-    with patch('invenio_stats.aggregations.datetime', NewDate):
+    with patch('invenio_stats.aggregations.datetime',
+               mock_date(2017, 6, 2, 12)):
         aggregate_events(['file-download-agg'])
     current_search.flush_and_refresh(index='*')
 
@@ -102,13 +96,12 @@ def test_overwriting_aggregations(app, es, mock_event_queue):
     current_search.flush_and_refresh(index='*')
 
     # Aggregate again. The aggregation should start from the last bookmark.
-    NewDate.current_date = (2017, 7, 2)
-    with patch('invenio_stats.aggregations.datetime', NewDate):
+    with patch('invenio_stats.aggregations.datetime', mock_date(2017, 7, 2)):
         aggregate_events(['file-download-agg'])
     current_search.flush_and_refresh(index='*')
     res = es.search(index='stats-file-download', version=True)
     for hit in res['hits']['hits']:
-        if hit['_source']['timestamp'] == '2017-06-02T00:00:00':
+        if hit['_source']['timestamp'].startswith('2017-06-02'):
             assert hit['_version'] == 2
             assert hit['_source']['count'] == 2
         else:
@@ -160,32 +153,25 @@ def test_bookmark_removal(app, es, mock_event_queue):
     current_search.flush_and_refresh(index='*')
 
     def aggregate_and_check_version(expected_version):
-        StatAggregator(
-            field='file_id',
-            interval='day',
-            name='file-download-agg',
-            event='file-download',
-            query_modifiers=[],
-        ).run()
+        with patch('invenio_stats.aggregations.datetime',
+                   mock_date(2017, 7, 3)):
+            StatAggregator(
+                field='file_id',
+                interval='day',
+                name='file-download-agg',
+                event='file-download',
+                query_modifiers=[],
+            ).run()
         current_search.flush_and_refresh(index='*')
-        res = es.search(
-            index='stats-file-download', version=True)
+        res = es.search(index='stats-file-download', version=True)
         for hit in res['hits']['hits']:
             assert hit['_version'] == expected_version
 
     aggregate_and_check_version(1)
     aggregate_and_check_version(1)
+
     # Delete all bookmarks
-    bookmarks = Search(using=es, index='stats-bookmarks') \
-        .filter('term', aggregation_type='file-download-agg') \
-        .execute()
-
-    for bookmark in bookmarks:
-        es.delete(
-            index=bookmark.meta.index, id=bookmark.meta.id,
-            doc_type=get_doctype(bookmark.meta.doc_type)
-        )
-
+    es.indices.delete(index='stats-bookmarks')
     current_search.flush_and_refresh(index='*')
     # the aggregations should have been overwritten
     aggregate_and_check_version(2)
@@ -199,7 +185,8 @@ def test_bookmark_removal(app, es, mock_event_queue):
                          indirect=['indexed_events'])
 def test_date_range(app, es, event_queues, indexed_events):
     """Test date ranges."""
-    aggregate_events(['file-download-agg'])
+    with patch('invenio_stats.aggregations.datetime', mock_date(2015, 2, 4)):
+        aggregate_events(['file-download-agg'])
     current_search.flush_and_refresh(index='*')
     query = Search(using=es,
                    index='stats-file-download')[0:30].sort('file_id')
@@ -225,12 +212,18 @@ def test_filter_robots(app, es, event_queues, indexed_events, with_robots):
     query_modifiers = []
     if not with_robots:
         query_modifiers = [filter_robots]
-    StatAggregator(name='file-download-agg',
-                   client=es,
-                   event='file-download',
-                   field='file_id',
-                   interval='day',
-                   query_modifiers=query_modifiers).run()
+
+    stat_agg = StatAggregator(
+        name='file-download-agg',
+        client=es,
+        event='file-download',
+        field='file_id',
+        interval='day',
+        query_modifiers=query_modifiers
+    )
+    with patch('invenio_stats.aggregations.datetime', mock_date(2015, 2, 1)):
+        stat_agg.run()
+
     current_search.flush_and_refresh(index='*')
     query = Search(using=es, index='stats-file-download')[0:30] \
         .sort('file_id')
@@ -268,7 +261,8 @@ def test_metric_aggregations(app, es, event_queues):
         },
         interval='day'
     )
-    stat_agg.run()
+    with patch('invenio_stats.aggregations.datetime', mock_date(2018, 1, 2)):
+        stat_agg.run()
     current_search.flush_and_refresh(index='*')
 
     query = Search(using=es, index='stats-file-download')
