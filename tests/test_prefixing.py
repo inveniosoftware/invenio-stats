@@ -9,9 +9,10 @@
 """Test index prefix."""
 
 import datetime
+from unittest.mock import patch
 
 from conftest import _create_file_download_event
-from helpers import get_queue_size
+from helpers import get_queue_size, mock_date
 from invenio_queues.proxies import current_queues
 
 from invenio_stats.processors import EventsIndexer, flag_machines, flag_robots
@@ -50,7 +51,8 @@ def test_index_prefix(config_with_index_prefix, app, es, event_queues, queries_c
     assert es.indices.exists_alias(name=index_name)
 
     # 3) aggregate events
-    aggregate_events(["file-download-agg"])
+    with patch("invenio_stats.aggregations.datetime", mock_date(2018, 1, 4)):
+        aggregate_events(["file-download-agg"])
     es.indices.refresh(index="*")
     es.indices.exists(index_prefix + "stats-file-download-2018-01")
 

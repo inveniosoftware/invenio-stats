@@ -16,7 +16,6 @@ from invenio_search.engine import dsl
 from invenio_search.utils import build_alias_name
 
 from .errors import InvalidRequestInputError
-from .utils import get_bucket_size
 
 
 class ESQuery(object):
@@ -41,11 +40,9 @@ class ESQuery(object):
             try:
                 date = dateutil.parser.parse(date)
             except ValueError:
-                raise ValueError("Invalid date format for statistic {}.").format(
-                    self.name
-                )
+                raise ValueError(f"Invalid date format for statistic {self.name}.")
         if not isinstance(date, datetime):
-            raise TypeError("Invalid date type for statistic {}.").format(self.name)
+            raise TypeError(f"Invalid date type for statistic {self.name}.")
         return date
 
     def run(self, *args, **kwargs):
@@ -67,7 +64,7 @@ class ESDateHistogramQuery(ESQuery):
         required_filters=None,
         metric_fields=None,
         *args,
-        **kwargs
+        **kwargs,
     ):
         """Constructor.
 
@@ -116,8 +113,8 @@ class ESDateHistogramQuery(ESQuery):
         """Validate query arguments."""
         if interval not in self.allowed_intervals:
             raise InvalidRequestInputError(
-                "Invalid aggregation time interval for statistic {}."
-            ).format(self.name)
+                f"Invalid aggregation time interval for statistic {self.name}."
+            )
 
         if not set(self.required_filters) <= set(kwargs):
             raise InvalidRequestInputError(
@@ -214,8 +211,9 @@ class ESTermsQuery(ESQuery):
         required_filters=None,
         aggregated_fields=None,
         metric_fields=None,
+        max_bucket_size=10000,
         *args,
-        **kwargs
+        **kwargs,
     ):
         """Constructor.
 
@@ -239,6 +237,7 @@ class ESTermsQuery(ESQuery):
         self.required_filters = required_filters or {}
         self.aggregated_fields = aggregated_fields or []
         self.metric_fields = metric_fields or {"value": ("sum", "count", {})}
+        self.max_bucket_size = max_bucket_size
 
     def validate_arguments(self, start_date, end_date, **kwargs):
         """Validate query arguments."""
@@ -274,10 +273,7 @@ class ESTermsQuery(ESQuery):
             cur_agg = base_agg
             for term in self.aggregated_fields:
                 cur_agg = cur_agg.bucket(
-                    term,
-                    "terms",
-                    field=term,
-                    size=get_bucket_size(self.client, self.index, term),
+                    term, "terms", field=term, size=self.max_bucket_size
                 )
                 _apply_metric_aggs(cur_agg)
 
