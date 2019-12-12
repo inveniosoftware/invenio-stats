@@ -9,6 +9,14 @@
 Changes
 =======
 
+Version 1.0.0a14.post1 (release 2019-12-12)
+-------------------------------------------
+
+- Introduces bucket partitioning, to handle ElasticSearch aggregation queries
+  that might end up creating a large amount of buckets.
+- Removes the "date_histogram" aggregation level, in favour of using range
+  filters to specify an interval range.
+
 Version 1.0.0a14 (release 2019-11-27)
 -------------------------------------
 
