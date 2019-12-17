@@ -9,6 +9,12 @@
 Changes
 =======
 
+Version 1.0.0a14.post2 (release 2019-12-17)
+-------------------------------------------
+
+- Fixes a bug where partitioned aggregations were not properly computed because
+  of the DSL search's response caching.
+
 Version 1.0.0a14.post1 (release 2019-12-12)
 -------------------------------------------
 
