@@ -322,7 +322,12 @@ class StatAggregator(object):
             for dst, (metric, src, opts) in self.metric_fields.items():
                 terms.metric(dst, metric, field=src, **opts)
 
-            results = self.agg_query.execute()
+            results = self.agg_query.execute(
+                # NOTE: Without this, the aggregation changes above, do not
+                # invalidate the search's response cache, and thus you would
+                # always get the same results for each partition.
+                ignore_cache=True,
+            )
             for aggregation in results.aggregations['terms'].buckets:
                 doc = aggregation.top_hit.hits.hits[0]['_source']
                 interval_date = datetime.strptime(
