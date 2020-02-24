@@ -9,6 +9,14 @@
 Changes
 =======
 
+Version 1.0.0a16 (release 2020-02-24)
+-------------------------------------
+
+- bump celery dependency
+- pin Werkzeug version
+
+
+
 Version 1.0.0a15 (release 2019-11-27)
 -------------------------------------
 
