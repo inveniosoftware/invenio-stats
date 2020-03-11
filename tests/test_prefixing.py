@@ -12,8 +12,9 @@ import datetime
 
 from conftest import _create_file_download_event
 from elasticsearch_dsl import Search
-from helpers import get_queue_size
+from helpers import get_queue_size, mock_date
 from invenio_queues.proxies import current_queues
+from mock import patch
 
 from invenio_stats.processors import EventsIndexer, anonymize_user, \
     flag_machines, flag_robots
@@ -50,7 +51,8 @@ def test_index_prefix(config_with_index_prefix, app, es, event_queues,
     assert es.indices.exists_alias(name=index_name)
 
     # 3) aggregate events
-    aggregate_events(['file-download-agg'])
+    with patch('invenio_stats.aggregations.datetime', mock_date(2018, 1, 4)):
+        aggregate_events(['file-download-agg'])
     es.indices.refresh(index='*')
     es.indices.exists(index_prefix + 'stats-file-download-2018-01')
 

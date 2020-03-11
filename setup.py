@@ -20,7 +20,7 @@ tests_require = [
     'coverage>=4.0',
     'invenio-accounts>=1.0.1',
     'invenio-db>=1.0.2',
-    'invenio-files-rest>=1.0.0a23',
+    'invenio-files-rest>=1.0.2,<1.0.3',
     'invenio-oauth2server>=1.0.1',
     'invenio-records>=1.0.0',
     'invenio-records-ui>=1.0.1',
@@ -78,6 +78,7 @@ install_requires = [
     'python-dateutil>=2.6.1',
     'python-geoip>=1.2',
     'Werkzeug>=0.15.0,<1.0.0'
+    'six>=1.12',
 ]
 
 packages = find_packages()
