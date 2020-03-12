@@ -14,3 +14,4 @@
 
 -e git+https://github.com/inveniosoftware/invenio-queues.git#egg=invenio-queues
 -e git+https://github.com/inveniosoftware/invenio-search.git#egg=invenio-search
+-e git+https://github.com/inveniosoftware/invenio-base.git#egg=invenio-base

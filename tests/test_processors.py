@@ -18,7 +18,7 @@ from elasticsearch_dsl import Search
 from helpers import get_queue_size
 from invenio_queues.proxies import current_queues
 from invenio_search import current_search
-from mock import patch
+from unittest.mock import patch
 
 from invenio_stats.contrib.event_builders import build_file_unique_id, \
     file_download_event_builder

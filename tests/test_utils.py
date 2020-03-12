@@ -8,7 +8,7 @@
 
 """Test utility functions."""
 
-from mock import patch
+from unittest.mock import patch
 
 from invenio_stats.utils import get_geoip, get_user, obj_or_import_string
 

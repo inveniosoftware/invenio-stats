@@ -10,7 +10,7 @@
 
 import datetime
 
-from mock import patch
+from unittest.mock import patch
 
 from invenio_stats.contrib.event_builders import file_download_event_builder, \
     record_view_event_builder

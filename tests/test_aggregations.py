@@ -14,7 +14,7 @@ import pytest
 from conftest import _create_file_download_event
 from elasticsearch_dsl import Index, Search
 from invenio_search import current_search
-from mock import patch
+from unittest.mock import patch
 
 from invenio_stats import current_stats
 from invenio_stats.aggregations import StatAggregator, filter_robots
