@@ -9,7 +9,6 @@
 """Test event builders."""
 
 import datetime
-
 from unittest.mock import patch
 
 from invenio_stats.contrib.event_builders import file_download_event_builder, \
