@@ -17,6 +17,7 @@ import tempfile
 import uuid
 from contextlib import contextmanager
 from copy import deepcopy
+from unittest.mock import Mock, patch
 
 # imported to make sure that
 # login_oauth2_user(valid, oauth) is included
@@ -42,7 +43,6 @@ from invenio_records import InvenioRecords
 from invenio_records.api import Record
 from invenio_search import InvenioSearch, current_search, current_search_client
 from kombu import Exchange
-from mock import Mock, patch
 from six import BytesIO
 from sqlalchemy_utils.functions import create_database, database_exists
 

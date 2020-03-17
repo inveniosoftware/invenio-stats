@@ -127,6 +127,7 @@ def fixtures():
 
 def publish_filedownload(nb_events, user_id, file_key,
                          file_id, bucket_id, date):
+    """Publish file download event."""
     current_stats.publish('file-download', [dict(
         # When:
         timestamp=(
@@ -143,7 +144,7 @@ def publish_filedownload(nb_events, user_id, file_key,
 
 @fixtures.command()
 def events():
-    # Create events
+    """Create events."""
     nb_days = 20
     day = datetime(2016, 12, 1, 0, 0, 0)
     max_events = 10
@@ -162,6 +163,7 @@ def events():
 
 @fixtures.command()
 def aggregations():
+    """Aggregate events."""
     aggregate_events(['file-download-agg'])
     # flush elasticsearch indices so that the aggregations become searchable
     current_search_client.indices.flush(index='*')

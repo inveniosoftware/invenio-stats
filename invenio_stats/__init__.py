@@ -223,14 +223,14 @@ Having multiple Elasticsearch indices enables the system administrator to
 delete or archive old indices.
 
 2. Aggregating
-^^^^^^^^^^^^^^
+~~~~~~~~~~~~~~
 
 The :py:class:`~invenio_stats.processors.EventsIndexer` processor indexes raw
 events. Querying those events can put a big strain on the Elasticsearch
 cluster. Thus Invenio-Stats provides a way to *compress* those events by
 pre-aggregating them into meaningful statistics.
 
-*Example: individual file downoalds events can be aggregated into the number of
+*Example: individual file downloads events can be aggregated into the number of
 file download per day and per file.*
 
 Aggregations are registered in the same way as events, under the entrypoint
@@ -270,7 +270,7 @@ The function returns a dictionary with the configuration for the aggregations.
                 ]
 
 An aggregator class must be specified. The dictionary ``params``
-contains all the arguments given to its construtor. An Aggregator class is
+contains all the arguments given to its constructor. An Aggregator class is
 just required to have a ``run()`` method.
 
 The default one is :py:class:`~invenio_stats.aggregations.StatAggregator`
@@ -300,7 +300,7 @@ and aggregations, under the entrypoint ``invenio_stats.queries``:
         ]
     }
 
-Again the registering function returns the configuraton for the query:
+Again the registering function returns the configuration for the query:
 
 .. code-block:: python
 

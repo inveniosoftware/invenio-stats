@@ -22,6 +22,7 @@ Invenio-Stats.
    overview
    configuration
    usage
+   operations
    examplesapp
 
 

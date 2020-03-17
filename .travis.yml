@@ -12,8 +12,6 @@ notifications:
 
 dist: xenial
 
-sudo: false
-
 language: python
 
 matrix:
@@ -26,8 +24,8 @@ cache:
   - pip
 
 python:
-  - "2.7"
   - "3.6"
+  - "3.7"
 
 services:
   - redis-server
@@ -84,6 +82,6 @@ deploy:
   distributions: "sdist bdist_wheel"
   on:
     tags: true
-    python: "2.7"
+    python: "3.6"
     repo: inveniosoftware/invenio-stats
     condition: $DEPLOY = true

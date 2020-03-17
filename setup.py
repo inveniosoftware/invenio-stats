@@ -25,7 +25,6 @@ tests_require = [
     'invenio-records>=1.0.0',
     'invenio-records-ui>=1.0.1',
     'isort>=4.2.15',
-    'mock>=1.3.0',
     'pydocstyle>=1.0.0',
     'pytest-cov>=1.8.0',
     'pytest-pep8>=1.0.6',
@@ -77,7 +76,7 @@ install_requires = [
     'maxminddb-geolite2>=2017.0404',
     'python-dateutil>=2.6.1',
     'python-geoip>=1.2',
-    'Werkzeug>=0.15.0,<1.0.0'
+    'Werkzeug>=0.15.0, <1.0.0',
 ]
 
 packages = find_packages()
