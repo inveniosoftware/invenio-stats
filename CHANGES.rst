@@ -9,13 +9,17 @@
 Changes
 =======
 
+Version 1.0.0a17 (release 2020-03-19)
+-------------------------------------
+
+- Removes Python 2.7 support.
+- Centralizes Flask depedendency via ``invenio-base``.
+
 Version 1.0.0a16 (release 2020-02-24)
 -------------------------------------
 
 - bump celery dependency
 - pin Werkzeug version
-
-
 
 Version 1.0.0a15 (release 2019-11-27)
 -------------------------------------
