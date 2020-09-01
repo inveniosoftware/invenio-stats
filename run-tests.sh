@@ -10,7 +10,7 @@
 export PYTEST_ADDOPTS='docs tests invenio_stats'
 
 pydocstyle invenio_stats tests docs && \
-isort -rc -c -df && \
+isort invenio_stats tests --check-only --diff && \
 check-manifest --ignore ".travis-*" && \
 sphinx-build -qnNW docs docs/_build/html && \
 python setup.py test

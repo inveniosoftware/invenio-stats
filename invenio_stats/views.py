@@ -46,6 +46,7 @@ class StatsQueryResource(ContentNegotiatedMethodView):
         data = request.get_json(force=False)
         if data is None:
             data = {}
+
         result = {}
         for query_name, config in data.items():
             if config is None or not isinstance(config, dict) \
@@ -62,7 +63,6 @@ class StatsQueryResource(ContentNegotiatedMethodView):
                 query_cfg = current_stats.queries[stat]
             except KeyError:
                 raise UnknownQueryError(stat)
-
             permission = current_stats.permission_factory(stat, params)
             if permission is not None and not permission.can():
                 message = ('You do not have a permission to query the '
@@ -77,7 +77,9 @@ class StatsQueryResource(ContentNegotiatedMethodView):
             except ValueError as e:
                 raise InvalidRequestInputError(e.args[0])
             except NotFoundError as e:
-                return None
+                # In case there is no index or value for the metric we return 0
+                result[query_name] = dict.fromkeys(
+                    query.metric_fields.keys(), 0)
         return self.make_response(result)
 
 
