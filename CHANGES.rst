@@ -9,6 +9,13 @@
 Changes
 =======
 
+Version 1.0.0a18 (release 2020-09-01)
+-------------------------------------
+
+- Fix isort arguments
+- Filter pytest deprecation warnings
+- Set default values for metrics instead of None, when no index found
+
 Version 1.0.0a17 (release 2020-03-19)
 -------------------------------------
 
