@@ -276,7 +276,9 @@ just required to have a ``run()`` method.
 The default one is :py:class:`~invenio_stats.aggregations.StatAggregator`
 and it aggregates events based on their ``timestamp`` field. It can aggregate
 using different time windows and calculate different kinds of metrics using
-`Elasticsearch Metric Aggregations <https://www.elastic.co/guide/en/elasticsearch/reference/5.6/search-aggregations-metrics.html>`_.
+`Elasticsearch Metric Aggregations
+<https://www.elastic.co/guide/en/elasticsearch/reference/5.6/
+search-aggregations-metrics.html>`_.
 The events are retrieved from Elasticsearch and the resulting aggregations are
 indexed in different Elasticsearch indices.
 
