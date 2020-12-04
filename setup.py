@@ -16,35 +16,22 @@ readme = open('README.rst').read()
 history = open('CHANGES.rst').read()
 
 tests_require = [
-    'check-manifest>=0.35',
-    'coverage>=4.0',
-    'invenio-accounts>=1.0.1',
-    'invenio-db>=1.0.2',
-    'invenio-files-rest>=1.0.0a23',
-    'invenio-oauth2server>=1.0.1',
-    'invenio-records>=1.0.0',
-    'invenio-records-ui>=1.0.1',
-    'isort>=4.2.15',
-    'pydocstyle>=1.0.0',
-    'pytest-cov>=1.8.0',
-    'pytest-pep8>=1.0.6',
-    'pytest>=3.8.1,<4',
+    "invenio-accounts>=1.3",
+    "invenio-db>=1.0.2",
+    "invenio-files-rest>=1.0.0a23",
+    "invenio-oauth2server>=1.0.1",
+    "invenio-records>=1.0.0",
+    "invenio-records-ui>=1.0.1",
+    "pytest-invenio>=1.4.2",
+    # due to https://github.com/PyCQA/pydocstyle/issues/620
+    "pydocstyle==6.1.1"
 ]
 
 invenio_search_version = '1.2.3'
 
 extras_require = {
     'docs': [
-        'Sphinx>=1.4',
-    ],
-    'elasticsearch2': [
-        'invenio-search[elasticsearch2]>={}'.format(invenio_search_version)
-    ],
-    'elasticsearch5': [
-        'invenio-search[elasticsearch5]>={}'.format(invenio_search_version)
-    ],
-    'elasticsearch6': [
-        'invenio-search[elasticsearch6]>={}'.format(invenio_search_version)
+        'Sphinx>=4.5,<5',
     ],
     'elasticsearch7': [
         'invenio-search[elasticsearch7]>={}'.format(invenio_search_version)
@@ -55,9 +42,6 @@ extras_require = {
 extras_require['all'] = []
 for name, reqs in extras_require.items():
     if name[0] == ':' or name in (
-        'elasticsearch2',
-        'elasticsearch5',
-        'elasticsearch6',
         'elasticsearch7'
     ):
         continue
@@ -76,6 +60,8 @@ install_requires = [
     'maxminddb-geolite2>=2017.0404',
     'python-dateutil>=2.6.1',
     'python-geoip>=1.2',
+    'jsonref>=0.3.0,<1.0.0',
+    'jsonresolver>=0.3.0,<0.3.2',
 ]
 
 packages = find_packages()

@@ -55,7 +55,7 @@ class StatsQueryResource(ContentNegotiatedMethodView):
                 raise InvalidRequestInputError(
                     'Invalid Input. It should be of the form '
                     '{ STATISTIC_NAME: { "stat": STAT_TYPE, '
-                    '"params": STAT_PARAMS \}}'
+                    '"params": STAT_PARAMS }}'
                 )
             stat = config['stat']
             params = config.get('params', {})
