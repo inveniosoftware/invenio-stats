@@ -22,7 +22,6 @@ tests_require = [
     "invenio-oauth2server>=1.0.1",
     "invenio-records>=1.0.0",
     "invenio-records-ui>=1.0.1",
-    "pydocstyle>=1.0.0",
     "pytest-invenio>=1.4.0"
 ]
 

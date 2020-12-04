@@ -2,9 +2,9 @@ name: CI
 
 on:
   push:
-    branches: master
+    branches: gh-actions
   pull_request:
-    branches: master
+    branches: gh-actions
   schedule:
     # * is a special character in YAML so you have to quote this string
     - cron:  '0 3 * * 6'
@@ -24,8 +24,10 @@ jobs:
           # a new item to the following lists.
           # You can see the complete list of services and versions that are available at:
           # https://docker-services-cli.readthedocs.io/en/latest/configuration.html
-          python-version: [3.6, 3.7, 3.8]
+          python-version: [3.6, 3.7, 3.8, 3.9]
           requirements-level: [min, pypi]
+          cache-service: [redis]
+          mq-service: [rabbitmq, redis]
           search-service: [elasticsearch6, elasticsearch7]
 
           exclude:
@@ -38,10 +40,8 @@ jobs:
           - search-service: elasticsearch7
             python-version: 3.6
 
-          - search-service: elasticsearch6
-            python-version: 3.8
-
           include:
+
           - search-service: elasticsearch6
             SEARCH_EXTRAS: "elasticsearch6"
 
@@ -50,7 +50,7 @@ jobs:
 
     env:
       SEARCH: ${{ matrix.search-service }}
-      EXTRAS: all${{ matrix.SEARCH_EXTRAS }}
+      EXTRAS: all,${{ matrix.SEARCH_EXTRAS }}
 
     steps:
       - name: Checkout
@@ -72,6 +72,9 @@ jobs:
           path: ~/.cache/pip
           key: ${{ runner.os }}-pip-${{ hashFiles('.${{ matrix.requirements-level }}-${{ matrix.python-version }}-requirements.txt') }}
 
+      - name: Setup Graphviz
+        uses: ts-graphviz/setup-graphviz@v1
+
       - name: Install dependencies
         run: |
           pip install -r .${{matrix.requirements-level}}-${{ matrix.python-version }}-requirements.txt
@@ -79,6 +82,8 @@ jobs:
           pip freeze
           docker --version
           docker-compose --version
+          # FIXME remove the following line
+          pip install git+https://github.com/inveniosoftware/docker-services-cli@master#egg=docker_services_cli --force-reinstall
 
       - name: Run tests
         run: |
