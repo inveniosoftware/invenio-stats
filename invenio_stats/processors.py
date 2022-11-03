@@ -13,16 +13,15 @@ from __future__ import absolute_import, print_function
 import hashlib
 from time import mktime
 
-import elasticsearch
 from counter_robots import is_machine, is_robot
 from dateutil import parser
 from flask import current_app
 from invenio_search import current_search_client
+from invenio_search.engine import search
 from invenio_search.utils import prefix_index
 from pytz import utc
 
-from .utils import get_anonymization_salt, get_doctype, get_geoip, \
-    obj_or_import_string
+from .utils import get_anonymization_salt, get_geoip, obj_or_import_string
 
 
 def anonymize_user(doc):
@@ -149,7 +148,6 @@ class EventsIndexer(object):
         """
         self.queue = queue
         self.client = client or current_search_client
-        self.doctype = get_doctype(queue.routing_key)
         self.index = prefix_index('{0}-{1}'.format(
             prefix, self.queue.routing_key))
         self.suffix = suffix
@@ -187,7 +185,6 @@ class EventsIndexer(object):
                     _id=hash_id(ts.isoformat(), msg),
                     _op_type='index',
                     _index='{0}-{1}'.format(self.index, suffix),
-                    _type=self.doctype,
                     _source=msg,
                 )
             except Exception:
@@ -195,7 +192,7 @@ class EventsIndexer(object):
 
     def run(self):
         """Process events queue."""
-        return elasticsearch.helpers.bulk(
+        return search.helpers.bulk(
             self.client,
             self.actionsiter(),
             stats_only=True,

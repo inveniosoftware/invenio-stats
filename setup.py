@@ -16,29 +16,26 @@ readme = open('README.rst').read()
 history = open('CHANGES.rst').read()
 
 tests_require = [
-    "invenio-accounts>=1.3",
-    "invenio-db>=1.0.2",
-    "invenio-files-rest>=1.0.0a23",
-    "invenio-oauth2server>=1.0.1",
-    "invenio-records>=1.0.0",
-    "invenio-records-ui>=1.0.1",
-    "pytest-invenio>=1.4.0"
+    "invenio-accounts>=2.0.0",
+    "invenio-db>=1.0.14",
+    "invenio-files-rest>=1.3.0",
+    "invenio-oauth2server>=1.3.0",
+    "invenio-records>=2.0.0",
+    "invenio-records-ui>=1.2.0",
+    "pytest-invenio>=2.1.0"
 ]
 
-invenio_search_version = '1.2.3'
+invenio_search_version = '2.1.0'
 
 extras_require = {
     'docs': [
-        'Sphinx>=3',
+        'Sphinx>=5,<6',
     ],
-    'elasticsearch2': [
-        'invenio-search[elasticsearch2]>={}'.format(invenio_search_version)
+    'opensearch1': [
+        'invenio-search[opensearch1]>={}'.format(invenio_search_version)
     ],
-    'elasticsearch5': [
-        'invenio-search[elasticsearch5]>={}'.format(invenio_search_version)
-    ],
-    'elasticsearch6': [
-        'invenio-search[elasticsearch6]>={}'.format(invenio_search_version)
+    'opensearch2': [
+        'invenio-search[opensearch2]>={}'.format(invenio_search_version)
     ],
     'elasticsearch7': [
         'invenio-search[elasticsearch7]>={}'.format(invenio_search_version)
@@ -49,31 +46,26 @@ extras_require = {
 extras_require['all'] = []
 for name, reqs in extras_require.items():
     if name[0] == ':' or name in (
-        'elasticsearch2',
-        'elasticsearch5',
-        'elasticsearch6',
         'elasticsearch7'
+        'opensearch1'
+        'opensearch2'
     ):
         continue
     extras_require['all'].extend(reqs)
 
 setup_requires = [
-    'pytest-runner>=2.6.2',
+    'pytest-runner>=6.0.0',
 ]
 
 install_requires = [
     'counter-robots>=2018.6',
-    'invenio-base>=1.2.2',
-    'invenio-cache>=1.0.0',
-    'invenio-celery>=1.1.3',
+    'invenio-base>=1.2.13',
+    'invenio-cache>=1.1.0',
+    'invenio-celery>=1.2.5',
     'invenio-queues>=1.0.0a2',
-    'maxminddb-geolite2>=2017.0404',
-    'python-dateutil>=2.6.1',
+    'maxminddb-geolite2>=2018.703',
+    'python-dateutil>=2.7.0',
     'python-geoip>=1.2',
-
-    'flask>=1.0,<=2.0.3',
-    'werkzeug>=1.0,<=2.0.3',
-    'flask-login>=0.4.1,<0.5',
 ]
 
 packages = find_packages()
@@ -134,11 +126,11 @@ setup(
         'Programming Language :: Python',
         'Topic :: Internet :: WWW/HTTP :: Dynamic Content',
         'Topic :: Software Development :: Libraries :: Python Modules',
-        'Programming Language :: Python :: 2',
-        'Programming Language :: Python :: 2.7',
         'Programming Language :: Python :: 3',
-        'Programming Language :: Python :: 3.4',
-        'Programming Language :: Python :: 3.5',
+        'Programming Language :: Python :: 3.7',
+        'Programming Language :: Python :: 3.8',
+        'Programming Language :: Python :: 3.9',
+        'Programming Language :: Python :: 3.10',
         'Development Status :: 3 - Alpha',
     ],
 )

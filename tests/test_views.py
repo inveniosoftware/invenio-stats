@@ -9,6 +9,7 @@
 """Test view functions."""
 import json
 
+import pytest
 from flask import url_for
 
 
@@ -36,10 +37,14 @@ def test_post_request(app, db, users, queries_config,
         assert resp.status_code == 400
 
 
+@pytest.mark.parametrize(
+    "which_user, expected_code",
+    [("authorized", 200), ("unauthorized", 403), (None, 401)]
+)
 def test_unauthorized_request(app, sample_histogram_query_data, users,
-                              queries_config, custom_permission_factory):
+                              queries_config, custom_permission_factory,
+                              which_user, expected_code):
     """Test rejecting unauthorized requests."""
-
     def client_req(user):
         with app.test_client() as client:
             headers = [('Content-Type', 'application/json'),
@@ -52,9 +57,8 @@ def test_unauthorized_request(app, sample_histogram_query_data, users,
             return resp.status_code
 
     sample_histogram_query_data['mystat']['stat'] = 'test-query'
-    assert client_req(users['unauthorized']) == 403
-    assert client_req(None) == 401
-    assert client_req(users['authorized']) == 200
+    user = users[which_user] if which_user else None
+    assert client_req(user) == expected_code
 
     assert custom_permission_factory.query_name == 'test-query'
     assert custom_permission_factory.params == \

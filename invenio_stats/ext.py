@@ -16,10 +16,6 @@ from invenio_queues.proxies import current_queues
 from werkzeug.utils import cached_property
 
 from . import config
-from .errors import DuplicateAggregationError, DuplicateEventError, \
-    DuplicateQueryError, UnknownAggregationError, UnknownEventError, \
-    UnknownQueryError
-from .processors import EventsIndexer
 from .receivers import register_receivers
 from .utils import load_or_import_from_config, obj_or_import_string
 

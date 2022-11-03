@@ -21,7 +21,7 @@ trap cleanup EXIT
 python -m check_manifest --ignore ".*-requirements.txt"
 python -m sphinx.cmd.build -qnNW docs docs/_build/html
 # TODO: Remove services below that are not neeed (fix also the usage note).
-eval "$(docker-services-cli up --search "${SEARCH:-elasticsearch}" --mq "${MQ:-rabbitmq}" --cache "${CACHE:-redis}" --env)"
+eval "$(docker-services-cli up --search "${SEARCH:-opensearch}" --mq "${MQ:-rabbitmq}" --cache "${CACHE:-redis}" --env)"
 python -m pytest
 tests_exit_code=$?
 python -m sphinx.cmd.build -qnNW -b doctest docs docs/_build/doctest

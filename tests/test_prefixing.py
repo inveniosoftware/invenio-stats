@@ -11,12 +11,10 @@
 import datetime
 
 from conftest import _create_file_download_event
-from elasticsearch_dsl import Search
 from helpers import get_queue_size
 from invenio_queues.proxies import current_queues
 
-from invenio_stats.processors import EventsIndexer, anonymize_user, \
-    flag_machines, flag_robots
+from invenio_stats.processors import EventsIndexer, flag_machines, flag_robots
 from invenio_stats.proxies import current_stats
 from invenio_stats.queries import ESDateHistogramQuery, ESTermsQuery
 from invenio_stats.tasks import aggregate_events

@@ -13,8 +13,8 @@ import datetime
 import pytest
 from click.testing import CliRunner
 from conftest import _create_file_download_event, _create_record_view_event
-from elasticsearch_dsl import Search
 from invenio_search import current_search
+from invenio_search.engine import dsl
 
 from invenio_stats import current_stats
 from invenio_stats.cli import stats
@@ -22,7 +22,7 @@ from invenio_stats.cli import stats
 
 def test_events_process(es, script_info, event_queues):
     """Test "events process" CLI command."""
-    search = Search(using=es)
+    search = dsl.Search(using=es)
     runner = CliRunner()
 
     # Invalid argument
@@ -94,7 +94,7 @@ def test_events_process(es, script_info, event_queues):
                          indirect=['indexed_events'])
 def test_aggregations_process(script_info, event_queues, es, indexed_events):
     """Test "aggregations process" CLI command."""
-    search = Search(using=es)
+    search = dsl.Search(using=es)
     runner = CliRunner()
 
     # Invalid argument
@@ -157,7 +157,7 @@ def test_aggregations_process(script_info, event_queues, es, indexed_events):
                          indirect=['aggregated_events'])
 def test_aggregations_delete(script_info, event_queues, es, aggregated_events):
     """Test "aggregations process" CLI command."""
-    search = Search(using=es)
+    search = dsl.Search(using=es)
     runner = CliRunner()
 
     current_search.flush_and_refresh(index='*')
@@ -205,7 +205,7 @@ def test_aggregations_delete(script_info, event_queues, es, aggregated_events):
 def test_aggregations_list_bookmarks(script_info, event_queues, es,
                                      aggregated_events):
     """Test "aggregations list-bookmarks" CLI command."""
-    search = Search(using=es)
+    search = dsl.Search(using=es)
     runner = CliRunner()
 
     current_search.flush_and_refresh(index='*')
