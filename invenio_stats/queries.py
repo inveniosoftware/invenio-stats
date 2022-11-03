@@ -11,9 +11,8 @@
 from datetime import datetime
 
 import dateutil.parser
-import six
-from elasticsearch_dsl import Search
 from invenio_search import current_search_client
+from invenio_search.engine import dsl
 from invenio_search.utils import build_alias_name
 
 from .errors import InvalidRequestInputError
@@ -38,7 +37,7 @@ class ESQuery(object):
 
         :returns: the extracted date.
         """
-        if isinstance(date, six.string_types):
+        if isinstance(date, str):
             try:
                 date = dateutil.parser.parse(date)
             except ValueError:
@@ -107,7 +106,7 @@ class ESDateHistogramQuery(ESQuery):
 
     def build_query(self, interval, start_date, end_date, **kwargs):
         """Build the elasticsearch query."""
-        agg_query = Search(using=self.client, index=self.index)[0:0]
+        agg_query = dsl.Search(using=self.client, index=self.index)[0:0]
 
         if start_date is not None or end_date is not None:
             time_range = {}
@@ -159,7 +158,7 @@ class ESDateHistogramQuery(ESQuery):
             if self.copy_fields and agg['top_hit']['hits']['hits']:
                 doc = agg['top_hit']['hits']['hits'][0]['_source']
                 for destination, source in self.copy_fields.items():
-                    if isinstance(source, six.string_types):
+                    if isinstance(source, str):
                         bucket_result[destination] = doc[source]
                     else:
                         bucket_result[destination] = source(bucket_result, doc)
@@ -230,7 +229,7 @@ class ESTermsQuery(ESQuery):
 
     def build_query(self, start_date, end_date, **kwargs):
         """Build the elasticsearch query."""
-        agg_query = Search(using=self.client, index=self.index)[0:0]
+        agg_query = dsl.Search(using=self.client, index=self.index)[0:0]
 
         if start_date is not None or end_date is not None:
             time_range = {}
@@ -302,7 +301,7 @@ class ESTermsQuery(ESQuery):
         if self.copy_fields and aggs['top_hit']['hits']['hits']:
             doc = aggs['top_hit']['hits']['hits'][0]['_source']
             for destination, source in self.copy_fields.items():
-                if isinstance(source, six.string_types):
+                if isinstance(source, str):
                     result[destination] = doc[source]
                 else:
                     result[destination] = source(result, doc)

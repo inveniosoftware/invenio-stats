@@ -15,16 +15,13 @@ from copy import deepcopy
 from datetime import datetime
 from functools import wraps
 
-import six
 from dateutil import parser
 from dateutil.relativedelta import relativedelta
-from elasticsearch import VERSION as ES_VERSION
-from elasticsearch.helpers import bulk
-from elasticsearch_dsl import Index, Search
-from invenio_search import current_search, current_search_client
+from invenio_search import current_search_client
+from invenio_search.engine import dsl, search
 from invenio_search.utils import prefix_index
 
-from .utils import get_bucket_size, get_doctype
+from .utils import get_bucket_size
 
 SUPPORTED_INTERVALS = OrderedDict([
     ('hour', '%Y-%m-%dT%H'),
@@ -49,7 +46,7 @@ def format_range_dt(dt, interval):
     dt_rounding_map = {
         'hour': 'h', 'day': 'd', 'month': 'M', 'year': 'y'}
 
-    if not isinstance(dt, six.string_types):
+    if not isinstance(dt, str):
         dt = dt.replace(microsecond=0).isoformat()
     return '{0}||/{1}'.format(dt, dt_rounding_map[interval])
 
@@ -60,27 +57,19 @@ class BookmarkAPI(object):
     It provides an interface that lets us interact with a bookmark.
     """
 
-    # NOTE: these work up to ES_6
     MAPPINGS = {
         "mappings": {
-            "aggregation-bookmark": {
-                "date_detection": False,
-                "properties": {
-                    "date": {
-                        "type": "date",
-                        "format": "date_optional_time"
-                    },
-                    "aggregation_type": {
-                        "type": "keyword"
-                    }
+            "date_detection": False,
+            "properties": {
+                "date": {
+                    "type": "date",
+                    "format": "date_optional_time"
+                },
+                "aggregation_type": {
+                    "type": "keyword"
                 }
             }
         }
-    }
-
-    # NOTE: For ES7 mappings need one-level of less nesting
-    MAPPINGS_ES7 = {
-        "mappings": deepcopy(MAPPINGS['mappings']['aggregation-bookmark'])
     }
 
     def __init__(self, client, agg_type, agg_interval):
@@ -89,8 +78,6 @@ class BookmarkAPI(object):
         :param client: elasticsearch client
         :param agg_type: aggregation type for the bookmark
         """
-        # NOTE: doc_type is going to be deprecated with ES_7
-        self.doc_type = get_doctype('aggregation-bookmark')
         self.bookmark_index = prefix_index('stats-bookmarks')
         self.client = client
         self.agg_type = agg_type
@@ -100,10 +87,9 @@ class BookmarkAPI(object):
         """Decorator for ensuring the bookmarks index exists."""
         @wraps(func)
         def wrapped(self, *args, **kwargs):
-            if not Index(self.bookmark_index, using=self.client).exists():
+            if not dsl.Index(self.bookmark_index, using=self.client).exists():
                 self.client.indices.create(
-                    index=self.bookmark_index, body=BookmarkAPI.MAPPINGS
-                    if ES_VERSION[0] < 7 else BookmarkAPI.MAPPINGS_ES7)
+                    index=self.bookmark_index, body=BookmarkAPI.MAPPINGS)
             return func(self, *args, **kwargs)
         return wrapped
 
@@ -112,7 +98,6 @@ class BookmarkAPI(object):
         """Set bookmark for starting next aggregation."""
         self.client.index(
             index=self.bookmark_index,
-            doc_type=self.doc_type,
             body={'date': value, 'aggregation_type': self.agg_type},
         )
 
@@ -121,7 +106,7 @@ class BookmarkAPI(object):
         """Get last aggregation date."""
         # retrieve the oldest bookmark
         query_bookmark = (
-            Search(using=self.client, index=self.bookmark_index)
+            dsl.Search(using=self.client, index=self.bookmark_index)
             .filter('term', aggregation_type=self.agg_type)
             .sort({'date': {'order': 'desc'}})[0:1]  # fetch one document only
         )
@@ -133,7 +118,7 @@ class BookmarkAPI(object):
     @_ensure_index_exists
     def list_bookmarks(self, start_date=None, end_date=None, limit=None):
         """List bookmarks."""
-        query = Search(
+        query = dsl.Search(
             using=self.client,
             index=self.bookmark_index,
         ).filter(
@@ -251,7 +236,7 @@ class StatAggregator(object):
         """Search for the oldest event timestamp."""
         # Retrieve the oldest event in order to start aggregation
         # from there
-        query_events = Search(
+        query_events = dsl.Search(
             using=self.client,
             index=self.event_index
         ).sort(
@@ -264,22 +249,17 @@ class StatAggregator(object):
             return None
         return parser.parse(result[0]['timestamp'])
 
-    @property
-    def doc_type(self):
-        """Get document type for the aggregation."""
-        return get_doctype('{0}-{1}-aggregation'.format(
-            self.event, self.interval))
-
     def agg_iter(self, lower_limit, upper_limit):
         """Aggregate and return dictionary to be indexed in ES."""
         aggregation_data = {}
         start_date = format_range_dt(lower_limit, self.interval)
         end_date = format_range_dt(upper_limit, self.interval)
-        self.agg_query = Search(using=self.client, index=self.event_index) \
+        agg_query = dsl.Search(using=self.client, index=self.event_index) \
             .filter('range', timestamp={
                 'gte': start_date,
                 'lte': end_date
             })
+        self.agg_query = agg_query
 
         # apply query modifiers
         for modifier in self.query_modifiers:
@@ -330,7 +310,7 @@ class StatAggregator(object):
 
                 doc = aggregation.top_hit.hits.hits[0]['_source']
                 for destination, source in self.copy_fields.items():
-                    if isinstance(source, six.string_types):
+                    if isinstance(source, str):
                         aggregation_data[destination] = doc[source]
                     else:
                         aggregation_data[destination] = source(
@@ -347,7 +327,6 @@ class StatAggregator(object):
                         aggregation['key'],
                         interval_date.strftime(self.doc_id_suffix)),
                     _index=prefix_index(index_name),
-                    _type=self.doc_type,
                     _source=aggregation_data
                 )
                 self.has_events = True
@@ -365,7 +344,7 @@ class StatAggregator(object):
     def run(self, start_date=None, end_date=None, update_bookmark=True):
         """Calculate statistics aggregations."""
         # If no events have been indexed there is nothing to aggregate
-        if not Index(self.event_index, using=self.client).exists():
+        if not dsl.Index(self.event_index, using=self.client).exists():
             return
 
         lower_limit = (
@@ -383,7 +362,7 @@ class StatAggregator(object):
             self.has_events = False
             self.indices = set()
 
-            bulk(
+            search.helpers.bulk(
                 self.client,
                 self.agg_iter(lower_limit, upper_limit),
                 stats_only=True,
@@ -409,10 +388,9 @@ class StatAggregator(object):
 
     def delete(self, start_date=None, end_date=None):
         """Delete aggregation documents."""
-        aggs_query = Search(
+        aggs_query = dsl.Search(
             using=self.client,
             index=self.index,
-            doc_type=self.doc_type
         ).extra(_source=False)
 
         range_args = {}
@@ -423,7 +401,7 @@ class StatAggregator(object):
         if range_args:
             aggs_query = aggs_query.filter('range', timestamp=range_args)
 
-        bookmarks_query = Search(
+        bookmarks_query = dsl.Search(
             using=self.client,
             index=self.bookmark_api.bookmark_index,
         ).filter(
@@ -440,8 +418,7 @@ class StatAggregator(object):
                     affected_indices.add(doc.meta.index)
                     yield dict(_index=doc.meta.index,
                                _op_type='delete',
-                               _id=doc.meta.id,
-                               _type=doc.meta.doc_type)
+                               _id=doc.meta.id)
                 current_search_client.indices.flush(
                     index=','.join(affected_indices), wait_if_ongoing=True)
-        bulk(self.client, _delete_actions(), refresh=True)
+        search.helpers.bulk(self.client, _delete_actions(), refresh=True)

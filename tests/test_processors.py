@@ -14,11 +14,10 @@ from unittest.mock import patch
 
 import pytest
 from conftest import _create_file_download_event
-from elasticsearch import VERSION as ES_VERSION
-from elasticsearch_dsl import Search
 from helpers import get_queue_size
 from invenio_queues.proxies import current_queues
 from invenio_search import current_search
+from invenio_search.engine import dsl
 
 from invenio_stats.contrib.event_builders import build_file_unique_id, \
     file_download_event_builder
@@ -26,7 +25,6 @@ from invenio_stats.processors import EventsIndexer, anonymize_user, \
     flag_machines, flag_robots, hash_id
 from invenio_stats.proxies import current_stats
 from invenio_stats.tasks import process_events
-from invenio_stats.utils import get_doctype
 
 
 @pytest.mark.parametrize(
@@ -196,7 +194,7 @@ def test_events_indexer_preprocessors(app, mock_event_queue):
     def bulk(client, generator, *args, **kwargs):
         received_docs.extend(generator)
 
-    with patch('elasticsearch.helpers.bulk', side_effect=bulk):
+    with patch('invenio_search.engine.search.helpers.bulk', side_effect=bulk):
         indexer.run()
 
     # Process the events as we expect them to be
@@ -210,7 +208,6 @@ def test_events_indexer_preprocessors(app, mock_event_queue):
             _id=_id,
             _op_type='index',
             _index='events-stats-file-download-2017-01-01',
-            _type=get_doctype('stats-file-download'),
             _source=event,
         ))
 
@@ -240,7 +237,7 @@ def test_events_indexer_id_windowing(app, mock_event_queue):
         ]
     ]
 
-    with patch('elasticsearch.helpers.bulk', side_effect=bulk):
+    with patch('invenio_search.engine.search.helpers.bulk', side_effect=bulk):
         indexer.run()
 
     assert len(received_docs) == 5
@@ -263,15 +260,12 @@ def test_double_clicks(app, mock_event_queue, es):
     res = es.search(
         index='events-stats-file-download-2000-06-01',
     )
-    if ES_VERSION[0] < 7:
-        assert res['hits']['total'] == 2
-    else:
-        assert res['hits']['total']['value'] == 2
+    assert res['hits']['total']['value'] == 2
 
 
 def test_failing_processors(app, es, event_queues, caplog):
     """Test events that raise an exception when processed."""
-    search = Search(using=es)
+    search = dsl.Search(using=es)
 
     current_queues.declare()
     current_stats.publish(

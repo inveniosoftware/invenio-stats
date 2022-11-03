@@ -313,7 +313,6 @@ Again the registering function returns the configuraton for the query:
             cls=ESDateHistogramQuery,
             params=dict(
                 index='stats-file-download',
-                doc_type='file-download-day-aggregation',
                 copy_fields=dict(
                     bucket_id='bucket_id',
                     file_key='file_key',

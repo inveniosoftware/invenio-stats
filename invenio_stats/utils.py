@@ -14,14 +14,11 @@ import os
 from base64 import b64encode
 from math import ceil
 
-import six
-from dateutil.parser import parse as dateutil_parse
-from elasticsearch import VERSION as ES_VERSION
-from elasticsearch_dsl import Search
 from flask import current_app, request, session
 from flask_login import current_user
 from geolite2 import geolite2
 from invenio_cache import current_cache
+from invenio_search.engine import dsl
 from werkzeug.utils import import_string
 
 
@@ -52,7 +49,7 @@ def get_bucket_size(client, index, agg_field, start_date=None, end_date=None):
     if end_date is not None:
         time_range['lte'] = end_date
 
-    search = Search(using=client, index=index)
+    search = dsl.Search(using=client, index=index)
     if time_range:
         search = search.filter('range', timestamp=time_range)
     search.aggs.metric('unique_values', 'cardinality', field=agg_field)
@@ -62,11 +59,6 @@ def get_bucket_size(client, index, agg_field, start_date=None, end_date=None):
 
     # NOTE: we increase the count by 10% in order to be safe
     return int(ceil(unique_values + unique_values * 0.1))
-
-
-def get_doctype(doc_type):
-    """Configure doc_type value according to ES version."""
-    return doc_type if ES_VERSION[0] < 7 else '_doc'
 
 
 def get_geoip(ip):
@@ -108,7 +100,7 @@ def obj_or_import_string(value, default=None):
     :params default: Default object to return if the import fails.
     :returns: The imported object.
     """
-    if isinstance(value, six.string_types):
+    if isinstance(value, str):
         return import_string(value)
     elif value:
         return value

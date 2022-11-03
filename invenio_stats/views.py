@@ -8,9 +8,9 @@
 
 """InvenioStats views."""
 
-from elasticsearch.exceptions import NotFoundError
 from flask import Blueprint, abort, jsonify, request
 from invenio_rest.views import ContentNegotiatedMethodView
+from invenio_search.engine import search
 
 from .errors import InvalidRequestInputError, UnknownQueryError
 from .proxies import current_stats
@@ -76,7 +76,7 @@ class StatsQueryResource(ContentNegotiatedMethodView):
                 result[query_name] = query.run(**params)
             except ValueError as e:
                 raise InvalidRequestInputError(e.args[0])
-            except NotFoundError as e:
+            except search.exceptions.NotFoundError:
                 # In case there is no index or value for the metric we return 0
                 result[query_name] = dict.fromkeys(
                     query.metric_fields.keys(), 0)

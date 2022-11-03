@@ -13,14 +13,13 @@ from unittest.mock import patch
 
 import pytest
 from conftest import _create_file_download_event
-from elasticsearch_dsl import Index, Search
 from invenio_search import current_search
+from invenio_search.engine import dsl
 
 from invenio_stats import current_stats
 from invenio_stats.aggregations import StatAggregator, filter_robots
 from invenio_stats.processors import EventsIndexer
 from invenio_stats.tasks import aggregate_events, process_events
-from invenio_stats.utils import get_doctype
 
 
 def test_wrong_intervals(app, es):
@@ -127,10 +126,10 @@ def test_aggregation_without_events(app, es):
                    field='file_id',
                    interval='day',
                    query_modifiers=[]).run()
-    assert not Index('stats-file-download', using=es).exists()
+    assert not dsl.Index('stats-file-download', using=es).exists()
     # Create the index but without any event. This happens when the events
     # have been indexed but are not yet searchable (before index refresh).
-    Index('events-stats-file-download-2017', using=es).create()
+    dsl.Index('events-stats-file-download-2017', using=es).create()
 
     # Wait for the index to be available
     current_search.flush_and_refresh(index='*')
@@ -141,7 +140,7 @@ def test_aggregation_without_events(app, es):
                    field='file_id',
                    interval='day',
                    query_modifiers=[]).run()
-    assert not Index('stats-file-download', using=es).exists()
+    assert not dsl.Index('stats-file-download', using=es).exists()
 
 
 def test_bookmark_removal(app, es, mock_event_queue):
@@ -176,14 +175,13 @@ def test_bookmark_removal(app, es, mock_event_queue):
     aggregate_and_check_version(1)
     aggregate_and_check_version(1)
     # Delete all bookmarks
-    bookmarks = Search(using=es, index='stats-bookmarks') \
+    bookmarks = dsl.Search(using=es, index='stats-bookmarks') \
         .filter('term', aggregation_type='file-download-agg') \
         .execute()
 
     for bookmark in bookmarks:
         es.delete(
             index=bookmark.meta.index, id=bookmark.meta.id,
-            doc_type=get_doctype(bookmark.meta.doc_type)
         )
 
     current_search.flush_and_refresh(index='*')
@@ -201,8 +199,8 @@ def test_date_range(app, es, event_queues, indexed_events):
     """Test date ranges."""
     aggregate_events(['file-download-agg'])
     current_search.flush_and_refresh(index='*')
-    query = Search(using=es,
-                   index='stats-file-download')[0:30].sort('file_id')
+    query = dsl.Search(using=es,
+                       index='stats-file-download')[0:30].sort('file_id')
     results = query.execute()
 
     total_count = 0
@@ -232,7 +230,7 @@ def test_filter_robots(app, es, event_queues, indexed_events, with_robots):
                    interval='day',
                    query_modifiers=query_modifiers).run()
     current_search.flush_and_refresh(index='*')
-    query = Search(using=es, index='stats-file-download')[0:30] \
+    query = dsl.Search(using=es, index='stats-file-download')[0:30] \
         .sort('file_id')
     results = query.execute()
     assert len(results) == 3
@@ -271,7 +269,7 @@ def test_metric_aggregations(app, es, event_queues):
     stat_agg.run()
     current_search.flush_and_refresh(index='*')
 
-    query = Search(using=es, index='stats-file-download')
+    query = dsl.Search(using=es, index='stats-file-download')
     results = query.execute()
     assert len(results) == 1
     assert results[0].count == 12  # 3 views over 4 differnet hour slices
