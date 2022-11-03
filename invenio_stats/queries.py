@@ -89,8 +89,8 @@ class ESDateHistogramQuery(ESQuery):
             'geo_centroid', 'percentiles', 'stats'}
         if any(v not in self.allowed_metrics
                for k, (v, _, _) in (self.metric_fields or {}).items()):
-            raise(ValueError('Metric type should be one of [{}]'
-                             .format(', '.join(self.allowed_metrics))))
+            raise (ValueError('Metric type should be one of [{}]'
+                              .format(', '.join(self.allowed_metrics))))
 
     def validate_arguments(self, interval, start_date, end_date, **kwargs):
         """Validate query arguments."""

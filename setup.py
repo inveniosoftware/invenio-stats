@@ -70,6 +70,10 @@ install_requires = [
     'maxminddb-geolite2>=2017.0404',
     'python-dateutil>=2.6.1',
     'python-geoip>=1.2',
+
+    'flask>=1.0,<=2.0.3',
+    'werkzeug>=1.0,<=2.0.3',
+    'flask-login>=0.4.1,<0.5',
 ]
 
 packages = find_packages()

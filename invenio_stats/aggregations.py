@@ -239,13 +239,13 @@ class StatAggregator(object):
 
         if any(v not in ALLOWED_METRICS
                for k, (v, _, _) in self.metric_fields.items()):
-            raise(ValueError('Metric aggregation type should be one of [{}]'
-                             .format(', '.join(ALLOWED_METRICS))))
+            raise (ValueError('Metric aggregation type should be one of [{}]'
+                              .format(', '.join(ALLOWED_METRICS))))
 
         if list(SUPPORTED_INTERVALS.keys()).index(interval) \
                 > list(SUPPORTED_INTERVALS.keys()).index(index_interval):
-            raise(ValueError('Aggregation interval should be'
-                             ' shorter than index interval'))
+            raise (ValueError('Aggregation interval should be'
+                              ' shorter than index interval'))
 
     def _get_oldest_event_timestamp(self):
         """Search for the oldest event timestamp."""
