@@ -431,7 +431,7 @@ from .proxies import current_stats
 __version__ = "1.0.0a18"
 
 __all__ = (
-    '__version__',
-    'current_stats',
-    'InvenioStats',
+    "__version__",
+    "current_stats",
+    "InvenioStats",
 )

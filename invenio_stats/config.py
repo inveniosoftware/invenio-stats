@@ -66,8 +66,8 @@ access control mechanisms.
 
 
 STATS_MQ_EXCHANGE = Exchange(
-    'events',
-    type='direct',
-    delivery_mode='transient',  # in-memory queue
+    "events",
+    type="direct",
+    delivery_mode="transient",  # in-memory queue
 )
 """Default exchange used for the message queues."""

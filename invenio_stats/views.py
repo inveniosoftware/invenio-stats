@@ -17,29 +17,29 @@ from .proxies import current_stats
 from .utils import current_user
 
 blueprint = Blueprint(
-    'invenio_stats',
+    "invenio_stats",
     __name__,
-    url_prefix='/stats',
+    url_prefix="/stats",
 )
 
 
 class StatsQueryResource(ContentNegotiatedMethodView):
     """REST API resource providing access to statistics."""
 
-    view_name = 'stat_query'
+    view_name = "stat_query"
 
     def __init__(self, **kwargs):
         """Constructor."""
         super(StatsQueryResource, self).__init__(
             serializers={
-                'application/json':
-                lambda data, *args, **kwargs: jsonify(data),
+                "application/json": lambda data, *args, **kwargs: jsonify(data),
             },
             default_method_media_type={
-                'GET': 'application/json',
+                "GET": "application/json",
             },
-            default_media_type='application/json',
-            **kwargs)
+            default_media_type="application/json",
+            **kwargs
+        )
 
     def post(self, **kwargs):
         """Get statistics."""
@@ -49,37 +49,52 @@ class StatsQueryResource(ContentNegotiatedMethodView):
 
         result = {}
         for query_name, config in data.items():
-            if config is None or not isinstance(config, dict) \
-                    or (set(config.keys()) != {'stat', 'params'} and
-                        set(config.keys()) != {'stat'}):
+            if (
+                config is None
+                or not isinstance(config, dict)
+                or (
+                    set(config.keys()) != {"stat", "params"}
+                    and set(config.keys()) != {"stat"}
+                )
+            ):
+                # 'config' has to be a dictionary with mandatory 'stat' key and
+                # optional 'params' key, and nothing else
                 raise InvalidRequestInputError(
-                    'Invalid Input. It should be of the form '
+                    "Invalid Input. It should be of the form "
                     '{ STATISTIC_NAME: { "stat": STAT_TYPE, '
                     '"params": STAT_PARAMS }}'
                 )
-            stat = config['stat']
-            params = config.get('params', {})
+
+            stat = config["stat"]
+            params = config.get("params", {})
             try:
                 query_cfg = current_stats.queries[stat]
             except KeyError:
                 raise UnknownQueryError(stat)
+
             permission = current_stats.permission_factory(stat, params)
             if permission is not None and not permission.can():
-                message = ('You do not have a permission to query the '
-                           'statistic "{}" with those '
-                           'parameters'.format(stat))
+                message = (
+                    "You do not have a permission to query the "
+                    'statistic "{}" with those '
+                    "parameters".format(stat)
+                )
+
                 if current_user.is_authenticated:
                     abort(403, message)
+
                 abort(401, message)
+
             try:
                 query = query_cfg.cls(name=query_name, **query_cfg.params)
                 result[query_name] = query.run(**params)
+
             except ValueError as e:
                 raise InvalidRequestInputError(e.args[0])
             except search.exceptions.NotFoundError:
                 # In case there is no index or value for the metric we return 0
-                result[query_name] = dict.fromkeys(
-                    query.metric_fields.keys(), 0)
+                result[query_name] = dict.fromkeys(query.metric_fields.keys(), 0)
+
         return self.make_response(result)
 
 
@@ -88,6 +103,6 @@ stats_view = StatsQueryResource.as_view(
 )
 
 blueprint.add_url_rule(
-    '',
+    "",
     view_func=stats_view,
 )

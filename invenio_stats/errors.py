@@ -36,6 +36,7 @@ class DuplicateAggregationError(Exception):
 class DuplicateQueryError(Exception):
     """Error raised when a duplicate aggregation is detected."""
 
+
 ##
 #  Aggregation errors
 ##
@@ -48,6 +49,7 @@ class NotSupportedInterval(Exception):
 ##
 #  Query errors
 ##
+
 
 class InvalidRequestInputError(RESTException):
     """Error raised when the request input is invalid."""
@@ -70,5 +72,6 @@ class UnknownQueryError(RESTException):
         """
         super(RESTException, self).__init__()
         self.query_name = query_name
-        self.description = 'Unknown statistic \'{}\''.format(query_name)
+        self.description = "Unknown statistic '{}'".format(query_name)
+
     code = 400

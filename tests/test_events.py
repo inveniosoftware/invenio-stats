@@ -27,7 +27,7 @@ def test_event_queues_declare(app):
 def test_publish_and_consume_events(app):
     """Test that events are published and consumed properly."""
     try:
-        event_type = 'file-download'
+        event_type = "file-download"
         events = [{"payload": "test {}".format(idx)} for idx in range(3)]
         current_queues.declare()
         current_stats.publish(event_type, events)

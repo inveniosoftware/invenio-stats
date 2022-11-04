@@ -11,8 +11,10 @@
 import datetime
 from unittest.mock import patch
 
-from invenio_stats.contrib.event_builders import file_download_event_builder, \
-    record_view_event_builder
+from invenio_stats.contrib.event_builders import (
+    file_download_event_builder,
+    record_view_event_builder,
+)
 from invenio_stats.utils import get_user
 
 
@@ -22,21 +24,21 @@ class NewDate(datetime.datetime):
         return cls(2017, 1, 1)
 
 
-headers = {'USER_AGENT':
-           'Mozilla/5.0 (Windows NT 6.1; WOW64) '
-           'AppleWebKit/537.36 (KHTML, like Gecko)'
-           'Chrome/45.0.2454.101 Safari/537.36'}
+headers = {
+    "USER_AGENT": "Mozilla/5.0 (Windows NT 6.1; WOW64) "
+    "AppleWebKit/537.36 (KHTML, like Gecko)"
+    "Chrome/45.0.2454.101 Safari/537.36"
+}
 
 
-def test_file_download_event_builder(app, mock_user_ctx,
-                                     sequential_ids, objects):
+def test_file_download_event_builder(app, mock_user_ctx, sequential_ids, objects):
     """Test the file-download event builder."""
     file_obj = objects[0]
     file_obj.bucket_id = sequential_ids[0]
 
     with app.test_request_context(headers=headers):
         event = {}
-        with patch('datetime.datetime', NewDate):
+        with patch("datetime.datetime", NewDate):
             file_download_event_builder(event, app, file_obj)
         assert event == dict(
             # When:
@@ -56,7 +58,7 @@ def test_record_view_event_builder(app, mock_user_ctx, record, pid):
     """Test the record view event builder."""
     with app.test_request_context(headers=headers):
         event = {}
-        with patch('datetime.datetime', NewDate):
+        with patch("datetime.datetime", NewDate):
             record_view_event_builder(event, app, pid, record)
         assert event == dict(
             # When:

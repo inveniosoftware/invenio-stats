@@ -24,12 +24,13 @@ from werkzeug.utils import import_string
 
 def get_anonymization_salt(ts):
     """Get the anonymization salt based on the event timestamp's day."""
-    salt_key = 'stats:salt:{}'.format(ts.date().isoformat())
+    salt_key = "stats:salt:{}".format(ts.date().isoformat())
     salt = current_cache.get(salt_key)
     if not salt:
         salt_bytes = os.urandom(32)
-        salt = b64encode(salt_bytes).decode('utf-8')
+        salt = b64encode(salt_bytes).decode("utf-8")
         current_cache.set(salt_key, salt, timeout=60 * 60 * 24)
+
     return salt
 
 
@@ -45,14 +46,15 @@ def get_bucket_size(client, index, agg_field, start_date=None, end_date=None):
     """
     time_range = {}
     if start_date is not None:
-        time_range['gte'] = start_date
+        time_range["gte"] = start_date
     if end_date is not None:
-        time_range['lte'] = end_date
+        time_range["lte"] = end_date
 
     search = dsl.Search(using=client, index=index)
     if time_range:
-        search = search.filter('range', timestamp=time_range)
-    search.aggs.metric('unique_values', 'cardinality', field=agg_field)
+        search = search.filter("range", timestamp=time_range)
+
+    search.aggs.metric("unique_values", "cardinality", field=agg_field)
 
     result = search.execute()
     unique_values = result.aggregations.unique_values.value
@@ -65,7 +67,7 @@ def get_geoip(ip):
     """Lookup country for IP address."""
     reader = geolite2.reader()
     ip_data = reader.get(ip) or {}
-    return ip_data.get('country', {}).get('iso_code')
+    return ip_data.get("country", {}).get("iso_code")
 
 
 def get_user():
@@ -86,10 +88,8 @@ def get_user():
     return dict(
         ip_address=request.remote_addr,
         user_agent=request.user_agent.string,
-        user_id=(
-            current_user.get_id() if current_user.is_authenticated else None
-        ),
-        session_id=session.get('sid_s')
+        user_id=(current_user.get_id() if current_user.is_authenticated else None),
+        session_id=session.get("sid_s"),
     )
 
 
@@ -117,10 +117,11 @@ def load_or_import_from_config(key, app=None, default=None):
     return obj_or_import_string(imp, default=default)
 
 
-AllowAllPermission = type('Allow', (), {
-    'can': lambda self: True,
-    'allows': lambda *args: True,
-})()
+AllowAllPermission = type(
+    "Allow",
+    (),
+    {"can": lambda self: True, "allows": lambda *args: True},
+)()
 
 
 def default_permission_factory(query_name, params):
@@ -130,9 +131,8 @@ def default_permission_factory(query_name, params):
     permission factory.
     """
     from invenio_stats import current_stats
+
     if current_stats.queries[query_name].permission_factory is None:
         return AllowAllPermission
     else:
-        return current_stats.queries[query_name].permission_factory(
-            query_name, params
-        )
+        return current_stats.queries[query_name].permission_factory(query_name, params)
