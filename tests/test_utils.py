@@ -20,22 +20,21 @@ def myfunc():
 
 def test_get_user(app, mock_users, request_headers):
     """Test the get_user function."""
-    header = request_headers['user']
+    header = request_headers["user"]
     with patch(
-                'invenio_stats.utils.current_user',
-                mock_users['authenticated']
-            ), app.test_request_context(
-                headers=header, environ_base={'REMOTE_ADDR': '142.0.0.1'}
-            ):
+        "invenio_stats.utils.current_user", mock_users["authenticated"]
+    ), app.test_request_context(
+        headers=header, environ_base={"REMOTE_ADDR": "142.0.0.1"}
+    ):
         user = get_user()
-    assert user['user_id'] == mock_users['authenticated'].get_id()
-    assert user['user_agent'] == header['USER_AGENT']
-    assert user['ip_address'] == '142.0.0.1'
+    assert user["user_id"] == mock_users["authenticated"].get_id()
+    assert user["user_agent"] == header["USER_AGENT"]
+    assert user["ip_address"] == "142.0.0.1"
 
 
 def test_get_geoip():
     """Test looking up IP address."""
-    assert get_geoip("74.125.67.100") == 'US'
+    assert get_geoip("74.125.67.100") == "US"
 
 
 def test_obj_or_import_string(app):

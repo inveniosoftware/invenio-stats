@@ -15,40 +15,55 @@ import pytest
 from invenio_stats.queries import ESDateHistogramQuery, ESTermsQuery
 
 
-@pytest.mark.parametrize('aggregated_events',
-                         [dict(file_number=1,
-                               event_number=2,
-                               start_date=datetime.date(2017, 1, 1),
-                               end_date=datetime.date(2017, 1, 7))],
-                         indirect=['aggregated_events'])
+@pytest.mark.parametrize(
+    "aggregated_events",
+    [
+        dict(
+            file_number=1,
+            event_number=2,
+            start_date=datetime.date(2017, 1, 1),
+            end_date=datetime.date(2017, 1, 7),
+        )
+    ],
+    indirect=["aggregated_events"],
+)
 def test_histogram_query(app, event_queues, aggregated_events, queries_config):
     """Test histogram query daily results."""
     # reading the configuration as it is registered from registrations.py
     histo_query = ESDateHistogramQuery(
-        name='test_histo',
-        **queries_config['bucket-file-download-histogram']['params']
+        name="test_histo", **queries_config["bucket-file-download-histogram"]["params"]
     )
-    results = histo_query.run(bucket_id='B0000000000000000000000000000001',
-                              file_key='test.pdf',
-                              start_date=datetime.datetime(2017, 1, 1),
-                              end_date=datetime.datetime(2017, 1, 7))
-    for day_result in results['buckets']:
-        assert int(day_result['value']) == 2
+    results = histo_query.run(
+        bucket_id="B0000000000000000000000000000001",
+        file_key="test.pdf",
+        start_date=datetime.datetime(2017, 1, 1),
+        end_date=datetime.datetime(2017, 1, 7),
+    )
+    for day_result in results["buckets"]:
+        assert int(day_result["value"]) == 2
 
 
-@pytest.mark.parametrize('aggregated_events',
-                         [dict(file_number=1,
-                               event_number=7,
-                               start_date=datetime.date(2017, 1, 1),
-                               end_date=datetime.date(2017, 1, 7))],
-                         indirect=['aggregated_events'])
+@pytest.mark.parametrize(
+    "aggregated_events",
+    [
+        dict(
+            file_number=1,
+            event_number=7,
+            start_date=datetime.date(2017, 1, 1),
+            end_date=datetime.date(2017, 1, 7),
+        )
+    ],
+    indirect=["aggregated_events"],
+)
 def test_terms_query(app, event_queues, aggregated_events, queries_config):
     """Test that the terms query returns the correct total count."""
     terms_query = ESTermsQuery(
-        name='test_total_count',
-        **queries_config['bucket-file-download-total']['params']
+        name="test_total_count",
+        **queries_config["bucket-file-download-total"]["params"]
     )
-    results = terms_query.run(bucket_id='B0000000000000000000000000000001',
-                              start_date=datetime.datetime(2017, 1, 1),
-                              end_date=datetime.datetime(2017, 1, 7))
-    assert int(results['buckets'][0]['value']) == 49
+    results = terms_query.run(
+        bucket_id="B0000000000000000000000000000001",
+        start_date=datetime.datetime(2017, 1, 1),
+        end_date=datetime.datetime(2017, 1, 7),
+    )
+    assert int(results["buckets"][0]["value"]) == 49

@@ -18,17 +18,18 @@ from invenio_stats import InvenioStats
 def test_version():
     """Test version import."""
     from invenio_stats import __version__
+
     assert __version__
 
 
 def test_init():
     """Test extension initialization."""
-    app = Flask('testapp')
+    app = Flask("testapp")
     ext = InvenioStats(app)
-    assert 'invenio-stats' in app.extensions
+    assert "invenio-stats" in app.extensions
 
-    app = Flask('testapp')
+    app = Flask("testapp")
     ext = InvenioStats()
-    assert 'invenio-stats' not in app.extensions
+    assert "invenio-stats" not in app.extensions
     ext.init_app(app)
-    assert 'invenio-stats' in app.extensions
+    assert "invenio-stats" in app.extensions

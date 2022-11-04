@@ -98,19 +98,21 @@ from invenio_stats.views import blueprint
 
 # Create Flask application
 app = Flask(__name__)
-app.config.update(dict(
-    BROKER_URL='redis://',
-    CELERY_RESULT_BACKEND='redis://',
-    DATADIR=os.path.join(os.path.dirname(__file__), 'data'),
-    FILES_REST_MULTIPART_CHUNKSIZE_MIN=4,
-    REST_ENABLE_CORS=True,
-    SECRET_KEY='CHANGEME',
-    SQLALCHEMY_ECHO=False,
-    SQLALCHEMY_DATABASE_URI=os.environ.get(
-        'SQLALCHEMY_DATABASE_URI', 'sqlite:///test.db'
-    ),
-    SQLALCHEMY_TRACK_MODIFICATIONS=True,
-))
+app.config.update(
+    dict(
+        BROKER_URL="redis://",
+        CELERY_RESULT_BACKEND="redis://",
+        DATADIR=os.path.join(os.path.dirname(__file__), "data"),
+        FILES_REST_MULTIPART_CHUNKSIZE_MIN=4,
+        REST_ENABLE_CORS=True,
+        SECRET_KEY="CHANGEME",
+        SQLALCHEMY_ECHO=False,
+        SQLALCHEMY_DATABASE_URI=os.environ.get(
+            "SQLALCHEMY_DATABASE_URI", "sqlite:///test.db"
+        ),
+        SQLALCHEMY_TRACK_MODIFICATIONS=True,
+    )
+)
 
 InvenioREST(app)
 InvenioStats(app)
@@ -125,20 +127,23 @@ def fixtures():
     """Command for working with test data."""
 
 
-def publish_filedownload(nb_events, user_id, file_key,
-                         file_id, bucket_id, date):
-    current_stats.publish('file-download', [dict(
-        # When:
-        timestamp=(
-            date + timedelta(minutes=idx)
-        ).isoformat(),
-        # What:
-        bucket_id=str(bucket_id),
-        file_key=file_key,
-        file_id=file_id,
-        # Who:
-        user_id=str(user_id)
-    ) for idx in range(nb_events)])
+def publish_filedownload(nb_events, user_id, file_key, file_id, bucket_id, date):
+    current_stats.publish(
+        "file-download",
+        [
+            dict(
+                # When:
+                timestamp=(date + timedelta(minutes=idx)).isoformat(),
+                # What:
+                bucket_id=str(bucket_id),
+                file_key=file_key,
+                file_id=file_id,
+                # Who:
+                user_id=str(user_id),
+            )
+            for idx in range(nb_events)
+        ],
+    )
 
 
 @fixtures.command()
@@ -149,19 +154,21 @@ def events():
     max_events = 10
     random.seed(42)
     for _ in range(nb_days):
-        publish_filedownload(random.randrange(1, max_events),
-                             1, 'file1.txt', 1, 20, day)
-        publish_filedownload(random.randrange(1, max_events),
-                             1, 'file2.txt', 2, 20, day)
+        publish_filedownload(
+            random.randrange(1, max_events), 1, "file1.txt", 1, 20, day
+        )
+        publish_filedownload(
+            random.randrange(1, max_events), 1, "file2.txt", 2, 20, day
+        )
         day = day + timedelta(days=1)
 
-    process_events(['file-download'])
+    process_events(["file-download"])
     # flush elasticsearch indices so that the events become searchable
-    current_search_client.indices.flush(index='*')
+    current_search_client.indices.flush(index="*")
 
 
 @fixtures.command()
 def aggregations():
-    aggregate_events(['file-download-agg'])
+    aggregate_events(["file-download-agg"])
     # flush elasticsearch indices so that the aggregations become searchable
-    current_search_client.indices.flush(index='*')
+    current_search_client.indices.flush(index="*")

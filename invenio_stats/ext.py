@@ -19,14 +19,11 @@ from . import config
 from .receivers import register_receivers
 from .utils import load_or_import_from_config, obj_or_import_string
 
-_Event = namedtuple(
-    'Event', ['name', 'queue', 'templates', 'cls', 'params'])
+_Event = namedtuple("Event", ["name", "queue", "templates", "cls", "params"])
 
-_Aggregation = namedtuple(
-    'Aggregation', ['name', 'templates', 'cls', 'params'])
+_Aggregation = namedtuple("Aggregation", ["name", "templates", "cls", "params"])
 
-_Query = namedtuple(
-    'Query', ['name', 'cls', 'permission_factory', 'params'])
+_Query = namedtuple("Query", ["name", "cls", "permission_factory", "params"])
 
 
 class _InvenioStatsState(object):
@@ -34,19 +31,19 @@ class _InvenioStatsState(object):
 
     def __init__(self, app):
         self.app = app
-        self.exchange = app.config['STATS_MQ_EXCHANGE']
+        self.exchange = app.config["STATS_MQ_EXCHANGE"]
 
     @property
     def events_config(self):
-        return self.app.config['STATS_EVENTS']
+        return self.app.config["STATS_EVENTS"]
 
     @property
     def aggregations_config(self):
-        return self.app.config['STATS_AGGREGATIONS']
+        return self.app.config["STATS_AGGREGATIONS"]
 
     @property
     def queries_config(self):
-        return self.app.config['STATS_QUERIES']
+        return self.app.config["STATS_QUERIES"]
 
     @cached_property
     def events(self):
@@ -57,14 +54,15 @@ class _InvenioStatsState(object):
             if callable(event):
                 event = event(self.app)
 
-            queue = current_queues.queues['stats-{}'.format(name)]
+            queue = current_queues.queues["stats-{}".format(name)]
             result[name] = _Event(
                 name=name,
                 queue=queue,
-                templates=event['templates'],
-                cls=obj_or_import_string(event['cls']),
-                params=dict(queue=queue, **event.get('params', {})),
+                templates=event["templates"],
+                cls=obj_or_import_string(event["cls"]),
+                params=dict(queue=queue, **event.get("params", {})),
             )
+
         return result
 
     @cached_property
@@ -78,10 +76,11 @@ class _InvenioStatsState(object):
 
             result[name] = _Aggregation(
                 name=name,
-                templates=agg['templates'],
-                cls=obj_or_import_string(agg['cls']),
-                params=agg.get('params', {})
+                templates=agg["templates"],
+                cls=obj_or_import_string(agg["cls"]),
+                params=agg.get("params", {}),
             )
+
         return result
 
     @cached_property
@@ -95,29 +94,29 @@ class _InvenioStatsState(object):
 
             result[name] = _Query(
                 name=name,
-                cls=obj_or_import_string(query['cls']),
-                params=query.get('params', {}),
-                permission_factory=query.get('permission_factory'),
+                cls=obj_or_import_string(query["cls"]),
+                params=query.get("params", {}),
+                permission_factory=query.get("permission_factory"),
             )
+
         return result
 
     @cached_property
     def permission_factory(self):
         """Load default permission factory for Buckets collections."""
-        return load_or_import_from_config(
-            'STATS_PERMISSION_FACTORY', app=self.app
-        )
+        return load_or_import_from_config("STATS_PERMISSION_FACTORY", app=self.app)
 
     def publish(self, event_type, events):
         """Publish events."""
         assert event_type in self.events
-        current_queues.queues['stats-{}'.format(event_type)].publish(events)
+        current_queues.queues["stats-{}".format(event_type)].publish(events)
 
     def consume(self, event_type, no_ack=True, payload=True):
         """Comsume all pending events."""
         assert event_type in self.events
-        return current_queues.queues['stats-{}'.format(event_type)].consume(
-            payload=payload)
+        return current_queues.queues["stats-{}".format(event_type)].consume(
+            payload=payload
+        )
 
 
 class InvenioStats(object):
@@ -133,11 +132,13 @@ class InvenioStats(object):
         self.init_config(app)
 
         state = _InvenioStatsState(app)
-        self._state = app.extensions['invenio-stats'] = state
-        if app.config['STATS_REGISTER_RECEIVERS']:
-            signal_receivers = {key: value for key, value in
-                                app.config.get('STATS_EVENTS', {}).items()
-                                if 'signal' in value}
+        self._state = app.extensions["invenio-stats"] = state
+        if app.config["STATS_REGISTER_RECEIVERS"]:
+            signal_receivers = {
+                key: value
+                for key, value in app.config.get("STATS_EVENTS", {}).items()
+                if "signal" in value
+            }
             register_receivers(app, signal_receivers)
 
         return state
@@ -145,7 +146,7 @@ class InvenioStats(object):
     def init_config(self, app):
         """Initialize configuration."""
         for k in dir(config):
-            if k.startswith('STATS_'):
+            if k.startswith("STATS_"):
                 app.config.setdefault(k, getattr(config, k))
 
     def __getattr__(self, name):

@@ -46,41 +46,44 @@ def anonymize_user(doc):
     address as a ISO 3166-1 alpha-2 two-letter country code (e.g. "CH" for
     Switzerland).
     """
-    ip = doc.pop('ip_address', None)
+    ip = doc.pop("ip_address", None)
     if ip:
-        doc.update({'country': get_geoip(ip)})
+        doc.update({"country": get_geoip(ip)})
 
-    user_id = doc.pop('user_id', '')
-    session_id = doc.pop('session_id', '')
-    user_agent = doc.pop('user_agent', '')
+    user_id = doc.pop("user_id", "")
+    session_id = doc.pop("session_id", "")
+    user_agent = doc.pop("user_agent", "")
 
     # A 'User Session' is defined as activity by a user in a period of
     # one hour. timeslice represents the hour of the day in which
     # the event has been generated and together with user info it determines
     # the 'User Session'
-    timestamp = parser.parse(doc.get('timestamp'))
-    timeslice = timestamp.strftime('%Y%m%d%H')
+    timestamp = parser.parse(doc.get("timestamp"))
+    timeslice = timestamp.strftime("%Y%m%d%H")
     salt = get_anonymization_salt(timestamp)
 
-    visitor_id = hashlib.sha224(salt.encode('utf-8'))
-    unique_session_id = hashlib.sha224(salt.encode('utf-8'))
-    if user_id:
-        visitor_id.update(user_id.encode('utf-8'))
-        sid = '{}|{}'.format(user_id, timeslice)
-        unique_session_id.update(sid.encode('utf-8'))
-    elif session_id:
-        visitor_id.update(session_id.encode('utf-8'))
-        sid = '{}|{}'.format(session_id, timeslice)
-        unique_session_id.update(sid.encode('utf-8'))
-    elif ip and user_agent:
-        vsid = '{}|{}|{}'.format(ip, user_agent, timeslice)
-        visitor_id.update(vsid.encode('utf-8'))
-        unique_session_id.update(vsid.encode('utf-8'))
+    visitor_id = hashlib.sha224(salt.encode("utf-8"))
+    unique_session_id = hashlib.sha224(salt.encode("utf-8"))
 
-    doc.update(dict(
-        visitor_id=visitor_id.hexdigest(),
-        unique_session_id=unique_session_id.hexdigest()
-    ))
+    if user_id:
+        visitor_id.update(user_id.encode("utf-8"))
+        sid = "{}|{}".format(user_id, timeslice)
+        unique_session_id.update(sid.encode("utf-8"))
+    elif session_id:
+        visitor_id.update(session_id.encode("utf-8"))
+        sid = "{}|{}".format(session_id, timeslice)
+        unique_session_id.update(sid.encode("utf-8"))
+    elif ip and user_agent:
+        vsid = "{}|{}|{}".format(ip, user_agent, timeslice)
+        visitor_id.update(vsid.encode("utf-8"))
+        unique_session_id.update(vsid.encode("utf-8"))
+
+    doc.update(
+        dict(
+            visitor_id=visitor_id.hexdigest(),
+            unique_session_id=unique_session_id.hexdigest(),
+        )
+    )
     return doc
 
 
@@ -94,7 +97,7 @@ def flag_robots(doc):
     into robots and machines by `the Make Data Count project
     <https://github.com/CDLUC3/Make-Data-Count/tree/master/user-agents>`_.
     """
-    doc['is_robot'] = 'user_agent' in doc and is_robot(doc['user_agent'])
+    doc["is_robot"] = "user_agent" in doc and is_robot(doc["user_agent"])
     return doc
 
 
@@ -109,18 +112,19 @@ def flag_machines(doc):
     <https://github.com/CDLUC3/Make-Data-Count/tree/master/user-agents>`_.
 
     """
-    doc['is_machine'] = 'user_agent' in doc and is_machine(doc['user_agent'])
+    doc["is_machine"] = "user_agent" in doc and is_machine(doc["user_agent"])
     return doc
 
 
 def hash_id(iso_timestamp, msg):
     """Generate event id, optimized for ES."""
-    return '{0}-{1}'.format(iso_timestamp,
-                            hashlib.sha1(
-                                msg.get('unique_id').encode('utf-8') +
-                                str(msg.get('visitor_id')).
-                                encode('utf-8')).
-                            hexdigest())
+    return "{0}-{1}".format(
+        iso_timestamp,
+        hashlib.sha1(
+            msg.get("unique_id").encode("utf-8")
+            + str(msg.get("visitor_id")).encode("utf-8")
+        ).hexdigest(),
+    )
 
 
 class EventsIndexer(object):
@@ -132,8 +136,15 @@ class EventsIndexer(object):
     default_preprocessors = [flag_robots, anonymize_user]
     """Default preprocessors ran on every event."""
 
-    def __init__(self, queue, prefix='events', suffix='%Y-%m-%d', client=None,
-                 preprocessors=None, double_click_window=10):
+    def __init__(
+        self,
+        queue,
+        prefix="events",
+        suffix="%Y-%m-%d",
+        client=None,
+        preprocessors=None,
+        double_click_window=10,
+    ):
         """Initialize indexer.
 
         :param prefix: prefix appended to elasticsearch indices' name.
@@ -148,13 +159,15 @@ class EventsIndexer(object):
         """
         self.queue = queue
         self.client = client or current_search_client
-        self.index = prefix_index('{0}-{1}'.format(
-            prefix, self.queue.routing_key))
+        self.index = prefix_index("{0}-{1}".format(prefix, self.queue.routing_key))
         self.suffix = suffix
+
         # load the preprocessors
-        self.preprocessors = [
-            obj_or_import_string(preproc) for preproc in preprocessors
-        ] if preprocessors is not None else self.default_preprocessors
+        self.preprocessors = (
+            [obj_or_import_string(preproc) for preproc in preprocessors]
+            if preprocessors is not None
+            else self.default_preprocessors
+        )
         self.double_click_window = double_click_window
 
     def actionsiter(self):
@@ -167,34 +180,32 @@ class EventsIndexer(object):
                         break
                 if msg is None:
                     continue
-                ts = parser.parse(msg.get('timestamp'))
+
+                ts = parser.parse(msg.get("timestamp"))
                 suffix = ts.strftime(self.suffix)
                 # Truncate timestamp to keep only seconds. This is to improve
                 # elasticsearch performances.
                 ts = ts.replace(microsecond=0)
-                msg['timestamp'] = ts.isoformat()
+                msg["timestamp"] = ts.isoformat()
+
                 # apply timestamp windowing in order to group events too close
                 # in time
                 if self.double_click_window > 0:
                     timestamp = mktime(utc.localize(ts).utctimetuple())
                     ts = ts.fromtimestamp(
-                        timestamp // self.double_click_window *
-                        self.double_click_window
+                        timestamp // self.double_click_window * self.double_click_window
                     )
                 yield dict(
                     _id=hash_id(ts.isoformat(), msg),
-                    _op_type='index',
-                    _index='{0}-{1}'.format(self.index, suffix),
+                    _op_type="index",
+                    _index="{0}-{1}".format(self.index, suffix),
                     _source=msg,
                 )
             except Exception:
-                current_app.logger.exception(u'Error while processing event')
+                current_app.logger.exception("Error while processing event")
 
     def run(self):
         """Process events queue."""
         return search.helpers.bulk(
-            self.client,
-            self.actionsiter(),
-            stats_only=True,
-            chunk_size=50
+            self.client, self.actionsiter(), stats_only=True, chunk_size=50
         )
