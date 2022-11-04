@@ -24,26 +24,14 @@ jobs:
           # a new item to the following lists.
           # You can see the complete list of services and versions that are available at:
           # https://docker-services-cli.readthedocs.io/en/latest/configuration.html
-          python-version: [3.6, 3.7, 3.8]
-          requirements-level: [min, pypi]
+          python-version: [3.7, 3.8, 3.9]
+          requirements-level: [pypi]
           cache-service: [redis]
           mq-service: [rabbitmq]
-          search-service: [elasticsearch6, elasticsearch7]
-
-          exclude:
-          - python-version: 3.8
-            requirements-level: min
-
-          - python-version: 3.9
-            requirements-level: min
-
-          - search-service: elasticsearch7
-            python-version: 3.6
-
+          search-service: [opensearch2, elasticsearch7]
           include:
-
-          - search-service: elasticsearch6
-            SEARCH_EXTRAS: "elasticsearch6"
+          - search-service: opensearch2
+            SEARCH_EXTRAS: "opensearch2"
 
           - search-service: elasticsearch7
             SEARCH_EXTRAS: "elasticsearch7"
