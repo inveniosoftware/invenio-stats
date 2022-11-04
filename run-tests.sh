@@ -2,6 +2,7 @@
 # -*- coding: utf-8 -*-
 #
 # Copyright (C) 2017-2020 CERN.
+# Copyright (C) 2022      TU Wien.
 #
 # Invenio is free software; you can redistribute it and/or modify it
 # under the terms of the MIT License; see LICENSE file for more details.
@@ -18,7 +19,7 @@ function cleanup() {
 }
 trap cleanup EXIT
 
-python -m check_manifest --ignore ".*-requirements.txt"
+python -m check_manifest
 python -m sphinx.cmd.build -qnNW docs docs/_build/html
 # TODO: Remove services below that are not neeed (fix also the usage note).
 eval "$(docker-services-cli up --search "${SEARCH:-opensearch}" --mq "${MQ:-rabbitmq}" --cache "${CACHE:-redis}" --env)"
