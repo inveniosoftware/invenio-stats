@@ -427,7 +427,8 @@ from __future__ import absolute_import, print_function
 
 from .ext import InvenioStats
 from .proxies import current_stats
-from .version import __version__
+
+__version__ = "1.0.0a18"
 
 __all__ = (
     '__version__',
