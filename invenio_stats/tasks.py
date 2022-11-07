@@ -2,13 +2,12 @@
 #
 # This file is part of Invenio.
 # Copyright (C) 2016-2018 CERN.
+# Copyright (C)      2022 TU Wien.
 #
 # Invenio is free software; you can redistribute it and/or modify it
 # under the terms of the MIT License; see LICENSE file for more details.
 
 """Celery background tasks."""
-
-from __future__ import absolute_import, print_function
 
 from celery import shared_task
 from dateutil.parser import parse as dateutil_parse
