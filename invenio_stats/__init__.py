@@ -2,6 +2,7 @@
 #
 # This file is part of Invenio.
 # Copyright (C) 2017-2018 CERN.
+# Copyright (C)      2022 TU Wien.
 #
 # Invenio is free software; you can redistribute it and/or modify it
 # under the terms of the MIT License; see LICENSE file for more details.
@@ -422,8 +423,6 @@ possible to return statistics by just running an SQL query on the database.
 Invenio-Stats provides some default statistics which can be found in
 :py:mod:`invenio_stats.contrib.event_builders`.
 """
-
-from __future__ import absolute_import, print_function
 
 from .ext import InvenioStats
 from .proxies import current_stats
