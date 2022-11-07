@@ -15,7 +15,7 @@ from .proxies import current_stats
 from .utils import obj_or_import_string
 
 
-class EventEmmiter(object):
+class EventEmitter(object):
     """Receive a signal and send an event."""
 
     def __init__(self, name, builders):
@@ -49,4 +49,8 @@ def register_receivers(app, config):
         ]
 
         signal = obj_or_import_string(event_config["signal"])
-        signal.connect(EventEmmiter(event_name, event_builders), sender=app, weak=False)
+        signal.connect(EventEmitter(event_name, event_builders), sender=app, weak=False)
+
+
+# for backwards compatibility
+EventEmmiter = EventEmitter
