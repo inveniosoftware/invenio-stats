@@ -10,9 +10,9 @@
 """Function registering signal-receiving/event-emitting functions."""
 
 from flask import current_app
+from invenio_base.utils import obj_or_import_string
 
 from .proxies import current_stats
-from .utils import obj_or_import_string
 
 
 class EventEmitter(object):

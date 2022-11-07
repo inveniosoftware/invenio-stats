@@ -10,7 +10,7 @@
 
 from unittest.mock import patch
 
-from invenio_stats.utils import get_geoip, get_user, obj_or_import_string
+from invenio_stats.utils import get_geoip, get_user
 
 
 def myfunc():
@@ -35,9 +35,3 @@ def test_get_user(app, mock_users, request_headers):
 def test_get_geoip():
     """Test looking up IP address."""
     assert get_geoip("74.125.67.100") == "US"
-
-
-def test_obj_or_import_string(app):
-    """Test obj_or_import_string."""
-    assert not obj_or_import_string(value=None)
-    assert myfunc == obj_or_import_string(value=myfunc)

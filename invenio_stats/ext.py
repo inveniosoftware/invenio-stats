@@ -11,12 +11,12 @@
 
 from collections import namedtuple
 
+from invenio_base.utils import load_or_import_from_config, obj_or_import_string
 from invenio_queues.proxies import current_queues
 from werkzeug.utils import cached_property
 
 from . import config
 from .receivers import register_receivers
-from .utils import load_or_import_from_config, obj_or_import_string
 
 _Event = namedtuple("Event", ["name", "queue", "templates", "cls", "params"])
 
