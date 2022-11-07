@@ -15,12 +15,13 @@ from time import mktime
 from counter_robots import is_machine, is_robot
 from dateutil import parser
 from flask import current_app
+from invenio_base.utils import obj_or_import_string
 from invenio_search import current_search_client
 from invenio_search.engine import search
 from invenio_search.utils import prefix_index
 from pytz import utc
 
-from .utils import get_anonymization_salt, get_geoip, obj_or_import_string
+from .utils import get_anonymization_salt, get_geoip
 
 
 def anonymize_user(doc):
