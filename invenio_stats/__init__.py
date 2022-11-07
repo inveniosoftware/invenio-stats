@@ -224,7 +224,7 @@ Having multiple Elasticsearch indices enables the system administrator to
 delete or archive old indices.
 
 2. Aggregating
-^^^^^^^^^^^^^^
+~~~~~~~~~~~~~~
 
 The :py:class:`~invenio_stats.processors.EventsIndexer` processor indexes raw
 events. Querying those events can put a big strain on the Elasticsearch
