@@ -98,19 +98,19 @@ from invenio_stats.views import blueprint
 # Create Flask application
 app = Flask(__name__)
 app.config.update(
-    dict(
-        BROKER_URL="redis://",
-        CELERY_RESULT_BACKEND="redis://",
-        DATADIR=os.path.join(os.path.dirname(__file__), "data"),
-        FILES_REST_MULTIPART_CHUNKSIZE_MIN=4,
-        REST_ENABLE_CORS=True,
-        SECRET_KEY="CHANGEME",
-        SQLALCHEMY_ECHO=False,
-        SQLALCHEMY_DATABASE_URI=os.environ.get(
+    {
+        "BROKER_URL": "redis://",
+        "CELERY_RESULT_BACKEND": "redis://",
+        "DATADIR": os.path.join(os.path.dirname(__file__), "data"),
+        "FILES_REST_MULTIPART_CHUNKSIZE_MIN": 4,
+        "REST_ENABLE_CORS": True,
+        "SECRET_KEY": "CHANGEME",
+        "SQLALCHEMY_ECHO": False,
+        "SQLALCHEMY_DATABASE_URI": os.environ.get(
             "SQLALCHEMY_DATABASE_URI", "sqlite:///test.db"
         ),
-        SQLALCHEMY_TRACK_MODIFICATIONS=True,
-    )
+        "SQLALCHEMY_TRACK_MODIFICATIONS": True,
+    }
 )
 
 InvenioREST(app)
@@ -130,16 +130,16 @@ def publish_filedownload(nb_events, user_id, file_key, file_id, bucket_id, date)
     current_stats.publish(
         "file-download",
         [
-            dict(
+            {
                 # When:
-                timestamp=(date + timedelta(minutes=idx)).isoformat(),
+                "timestamp": (date + timedelta(minutes=idx)).isoformat(),
                 # What:
-                bucket_id=str(bucket_id),
-                file_key=file_key,
-                file_id=file_id,
+                "bucket_id": str(bucket_id),
+                "file_key": file_key,
+                "file_id": file_id,
                 # Who:
-                user_id=str(user_id),
-            )
+                "user_id": str(user_id),
+            }
             for idx in range(nb_events)
         ],
     )

@@ -18,12 +18,12 @@ def test_process_events(app, es, event_queues):
     current_stats.publish(
         "file-download",
         [
-            dict(
-                timestamp="2017-01-01T00:00:00",
-                visitor_id="testuser1",
-                unique_id="2017-01-01T00:00:00-hash",
-                data="val",
-            )
+            {
+                "timestamp": "2017-01-01T00:00:00",
+                "visitor_id": "testuser1",
+                "unique_id": "2017-01-01T00:00:00-hash",
+                "data": "val",
+            }
         ],
     )
     process_events.delay(["file-download"])

@@ -84,12 +84,12 @@ def get_user():
 
        The information is then discarded.
     """
-    return dict(
-        ip_address=request.remote_addr,
-        user_agent=request.user_agent.string,
-        user_id=(current_user.get_id() if current_user.is_authenticated else None),
-        session_id=session.get("sid_s"),
-    )
+    return {
+        "ip_address": request.remote_addr,
+        "user_agent": request.user_agent.string,
+        "user_id": (current_user.get_id() if current_user.is_authenticated else None),
+        "session_id": session.get("sid_s"),
+    }
 
 
 def obj_or_import_string(value, default=None):

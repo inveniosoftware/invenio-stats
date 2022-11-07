@@ -18,12 +18,12 @@ from invenio_stats.queries import ESDateHistogramQuery, ESTermsQuery
 @pytest.mark.parametrize(
     "aggregated_events",
     [
-        dict(
-            file_number=1,
-            event_number=2,
-            start_date=datetime.date(2017, 1, 1),
-            end_date=datetime.date(2017, 1, 7),
-        )
+        {
+            "file_number": 1,
+            "event_number": 2,
+            "start_date": datetime.date(2017, 1, 1),
+            "end_date": datetime.date(2017, 1, 7),
+        }
     ],
     indirect=["aggregated_events"],
 )
@@ -46,12 +46,12 @@ def test_histogram_query(app, event_queues, aggregated_events, queries_config):
 @pytest.mark.parametrize(
     "aggregated_events",
     [
-        dict(
-            file_number=1,
-            event_number=7,
-            start_date=datetime.date(2017, 1, 1),
-            end_date=datetime.date(2017, 1, 7),
-        )
+        {
+            "file_number": 1,
+            "event_number": 7,
+            "start_date": datetime.date(2017, 1, 1),
+            "end_date": datetime.date(2017, 1, 7),
+        }
     ],
     indirect=["aggregated_events"],
 )

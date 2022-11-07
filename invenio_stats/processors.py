@@ -78,10 +78,10 @@ def anonymize_user(doc):
         unique_session_id.update(vsid.encode("utf-8"))
 
     doc.update(
-        dict(
-            visitor_id=visitor_id.hexdigest(),
-            unique_session_id=unique_session_id.hexdigest(),
-        )
+        {
+            "visitor_id": visitor_id.hexdigest(),
+            "unique_session_id": unique_session_id.hexdigest(),
+        }
     )
     return doc
 
@@ -194,12 +194,12 @@ class EventsIndexer(object):
                     ts = ts.fromtimestamp(
                         timestamp // self.double_click_window * self.double_click_window
                     )
-                yield dict(
-                    _id=hash_id(ts.isoformat(), msg),
-                    _op_type="index",
-                    _index="{0}-{1}".format(self.index, suffix),
-                    _source=msg,
-                )
+                yield {
+                    "_id": hash_id(ts.isoformat(), msg),
+                    "_op_type": "index",
+                    "_index": "{0}-{1}".format(self.index, suffix),
+                    "_source": msg,
+                }
             except Exception:
                 current_app.logger.exception("Error while processing event")
 

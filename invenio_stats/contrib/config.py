@@ -42,20 +42,20 @@ EVENTS_CONFIG = {
 }
 
 AGGREGATIONS_CONFIG = {
-    "file-download-agg": dict(
-        templates="invenio_stats.contrib.aggregations.aggr_file_download",
-        cls=StatAggregator,
-        params=dict(
-            event="file-download",
-            field="unique_id",
-            interval="day",
-            index_interval="month",
-            copy_fields=dict(
-                file_key="file_key",
-                bucket_id="bucket_id",
-                file_id="file_id",
-            ),
-            metric_fields={
+    "file-download-agg": {
+        "templates": "invenio_stats.contrib.aggregations.aggr_file_download",
+        "cls": StatAggregator,
+        "params": {
+            "event": "file-download",
+            "field": "unique_id",
+            "interval": "day",
+            "index_interval": "month",
+            "copy_fields": {
+                "file_key": "file_key",
+                "bucket_id": "bucket_id",
+                "file_id": "file_id",
+            },
+            "metric_fields": {
                 "unique_count": (
                     "cardinality",
                     "unique_session_id",
@@ -63,30 +63,30 @@ AGGREGATIONS_CONFIG = {
                 ),
                 "volume": ("sum", "size", {}),
             },
-        ),
-    ),
-    "record-view-agg": dict(
-        templates="invenio_stats.contrib.aggregations.aggr_record_view",
-        cls=StatAggregator,
-        params=dict(
-            event="record-view",
-            field="unique_id",
-            interval="day",
-            index_interval="month",
-            copy_fields=dict(
-                record_id="record_id",
-                pid_type="pid_type",
-                pid_value="pid_value",
-            ),
-            metric_fields={
+        },
+    },
+    "record-view-agg": {
+        "templates": "invenio_stats.contrib.aggregations.aggr_record_view",
+        "cls": StatAggregator,
+        "params": {
+            "event": "record-view",
+            "field": "unique_id",
+            "interval": "day",
+            "index_interval": "month",
+            "copy_fields": {
+                "record_id": "record_id",
+                "pid_type": "pid_type",
+                "pid_value": "pid_value",
+            },
+            "metric_fields": {
                 "unique_count": (
                     "cardinality",
                     "unique_session_id",
                     {"precision_threshold": 1000},
                 ),
             },
-        ),
-    ),
+        },
+    },
 }
 
 

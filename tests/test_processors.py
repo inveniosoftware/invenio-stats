@@ -312,12 +312,12 @@ def test_events_indexer_preprocessors(app, mock_event_queue):
         event = test_preprocessor2(event)
         _id = hash_id("2017-01-01T00:00:00", event)
         expected_docs.append(
-            dict(
-                _id=_id,
-                _op_type="index",
-                _index="events-stats-file-download-2017-01-01",
-                _source=event,
-            )
+            {
+                "_id": _id,
+                "_op_type": "index",
+                "_index": "events-stats-file-download-2017-01-01",
+                "_source": event,
+            }
         )
 
     assert received_docs == expected_docs

@@ -93,13 +93,13 @@ def test_events_process(es, script_info, event_queues):
 @pytest.mark.parametrize(
     "indexed_events",
     [
-        dict(
-            file_number=1,
-            event_number=1,
-            robot_event_number=0,
-            start_date=datetime.date(2018, 1, 1),
-            end_date=datetime.date(2018, 2, 15),
-        )
+        {
+            "file_number": 1,
+            "event_number": 1,
+            "robot_event_number": 0,
+            "start_date": datetime.date(2018, 1, 1),
+            "end_date": datetime.date(2018, 2, 15),
+        }
     ],
     indirect=["indexed_events"],
 )
@@ -180,13 +180,13 @@ def test_aggregations_process(script_info, event_queues, es, indexed_events):
 @pytest.mark.parametrize(
     "aggregated_events",
     [
-        dict(
-            file_number=1,
-            event_number=1,
-            robot_event_number=0,
-            start_date=datetime.date(2018, 1, 1),
-            end_date=datetime.date(2018, 1, 31),
-        )
+        {
+            "file_number": 1,
+            "event_number": 1,
+            "robot_event_number": 0,
+            "start_date": datetime.date(2018, 1, 1),
+            "end_date": datetime.date(2018, 1, 31),
+        }
     ],
     indirect=["aggregated_events"],
 )
@@ -241,13 +241,13 @@ def test_aggregations_delete(script_info, event_queues, es, aggregated_events):
 @pytest.mark.parametrize(
     "aggregated_events",
     [
-        dict(
-            file_number=1,
-            event_number=1,
-            robot_event_number=0,
-            start_date=datetime.date(2018, 1, 1),
-            end_date=datetime.date(2018, 1, 31),
-        )
+        {
+            "file_number": 1,
+            "event_number": 1,
+            "robot_event_number": 0,
+            "start_date": datetime.date(2018, 1, 1),
+            "end_date": datetime.date(2018, 1, 31),
+        }
     ],
     indirect=["aggregated_events"],
 )
