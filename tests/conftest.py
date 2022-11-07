@@ -116,32 +116,32 @@ def queries_config(app, custom_permission_factory):
     stats_queries = deepcopy(QUERIES_CONFIG)
     stats_queries.update(
         {
-            "test-query": dict(
-                cls=CustomQuery,
-                params=dict(
-                    index="stats-file-download",
-                    copy_fields=dict(
-                        bucket_id="bucket_id",
-                    ),
-                    required_filters=dict(
-                        bucket_id="bucket_id",
-                    ),
-                ),
-                permission_factory=custom_permission_factory,
-            ),
-            "test-query2": dict(
-                cls=CustomQuery,
-                params=dict(
-                    index="stats-file-download",
-                    copy_fields=dict(
-                        bucket_id="bucket_id",
-                    ),
-                    required_filters=dict(
-                        bucket_id="bucket_id",
-                    ),
-                ),
-                permission_factory=custom_permission_factory,
-            ),
+            "test-query": {
+                "cls": CustomQuery,
+                "params": {
+                    "index": "stats-file-download",
+                    "copy_fields": {
+                        "bucket_id": "bucket_id",
+                    },
+                    "required_filters": {
+                        "bucket_id": "bucket_id",
+                    },
+                },
+                "permission_factory": custom_permission_factory,
+            },
+            "test-query2": {
+                "cls": CustomQuery,
+                "params": {
+                    "index": "stats-file-download",
+                    "copy_fields": {
+                        "bucket_id": "bucket_id",
+                    },
+                    "required_filters": {
+                        "bucket_id": "bucket_id",
+                    },
+                },
+                "permission_factory": custom_permission_factory,
+            },
         }
     )
 
@@ -159,35 +159,35 @@ def base_app(events_config, aggregations_config):
     instance_path = tempfile.mkdtemp()
     app_ = Flask("testapp", instance_path=instance_path)
     app_.config.update(
-        dict(
-            CELERY_ALWAYS_EAGER=True,
-            CELERY_TASK_ALWAYS_EAGER=True,
-            CELERY_CACHE_BACKEND="memory",
-            CELERY_EAGER_PROPAGATES_EXCEPTIONS=True,
-            CELERY_TASK_EAGER_PROPAGATES=True,
-            CELERY_RESULT_BACKEND="cache",
-            SQLALCHEMY_DATABASE_URI=os.environ.get(
+        {
+            "CELERY_ALWAYS_EAGER": True,
+            "CELERY_TASK_ALWAYS_EAGER": True,
+            "CELERY_CACHE_BACKEND": "memory",
+            "CELERY_EAGER_PROPAGATES_EXCEPTIONS": True,
+            "CELERY_TASK_EAGER_PROPAGATES": True,
+            "CELERY_RESULT_BACKEND": "cache",
+            "SQLALCHEMY_DATABASE_URI": os.environ.get(
                 "SQLALCHEMY_DATABASE_URI", "sqlite://"
             ),
-            SQLALCHEMY_TRACK_MODIFICATIONS=True,
+            "SQLALCHEMY_TRACK_MODIFICATIONS": True,
             # Bump the ES client timeout for slower environments (like Travis CI)
-            SEARCH_CLIENT_CONFIG={"timeout": 30, "max_retries": 5},
-            TESTING=True,
-            OAUTH2SERVER_CLIENT_ID_SALT_LEN=64,
-            OAUTH2SERVER_CLIENT_SECRET_SALT_LEN=60,
-            OAUTH2SERVER_TOKEN_PERSONAL_SALT_LEN=60,
-            STATS_MQ_EXCHANGE=Exchange(
+            "SEARCH_CLIENT_CONFIG": {"timeout": 30, "max_retries": 5},
+            "TESTING": True,
+            "OAUTH2SERVER_CLIENT_ID_SALT_LEN": 64,
+            "OAUTH2SERVER_CLIENT_SECRET_SALT_LEN": 60,
+            "OAUTH2SERVER_TOKEN_PERSONAL_SALT_LEN": 60,
+            "STATS_MQ_EXCHANGE": Exchange(
                 "test_events",
                 type="direct",
                 delivery_mode="transient",  # in-memory queue
                 durable=True,
             ),
-            SECRET_KEY="asecretkey",
-            SERVER_NAME="localhost",
-            STATS_QUERIES={},
-            STATS_EVENTS=events_config,
-            STATS_AGGREGATIONS=aggregations_config,
-        )
+            "SECRET_KEY": "asecretkey",
+            "SERVER_NAME": "localhost",
+            "STATS_QUERIES": {},
+            "STATS_EVENTS": events_config,
+            "STATS_AGGREGATIONS": aggregations_config,
+        }
     )
     FlaskCeleryExt(app_)
     InvenioAccounts(app_)
@@ -363,15 +363,15 @@ def mock_user_ctx(mock_users):
 @pytest.fixture()
 def request_headers():
     """Return request headers for normal user and bot."""
-    return dict(
-        user={
+    return {
+        "user": {
             "USER_AGENT": "Mozilla/5.0 (Windows NT 6.1; WOW64) "
             "AppleWebKit/537.36 (KHTML, like Gecko)"
             "Chrome/45.0.2454.101 Safari/537.36"
         },
-        robot={"USER_AGENT": "googlebot"},
-        machine={"USER_AGENT": "Wget/1.14 (linux-gnu)"},
-    )
+        "robot": {"USER_AGENT": "googlebot"},
+        "machine": {"USER_AGENT": "Wget/1.14 (linux-gnu)"},
+    }
 
 
 @pytest.fixture()
@@ -439,17 +439,17 @@ def generate_events(
 
                 def build_event(is_robot=False):
                     ts = next(unique_ts)
-                    return dict(
-                        timestamp=datetime.datetime.combine(
+                    return {
+                        "timestamp": datetime.datetime.combine(
                             entry_date, datetime.time(minute=ts % 60, second=ts % 60)
                         ).isoformat(),
-                        bucket_id=bucket_id,
-                        file_id=file_id,
-                        file_key="test.pdf",
-                        size=9000,
-                        visitor_id=100,
-                        is_robot=is_robot,
-                    )
+                        "bucket_id": bucket_id,
+                        "file_id": file_id,
+                        "file_key": "test.pdf",
+                        "size": 9000,
+                        "visitor_id": 100,
+                        "is_robot": is_robot,
+                    }
 
                 for event_idx in range(event_number):
                     yield build_event()
@@ -518,16 +518,16 @@ def _create_file_download_event(
     user_id=None,
 ):
     """Create a file_download event content."""
-    doc = dict(
-        timestamp=datetime.datetime(*timestamp).isoformat(),
+    doc = {
+        "timestamp": datetime.datetime(*timestamp).isoformat(),
         # What:
-        bucket_id=str(bucket_id),
-        file_id=str(file_id),
-        file_key=file_key,
-        size=size,
-        visitor_id=visitor_id,
-        user_id=user_id,
-    )
+        "bucket_id": str(bucket_id),
+        "file_id": str(file_id),
+        "file_key": file_key,
+        "size": size,
+        "visitor_id": visitor_id,
+        "user_id": user_id,
+    }
     return build_file_unique_id(doc)
 
 
@@ -540,15 +540,15 @@ def _create_record_view_event(
     user_id=None,
 ):
     """Create a file_download event content."""
-    doc = dict(
-        timestamp=datetime.datetime(*timestamp).isoformat(),
+    doc = {
+        "timestamp": datetime.datetime(*timestamp).isoformat(),
         # What:
-        record_id=record_id,
-        pid_type=pid_type,
-        pid_value=pid_value,
-        visitor_id=visitor_id,
-        user_id=user_id,
-    )
+        "record_id": record_id,
+        "pid_type": pid_type,
+        "pid_value": pid_value,
+        "visitor_id": visitor_id,
+        "user_id": user_id,
+    }
     return build_record_unique_id(doc)
 
 
@@ -596,4 +596,4 @@ class CustomQuery:
 
     def run(self, *args, **kwargs):
         """Sample response."""
-        return dict(bucket_id="test_bucket", value=100)
+        return {"bucket_id": "test_bucket", "value": 100}

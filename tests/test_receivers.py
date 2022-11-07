@@ -25,11 +25,11 @@ def test_register_receivers(base_app):
         my_signal = _signals.signal("my-signal")
 
         def event_builder1(event, sender_app, signal_param, *args, **kwargs):
-            event.update(dict(event_param1=signal_param))
+            event.update({"event_param1": signal_param})
             return event
 
         def event_builder2(event, sender_app, signal_param, *args, **kwargs):
-            event.update(dict(event_param2=event["event_param1"] + 1))
+            event.update({"event_param2": event["event_param1"] + 1})
             return event
 
         # NOTE: event_0 already exists from the mocked events decorate further.

@@ -59,7 +59,7 @@ class _InvenioStatsState(object):
                 queue=queue,
                 templates=event["templates"],
                 cls=obj_or_import_string(event["cls"]),
-                params=dict(queue=queue, **event.get("params", {})),
+                params={"queue": queue, **event.get("params", {})},
             )
 
         return result

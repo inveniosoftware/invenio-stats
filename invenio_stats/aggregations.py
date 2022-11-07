@@ -329,13 +329,13 @@ class StatAggregator(object):
                 )
                 self.indices.add(index_name)
 
-                yield dict(
-                    _id="{0}-{1}".format(
+                yield {
+                    "_id": "{0}-{1}".format(
                         aggregation["key"], interval_date.strftime(self.doc_id_suffix)
                     ),
-                    _index=prefix_index(index_name),
-                    _source=aggregation_data,
-                )
+                    "_index": prefix_index(index_name),
+                    "_source": aggregation_data,
+                }
                 self.has_events = True
 
     def _next_batch(self, dt):
@@ -426,9 +426,11 @@ class StatAggregator(object):
                 affected_indices = set()
                 for doc in query.scan():
                     affected_indices.add(doc.meta.index)
-                    yield dict(
-                        _index=doc.meta.index, _op_type="delete", _id=doc.meta.id
-                    )
+                    yield {
+                        "_index": doc.meta.index,
+                        "_op_type": "delete",
+                        "_id": doc.meta.id,
+                    }
                 current_search_client.indices.flush(
                     index=",".join(affected_indices), wait_if_ongoing=True
                 )

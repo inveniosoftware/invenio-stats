@@ -40,18 +40,18 @@ def test_file_download_event_builder(app, mock_user_ctx, sequential_ids, objects
         event = {}
         with patch("datetime.datetime", NewDate):
             file_download_event_builder(event, app, file_obj)
-        assert event == dict(
+        assert event == {
             # When:
-            timestamp=NewDate.utcnow().isoformat(),
+            "timestamp": NewDate.utcnow().isoformat(),
             # What:
-            bucket_id=str(file_obj.bucket_id),
-            file_id=str(file_obj.file_id),
-            file_key=file_obj.key,
-            size=file_obj.file.size,
-            referrer=None,
+            "bucket_id": str(file_obj.bucket_id),
+            "file_id": str(file_obj.file_id),
+            "file_key": file_obj.key,
+            "size": file_obj.file.size,
+            "referrer": None,
             # Who:
-            **get_user()
-        )
+            **get_user(),
+        }
 
 
 def test_record_view_event_builder(app, mock_user_ctx, record, pid):
@@ -60,14 +60,14 @@ def test_record_view_event_builder(app, mock_user_ctx, record, pid):
         event = {}
         with patch("datetime.datetime", NewDate):
             record_view_event_builder(event, app, pid, record)
-        assert event == dict(
+        assert event == {
             # When:
-            timestamp=NewDate.utcnow().isoformat(),
+            "timestamp": NewDate.utcnow().isoformat(),
             # What:
-            record_id=str(record.id),
-            pid_type=pid.pid_type,
-            pid_value=str(pid.pid_value),
-            referrer=None,
+            "record_id": str(record.id),
+            "pid_type": pid.pid_type,
+            "pid_value": str(pid.pid_value),
+            "referrer": None,
             # Who:
-            **get_user()
-        )
+            **get_user(),
+        }
