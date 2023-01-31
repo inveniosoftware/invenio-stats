@@ -38,7 +38,7 @@ INTERVAL_DELTAS = {
 
 
 def filter_robots(query):
-    """Modify an elasticsearch query so that robot events are filtered out."""
+    """Modify a search query so that robot events are filtered out."""
     return query.filter("term", is_robot=False)
 
 
@@ -70,7 +70,7 @@ class BookmarkAPI(object):
     def __init__(self, client, agg_type, agg_interval):
         """Construct bookmark instance.
 
-        :param client: elasticsearch client
+        :param client: search client
         :param agg_type: aggregation type for the bookmark
         """
         self.bookmark_index = prefix_index("stats-bookmarks")
@@ -153,8 +153,8 @@ ALLOWED_METRICS = {
 class StatAggregator(object):
     """Generic aggregation class.
 
-    This aggregation class queries Elasticsearch events and creates a new
-    elasticsearch document for each aggregated day/month/year... This enables
+    This aggregation class queries search events and creates a new
+    search document for each aggregated day/month/year... This enables
     to "compress" the events and keep only relevant information.
 
     The expected events shoud have at least those two fields:
@@ -197,7 +197,7 @@ class StatAggregator(object):
         """Construct aggregator instance.
 
         :param event: aggregated event.
-        :param client: elasticsearch client.
+        :param client: search client.
         :param field: field on which the aggregation will be done.
         :param metric_fields: dictionary of fields on which a
             metric aggregation will be computed. The format of the dictionary
@@ -208,7 +208,7 @@ class StatAggregator(object):
         :param query_modifiers: list of functions modifying the raw events
             query. By default the query_modifiers are [filter_robots].
         :param interval: aggregation time window. default: month.
-        :param index_interval: time window of the elasticsearch indices which
+        :param index_interval: time window of the search indices which
             will contain the resulting aggregations.
         :param batch_size: max number of hours/days/months for which raw events
             are being fetched in one query. This number has to be coherent with

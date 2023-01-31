@@ -20,13 +20,13 @@ from .utils import get_bucket_size
 
 
 class ESQuery(object):
-    """Elasticsearch query."""
+    """Search query."""
 
     def __init__(self, name, index, client=None, *args, **kwargs):
         """Constructor.
 
         :param index: queried index.
-        :param client: elasticsearch client used to query.
+        :param client: search client used to query.
         """
         self.name = name
         self.index = build_alias_name(index)
@@ -54,7 +54,7 @@ class ESQuery(object):
 
 
 class ESDateHistogramQuery(ESQuery):
-    """Elasticsearch date histogram query."""
+    """Search date histogram query."""
 
     allowed_intervals = ["year", "quarter", "month", "week", "day"]
     """Allowed intervals for the histogram aggregation."""
@@ -126,7 +126,7 @@ class ESDateHistogramQuery(ESQuery):
             )
 
     def build_query(self, interval, start_date, end_date, **kwargs):
-        """Build the elasticsearch query."""
+        """Build the search query."""
         agg_query = dsl.Search(using=self.client, index=self.index)[0:0]
 
         if start_date is not None or end_date is not None:
@@ -204,7 +204,7 @@ class ESDateHistogramQuery(ESQuery):
 
 
 class ESTermsQuery(ESQuery):
-    """Elasticsearch sum query."""
+    """Search sum query."""
 
     def __init__(
         self,
@@ -249,7 +249,7 @@ class ESTermsQuery(ESQuery):
             )
 
     def build_query(self, start_date, end_date, **kwargs):
-        """Build the elasticsearch query."""
+        """Build the search query."""
         agg_query = dsl.Search(using=self.client, index=self.index)[0:0]
 
         if start_date is not None or end_date is not None:
