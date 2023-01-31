@@ -12,7 +12,7 @@ from .proxies import current_stats
 
 
 def register_templates():
-    """Register elasticsearch templates for events."""
+    """Register search templates for events."""
     event_templates = [
         event["templates"] for event in current_stats.events_config.values()
     ]

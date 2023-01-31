@@ -147,11 +147,11 @@ class EventsIndexer(object):
     ):
         """Initialize indexer.
 
-        :param prefix: prefix appended to elasticsearch indices' name.
-        :param suffix: suffix appended to elasticsearch indices' name.
+        :param prefix: prefix appended to search indices' name.
+        :param suffix: suffix appended to search indices' name.
         :param double_click_window: time window during which similar events are
             deduplicated (counted as one occurence).
-        :param client: elasticsearch client.
+        :param client: search client.
         :param preprocessors: a list of functions which are called on every
             event before it is indexed. Each function should return the
             processed event. If it returns None, the event is filtered and
@@ -183,13 +183,13 @@ class EventsIndexer(object):
 
                 ts = parser.parse(msg.get("timestamp"))
                 suffix = ts.strftime(self.suffix)
-                # Truncate timestamp to keep only seconds. This is to improve
-                # elasticsearch performances.
+
+                # Truncate timestamp to keep only seconds.
+                # This is to improve search engine performances.
                 ts = ts.replace(microsecond=0)
                 msg["timestamp"] = ts.isoformat()
 
-                # apply timestamp windowing in order to group events too close
-                # in time
+                # apply timestamp windowing in order to group events too close in time
                 if self.double_click_window > 0:
                     timestamp = mktime(utc.localize(ts).utctimetuple())
                     ts = ts.fromtimestamp(
