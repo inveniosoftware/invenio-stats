@@ -119,7 +119,7 @@ class ESDateHistogramQuery(ESQuery):
                 "Invalid aggregation time interval for statistic {}."
             ).format(self.name)
 
-        if set(kwargs) < set(self.required_filters):
+        if not set(self.required_filters) <= set(kwargs):
             raise InvalidRequestInputError(
                 "Missing one of the required parameters {0} in "
                 "query {1}".format(set(self.required_filters.keys()), self.name)
@@ -242,7 +242,7 @@ class ESTermsQuery(ESQuery):
 
     def validate_arguments(self, start_date, end_date, **kwargs):
         """Validate query arguments."""
-        if set(kwargs) < set(self.required_filters):
+        if not set(self.required_filters) <= set(kwargs):
             raise InvalidRequestInputError(
                 "Missing one of the required parameters {0} in "
                 "query {1}".format(set(self.required_filters.keys()), self.name)
