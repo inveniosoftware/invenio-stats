@@ -16,7 +16,7 @@ from invenio_queues.proxies import current_queues
 from werkzeug.utils import cached_property
 
 from . import config
-from .receivers import register_receivers
+from .receivers import build_event_emitter, register_receivers
 
 _Event = namedtuple("Event", ["name", "queue", "templates", "cls", "params"])
 
@@ -31,6 +31,7 @@ class _InvenioStatsState(object):
     def __init__(self, app):
         self.app = app
         self.exchange = app.config["STATS_MQ_EXCHANGE"]
+        self._event_emitters = {}
 
     @property
     def events_config(self):
@@ -43,6 +44,15 @@ class _InvenioStatsState(object):
     @property
     def queries_config(self):
         return self.app.config["STATS_QUERIES"]
+
+    def get_event_emitter(self, event_name):
+        """Get the event emitter for the given event name."""
+        if event_name not in self._event_emitters:
+            self._event_emitters[event_name] = build_event_emitter(
+                event_name, self.events_config
+            )
+
+        return self._event_emitters[event_name]
 
     @cached_property
     def events(self):
