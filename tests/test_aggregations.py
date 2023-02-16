@@ -21,7 +21,6 @@ from invenio_stats import current_stats
 from invenio_stats.aggregations import StatAggregator, filter_robots
 from invenio_stats.processors import EventsIndexer
 from invenio_stats.tasks import aggregate_events, process_events
-from invenio_stats.utils import get_doctype
 
 
 def test_wrong_intervals(app, es):
