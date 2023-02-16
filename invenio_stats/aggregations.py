@@ -18,13 +18,12 @@ from functools import wraps
 import six
 from dateutil import parser
 from dateutil.relativedelta import relativedelta
-from elasticsearch import VERSION as ES_VERSION
 from elasticsearch.helpers import bulk
 from elasticsearch_dsl import Index, Search
 from invenio_search import current_search, current_search_client
 from invenio_search.utils import prefix_index
 
-from .utils import get_bucket_size, get_doctype
+from .utils import get_bucket_size
 
 SUPPORTED_INTERVALS = OrderedDict([
     ('hour', '%Y-%m-%dT%H'),
@@ -60,27 +59,19 @@ class BookmarkAPI(object):
     It provides an interface that lets us interact with a bookmark.
     """
 
-    # NOTE: these work up to ES_6
     MAPPINGS = {
         "mappings": {
-            "aggregation-bookmark": {
-                "date_detection": False,
-                "properties": {
-                    "date": {
-                        "type": "date",
-                        "format": "date_optional_time"
-                    },
-                    "aggregation_type": {
-                        "type": "keyword"
-                    }
+            "date_detection": False,
+            "properties": {
+                "date": {
+                    "type": "date",
+                    "format": "date_optional_time"
+                },
+                "aggregation_type": {
+                    "type": "keyword"
                 }
             }
         }
-    }
-
-    # NOTE: For ES7 mappings need one-level of less nesting
-    MAPPINGS_ES7 = {
-        "mappings": deepcopy(MAPPINGS['mappings']['aggregation-bookmark'])
     }
 
     def __init__(self, client, agg_type, agg_interval):
@@ -89,8 +80,6 @@ class BookmarkAPI(object):
         :param client: elasticsearch client
         :param agg_type: aggregation type for the bookmark
         """
-        # NOTE: doc_type is going to be deprecated with ES_7
-        self.doc_type = get_doctype('aggregation-bookmark')
         self.bookmark_index = prefix_index('stats-bookmarks')
         self.client = client
         self.agg_type = agg_type
@@ -102,8 +91,7 @@ class BookmarkAPI(object):
         def wrapped(self, *args, **kwargs):
             if not Index(self.bookmark_index, using=self.client).exists():
                 self.client.indices.create(
-                    index=self.bookmark_index, body=BookmarkAPI.MAPPINGS
-                    if ES_VERSION[0] < 7 else BookmarkAPI.MAPPINGS_ES7)
+                    index=self.bookmark_index, body=BookmarkAPI.MAPPINGS)
             return func(self, *args, **kwargs)
         return wrapped
 
@@ -112,7 +100,6 @@ class BookmarkAPI(object):
         """Set bookmark for starting next aggregation."""
         self.client.index(
             index=self.bookmark_index,
-            doc_type=self.doc_type,
             body={'date': value, 'aggregation_type': self.agg_type},
         )
 
@@ -264,13 +251,22 @@ class StatAggregator(object):
             return None
         return parser.parse(result[0]['timestamp'])
 
-    @property
-    def doc_type(self):
-        """Get document type for the aggregation."""
-        return get_doctype('{0}-{1}-aggregation'.format(
-            self.event, self.interval))
+    def _split_date_range(self, lower_limit, upper_limit):
+        res = {}
+        current_interval = lower_limit
+        delta = INTERVAL_DELTAS[self.interval]
+        while current_interval < upper_limit:
+            dt_key = current_interval.strftime(
+                SUPPORTED_INTERVALS[self.interval])
+            res[dt_key] = current_interval
+            current_interval += delta
 
-    def agg_iter(self, lower_limit, upper_limit):
+        dt_key = upper_limit.strftime(
+            SUPPORTED_INTERVALS[self.interval])
+        res[dt_key] = upper_limit
+        return res
+
+    def agg_iter(self, dt):
         """Aggregate and return dictionary to be indexed in ES."""
         aggregation_data = {}
         start_date = format_range_dt(lower_limit, self.interval)
@@ -347,7 +343,6 @@ class StatAggregator(object):
                         aggregation['key'],
                         interval_date.strftime(self.doc_id_suffix)),
                     _index=prefix_index(index_name),
-                    _type=self.doc_type,
                     _source=aggregation_data
                 )
                 self.has_events = True
@@ -412,7 +407,6 @@ class StatAggregator(object):
         aggs_query = Search(
             using=self.client,
             index=self.index,
-            doc_type=self.doc_type
         ).extra(_source=False)
 
         range_args = {}
@@ -440,8 +434,7 @@ class StatAggregator(object):
                     affected_indices.add(doc.meta.index)
                     yield dict(_index=doc.meta.index,
                                _op_type='delete',
-                               _id=doc.meta.id,
-                               _type=doc.meta.doc_type)
+                               _id=doc.meta.id)
                 current_search_client.indices.flush(
                     index=','.join(affected_indices), wait_if_ongoing=True)
         bulk(self.client, _delete_actions(), refresh=True)

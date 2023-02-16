@@ -26,7 +26,6 @@ from invenio_stats.processors import EventsIndexer, anonymize_user, \
     flag_machines, flag_robots, hash_id
 from invenio_stats.proxies import current_stats
 from invenio_stats.tasks import process_events
-from invenio_stats.utils import get_doctype
 
 
 @pytest.mark.parametrize(
@@ -210,7 +209,6 @@ def test_events_indexer_preprocessors(app, mock_event_queue):
             _id=_id,
             _op_type='index',
             _index='events-stats-file-download-2017-01-01',
-            _type=get_doctype('stats-file-download'),
             _source=event,
         ))
 

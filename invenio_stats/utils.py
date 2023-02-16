@@ -64,11 +64,6 @@ def get_bucket_size(client, index, agg_field, start_date=None, end_date=None):
     return int(ceil(unique_values + unique_values * 0.1))
 
 
-def get_doctype(doc_type):
-    """Configure doc_type value according to ES version."""
-    return doc_type if ES_VERSION[0] < 7 else '_doc'
-
-
 def get_geoip(ip):
     """Lookup country for IP address."""
     reader = geolite2.reader()

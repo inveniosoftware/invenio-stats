@@ -116,7 +116,6 @@ def test_aggregations_process(script_info, event_queues, es, indexed_events):
     current_search.flush_and_refresh(index='*')
     assert agg_alias.count() == 10
     assert not es.indices.exists('stats-bookmarks')  # no bookmark is created
-    assert agg_alias.doc_type('file-download-day-aggregation').count() == 10
     assert search.index('stats-file-download-2018-01').count() == 10
 
     # Run again over same period, but update the bookmark
@@ -129,7 +128,6 @@ def test_aggregations_process(script_info, event_queues, es, indexed_events):
 
     current_search.flush_and_refresh(index='*')
     assert agg_alias.count() == 10
-    assert agg_alias.doc_type('file-download-day-aggregation').count() == 10
     assert search.index('stats-file-download-2018-01').count() == 10
     assert search.index('stats-bookmarks').count() == 2
 
@@ -143,7 +141,6 @@ def test_aggregations_process(script_info, event_queues, es, indexed_events):
     current_search.flush_and_refresh(index='*')
     assert agg_alias.count() == 46
     assert search.index('stats-bookmarks').count() == 8
-    assert agg_alias.doc_type('file-download-day-aggregation').count() == 46
     assert search.index('stats-file-download-2018-01').count() == 31
     assert search.index('stats-file-download-2018-02').count() == 15
 
@@ -164,7 +161,6 @@ def test_aggregations_delete(script_info, event_queues, es, aggregated_events):
     agg_alias = search.index('stats-file-download')
     assert agg_alias.count() == 31
     assert search.index('stats-bookmarks').count() == 5
-    assert agg_alias.doc_type('file-download-day-aggregation').count() == 31
     assert search.index('stats-file-download-2018-01').count() == 31
 
     result = runner.invoke(
@@ -178,7 +174,6 @@ def test_aggregations_delete(script_info, event_queues, es, aggregated_events):
 
     assert agg_alias.count() == 21
     assert search.index('stats-bookmarks').count() == 4
-    assert agg_alias.doc_type('file-download-day-aggregation').count() == 21
     assert search.index('stats-file-download-2018-01').count() == 21
 
     # Delete all aggregations
@@ -190,8 +185,6 @@ def test_aggregations_delete(script_info, event_queues, es, aggregated_events):
     current_search.flush_and_refresh(index='*')
     agg_alias = search.index('stats-file-download')
     assert agg_alias.count() == 0
-    assert agg_alias.doc_type('file-download-agg-bookmark').count() == 0
-    assert agg_alias.doc_type('file-download-day-aggregation').count() == 0
     assert search.index('stats-file-download-2018-01').count() == 0
 
 
@@ -212,7 +205,6 @@ def test_aggregations_list_bookmarks(script_info, event_queues, es,
     agg_alias = search.index('stats-file-download')
     assert agg_alias.count() == 31
     assert search.index('stats-bookmarks').count() == 5
-    assert agg_alias.doc_type('file-download-day-aggregation').count() == 31
     assert search.index('stats-file-download-2018-01').count() == 31
 
     result = runner.invoke(
