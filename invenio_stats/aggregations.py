@@ -267,6 +267,20 @@ class StatAggregator(object):
         return parser.parse(result[0]["timestamp"])
 
     def _split_date_range(self, lower_limit, upper_limit):
+        """Return dict of rounded dates in range, splitted by aggregation interval.
+
+        .. code-block:: python
+
+            self._split_date_range(
+                datetime(2023, 1, 10, 12, 34),
+                datetime(2023, 1, 13, 11, 20),
+            ) == {
+                "2023-01-10": datetime.datetime(2023, 1, 10, 12, 34),
+                "2023-01-11": datetime.datetime(2023, 1, 11, 12, 34),
+                "2023-01-12": datetime.datetime(2023, 1, 12, 12, 34),
+                "2023-01-13": datetime.datetime(2023, 1, 13, 11, 20),
+            }
+        """
         res = {}
         current_interval = lower_limit
         delta = INTERVAL_DELTAS[self.interval]
@@ -283,7 +297,9 @@ class StatAggregator(object):
         """Aggregate and return dictionary to be indexed in ES."""
         rounded_dt = format_range_dt(dt, self.interval)
         agg_query = dsl.Search(using=self.client, index=self.event_index).filter(
-            "range", timestamp={"gte": rounded_dt, "lte": rounded_dt}
+            "range",
+            # Filter for the specific interval (hour, day, month)
+            timestamp={"gte": rounded_dt, "lte": rounded_dt},
         )
         self.agg_query = agg_query
 
