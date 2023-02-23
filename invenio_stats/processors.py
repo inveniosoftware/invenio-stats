@@ -117,7 +117,7 @@ def flag_machines(doc):
 
 
 def hash_id(iso_timestamp, msg):
-    """Generate event id, optimized for ES."""
+    """Generate event id, optimized for the search engine."""
     return "{0}-{1}".format(
         iso_timestamp,
         hashlib.sha1(

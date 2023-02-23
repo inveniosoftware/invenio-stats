@@ -171,7 +171,7 @@ def base_app(events_config, aggregations_config):
                 "SQLALCHEMY_DATABASE_URI", "sqlite://"
             ),
             "SQLALCHEMY_TRACK_MODIFICATIONS": True,
-            # Bump the ES client timeout for slower environments (like Travis CI)
+            # Bump the search client timeout for slower environments (like Travis CI)
             "SEARCH_CLIENT_CONFIG": {"timeout": 30, "max_retries": 5},
             "TESTING": True,
             "OAUTH2SERVER_CLIENT_ID_SALT_LEN": 64,
@@ -227,8 +227,8 @@ def db(app):
 
 
 @pytest.fixture()
-def es(app):
-    """Provide elasticsearch access, create and clean indices.
+def search(app):
+    """Provide search engine access, create and clean indices.
 
     Don't create template so that the test or another fixture can modify the
     enabled events.
@@ -470,14 +470,14 @@ def generate_events(
 
 
 @pytest.fixture()
-def indexed_events(app, es, mock_user_ctx, request):
+def indexed_events(app, search, mock_user_ctx, request):
     """Parametrized pre indexed sample events."""
     generate_events(app=app, **request.param)
     yield
 
 
 @pytest.fixture()
-def aggregated_events(app, es, mock_user_ctx, request):
+def aggregated_events(app, search, mock_user_ctx, request):
     """Parametrized pre indexed sample events."""
     list(current_search.put_templates(ignore=[400]))
     generate_events(app=app, **request.param)
@@ -505,7 +505,7 @@ def users(app, db):
 
 
 def get_deleted_docs(index):
-    """Get all deleted docs from an ES index."""
+    """Get all deleted docs from an search index."""
     return current_search_client.indices.stats()["indices"][index]["total"]["docs"][
         "deleted"
     ]

@@ -22,9 +22,9 @@ from invenio_stats import current_stats
 from invenio_stats.cli import stats
 
 
-def test_events_process(es, script_info, event_queues):
+def test_events_process(search, script_info, event_queues):
     """Test "events process" CLI command."""
-    search = dsl.Search(using=es)
+    search_obj = dsl.Search(using=search)
     runner = CliRunner()
 
     # Invalid argument
@@ -56,10 +56,10 @@ def test_events_process(es, script_info, event_queues):
 
     current_search.flush_and_refresh(index="*")
 
-    assert search.index("events-stats-file-download-2018-01-01").count() == 3
-    assert search.index("events-stats-file-download").count() == 3
-    assert not es.indices.exists("events-stats-record-view-2018-01-01")
-    assert not es.indices.exists_alias(name="events-stats-record-view")
+    assert search_obj.index("events-stats-file-download-2018-01-01").count() == 3
+    assert search_obj.index("events-stats-file-download").count() == 3
+    assert not search.indices.exists("events-stats-record-view-2018-01-01")
+    assert not search.indices.exists_alias(name="events-stats-record-view")
 
     result = runner.invoke(
         stats, ["events", "process", "record-view", "--eager"], obj=script_info
@@ -67,10 +67,10 @@ def test_events_process(es, script_info, event_queues):
     assert result.exit_code == 0
 
     current_search.flush_and_refresh(index="*")
-    assert search.index("events-stats-file-download-2018-01-01").count() == 3
-    assert search.index("events-stats-file-download").count() == 3
-    assert search.index("events-stats-record-view-2018-01-01").count() == 3
-    assert search.index("events-stats-record-view").count() == 3
+    assert search_obj.index("events-stats-file-download-2018-01-01").count() == 3
+    assert search_obj.index("events-stats-file-download").count() == 3
+    assert search_obj.index("events-stats-record-view-2018-01-01").count() == 3
+    assert search_obj.index("events-stats-record-view").count() == 3
 
     # Create some more events
     current_stats.publish(
@@ -84,12 +84,12 @@ def test_events_process(es, script_info, event_queues):
     assert result.exit_code == 0
 
     current_search.flush_and_refresh(index="*")
-    assert search.index("events-stats-file-download-2018-01-01").count() == 3
-    assert search.index("events-stats-file-download-2018-02-01").count() == 1
-    assert search.index("events-stats-file-download").count() == 4
-    assert search.index("events-stats-record-view-2018-01-01").count() == 3
-    assert search.index("events-stats-record-view-2018-02-01").count() == 1
-    assert search.index("events-stats-record-view").count() == 4
+    assert search_obj.index("events-stats-file-download-2018-01-01").count() == 3
+    assert search_obj.index("events-stats-file-download-2018-02-01").count() == 1
+    assert search_obj.index("events-stats-file-download").count() == 4
+    assert search_obj.index("events-stats-record-view-2018-01-01").count() == 3
+    assert search_obj.index("events-stats-record-view-2018-02-01").count() == 1
+    assert search_obj.index("events-stats-record-view").count() == 4
 
 
 @pytest.mark.parametrize(
@@ -105,9 +105,9 @@ def test_events_process(es, script_info, event_queues):
     ],
     indirect=["indexed_events"],
 )
-def test_aggregations_process(script_info, event_queues, es, indexed_events):
+def test_aggregations_process(script_info, event_queues, search, indexed_events):
     """Test "aggregations process" CLI command."""
-    search = dsl.Search(using=es)
+    search_obj = dsl.Search(using=search)
     runner = CliRunner()
 
     # Invalid argument
@@ -133,12 +133,12 @@ def test_aggregations_process(script_info, event_queues, es, indexed_events):
     )
     assert result.exit_code == 0
 
-    agg_alias = search.index("stats-file-download")
+    agg_alias = search_obj.index("stats-file-download")
 
     current_search.flush_and_refresh(index="*")
     assert agg_alias.count() == 10
-    assert not es.indices.exists("stats-bookmarks")  # no bookmark is created
-    assert search.index("stats-file-download-2018-01").count() == 10
+    assert not search.indices.exists("stats-bookmarks")  # no bookmark is created
+    assert search_obj.index("stats-file-download-2018-01").count() == 10
 
     # Run again over same period, but update the bookmark
     result = runner.invoke(
@@ -158,8 +158,8 @@ def test_aggregations_process(script_info, event_queues, es, indexed_events):
 
     current_search.flush_and_refresh(index="*")
     assert agg_alias.count() == 10
-    assert search.index("stats-file-download-2018-01").count() == 10
-    assert search.index("stats-bookmarks").count() == 10  # for 01-10/01
+    assert search_obj.index("stats-file-download-2018-01").count() == 10
+    assert search_obj.index("stats-bookmarks").count() == 10  # for 01-10/01
 
     # Run over all the events via celery task
     with patch("invenio_stats.aggregations.datetime", mock_date(2018, 2, 15)):
@@ -172,11 +172,11 @@ def test_aggregations_process(script_info, event_queues, es, indexed_events):
 
     current_search.flush_and_refresh(index="*")
     assert agg_alias.count() == 46
-    assert search.index("stats-bookmarks").count() == (
+    assert search_obj.index("stats-bookmarks").count() == (
         10 + 37  # 10 for 01-10/01, 37 for 10/01-15/02
     )
-    assert search.index("stats-file-download-2018-01").count() == 31
-    assert search.index("stats-file-download-2018-02").count() == 15
+    assert search_obj.index("stats-file-download-2018-01").count() == 31
+    assert search_obj.index("stats-file-download-2018-02").count() == 15
 
 
 @pytest.mark.parametrize(
@@ -192,16 +192,16 @@ def test_aggregations_process(script_info, event_queues, es, indexed_events):
     ],
     indirect=["aggregated_events"],
 )
-def test_aggregations_delete(script_info, event_queues, es, aggregated_events):
+def test_aggregations_delete(script_info, event_queues, search, aggregated_events):
     """Test "aggregations process" CLI command."""
-    search = dsl.Search(using=es)
+    search_obj = dsl.Search(using=search)
     runner = CliRunner()
 
     current_search.flush_and_refresh(index="*")
-    agg_alias = search.index("stats-file-download")
+    agg_alias = search_obj.index("stats-file-download")
     assert agg_alias.count() == 31
-    assert search.index("stats-bookmarks").count() == 31  # for 01-31/01
-    assert search.index("stats-file-download-2018-01").count() == 31
+    assert search_obj.index("stats-bookmarks").count() == 31  # for 01-31/01
+    assert search_obj.index("stats-file-download-2018-01").count() == 31
 
     result = runner.invoke(
         stats,
@@ -218,11 +218,11 @@ def test_aggregations_delete(script_info, event_queues, es, aggregated_events):
     assert result.exit_code == 0
 
     current_search.flush_and_refresh(index="*")
-    agg_alias = search.index("stats-file-download")
+    agg_alias = search_obj.index("stats-file-download")
 
     assert agg_alias.count() == 21
-    assert search.index("stats-bookmarks").count() == (31 - 10) == 21
-    assert search.index("stats-file-download-2018-01").count() == 21
+    assert search_obj.index("stats-bookmarks").count() == (31 - 10) == 21
+    assert search_obj.index("stats-file-download-2018-01").count() == 21
 
     # Delete all aggregations
     result = runner.invoke(
@@ -231,9 +231,9 @@ def test_aggregations_delete(script_info, event_queues, es, aggregated_events):
     assert result.exit_code == 0
 
     current_search.flush_and_refresh(index="*")
-    agg_alias = search.index("stats-file-download")
+    agg_alias = search_obj.index("stats-file-download")
     assert agg_alias.count() == 0
-    assert search.index("stats-file-download-2018-01").count() == 0
+    assert search_obj.index("stats-file-download-2018-01").count() == 0
 
 
 @pytest.mark.parametrize(
@@ -249,18 +249,20 @@ def test_aggregations_delete(script_info, event_queues, es, aggregated_events):
     ],
     indirect=["aggregated_events"],
 )
-def test_aggregations_list_bookmarks(script_info, event_queues, es, aggregated_events):
+def test_aggregations_list_bookmarks(
+    script_info, event_queues, search, aggregated_events
+):
     """Test "aggregations list-bookmarks" CLI command."""
-    search = dsl.Search(using=es)
+    search_obj = dsl.Search(using=search)
     runner = CliRunner()
 
     current_search.flush_and_refresh(index="*")
-    agg_alias = search.index("stats-file-download")
+    agg_alias = search_obj.index("stats-file-download")
     assert agg_alias.count() == 31
-    assert search.index("stats-bookmarks").count() == 31
-    assert search.index("stats-file-download-2018-01").count() == 31
+    assert search_obj.index("stats-bookmarks").count() == 31
+    assert search_obj.index("stats-file-download-2018-01").count() == 31
 
-    bookmarks = [b.date for b in search.index("stats-bookmarks").scan()]
+    bookmarks = [b.date for b in search_obj.index("stats-bookmarks").scan()]
 
     result = runner.invoke(
         stats,
