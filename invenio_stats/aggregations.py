@@ -340,7 +340,8 @@ class StatAggregator(object):
                 ignore_cache=True,
             )
             for aggregation in results.aggregations["terms"].buckets:
-                doc = aggregation.top_hit.hits.hits[0]["_source"]
+                doc = aggregation.top_hit.hits.hits[0]["_source"].to_dict()
+                aggregation = aggregation.to_dict()
                 interval_date = datetime.strptime(
                     doc["timestamp"], "%Y-%m-%dT%H:%M:%S"
                 ).replace(**dict.fromkeys(INTERVAL_ROUNDING[self.interval], 0))
