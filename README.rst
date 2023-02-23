@@ -35,6 +35,6 @@ However, statistics can be fully customized and directly query the database.
 The services it uses are:
 
 - RabbitMQ for buffering incoming events.
-- Elasticsearch for aggregating and searching events.
+- Elasticsearch or OpenSearch for aggregating and searching events.
 
 Further documentation is available on: https://invenio-stats.readthedocs.io/

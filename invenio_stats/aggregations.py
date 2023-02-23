@@ -294,7 +294,7 @@ class StatAggregator(object):
         return res
 
     def agg_iter(self, dt):
-        """Aggregate and return dictionary to be indexed in ES."""
+        """Aggregate and return dictionary to be indexed in the search engine."""
         rounded_dt = format_range_dt(dt, self.interval)
         agg_query = dsl.Search(using=self.client, index=self.event_index).filter(
             "range",

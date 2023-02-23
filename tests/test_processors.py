@@ -355,7 +355,7 @@ def test_events_indexer_id_windowing(app, mock_event_queue):
     assert len(ids) == 3
 
 
-def test_double_clicks(app, mock_event_queue, es):
+def test_double_clicks(app, mock_event_queue, search):
     """Test that events occurring within a time window are counted as 1."""
     event_type = "file-download"
     events = [
@@ -371,15 +371,15 @@ def test_double_clicks(app, mock_event_queue, es):
     current_stats.publish(event_type, events)
     process_events(["file-download"])
     current_search.flush_and_refresh(index="*")
-    res = es.search(
+    res = search.search(
         index="events-stats-file-download-2000-06-01",
     )
     assert res["hits"]["total"]["value"] == 2
 
 
-def test_failing_processors(app, es, event_queues, caplog):
+def test_failing_processors(app, search, event_queues, caplog):
     """Test events that raise an exception when processed."""
-    search = dsl.Search(using=es)
+    search_obj = dsl.Search(using=search)
 
     current_queues.declare()
     current_stats.publish(
@@ -404,11 +404,11 @@ def test_failing_processors(app, es, event_queues, caplog):
 
     current_search.flush_and_refresh(index="*")
     assert get_queue_size("stats-file-download") == 4
-    assert not es.indices.exists("events-stats-file-download-2018-01-01")
-    assert not es.indices.exists("events-stats-file-download-2018-01-02")
-    assert not es.indices.exists("events-stats-file-download-2018-01-03")
-    assert not es.indices.exists("events-stats-file-download-2018-01-04")
-    assert not es.indices.exists_alias(name="events-stats-file-download")
+    assert not search.indices.exists("events-stats-file-download-2018-01-01")
+    assert not search.indices.exists("events-stats-file-download-2018-01-02")
+    assert not search.indices.exists("events-stats-file-download-2018-01-03")
+    assert not search.indices.exists("events-stats-file-download-2018-01-04")
+    assert not search.indices.exists_alias(name="events-stats-file-download")
 
     with caplog.at_level(logging.ERROR):
         indexer.run()  # 2nd event raises exception and is dropped
@@ -421,8 +421,8 @@ def test_failing_processors(app, es, event_queues, caplog):
 
     current_search.flush_and_refresh(index="*")
     assert get_queue_size("stats-file-download") == 0
-    assert search.index("events-stats-file-download").count() == 3
-    assert search.index("events-stats-file-download-2018-01-01").count() == 1
-    assert not es.indices.exists("events-stats-file-download-2018-01-02")
-    assert search.index("events-stats-file-download-2018-01-03").count() == 1
-    assert search.index("events-stats-file-download-2018-01-04").count() == 1
+    assert search_obj.index("events-stats-file-download").count() == 3
+    assert search_obj.index("events-stats-file-download-2018-01-01").count() == 1
+    assert not search.indices.exists("events-stats-file-download-2018-01-02")
+    assert search_obj.index("events-stats-file-download-2018-01-03").count() == 1
+    assert search_obj.index("events-stats-file-download-2018-01-04").count() == 1

@@ -11,9 +11,9 @@
 
 SPHINX-START
 
-This example requires that you have an elasticsearch server running
+This example requires that you have a search server (ES/OS) running
 on localost:9200.
-WARNING: This will remove all data from your elasticsearch server.
+WARNING: This will remove all data from your search server.
 
 You should also have the `Redis` running on your machine. To know how to
 install and run `redis`, please refer to the
@@ -162,12 +162,12 @@ def events():
         day = day + timedelta(days=1)
 
     process_events(["file-download"])
-    # flush elasticsearch indices so that the events become searchable
+    # flush search indices so that the events become searchable
     current_search_client.indices.flush(index="*")
 
 
 @fixtures.command()
 def aggregations():
     aggregate_events(["file-download-agg"])
-    # flush elasticsearch indices so that the aggregations become searchable
+    # flush search indices so that the aggregations become searchable
     current_search_client.indices.flush(index="*")

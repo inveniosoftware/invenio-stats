@@ -14,7 +14,7 @@ from invenio_stats.contrib.event_builders import (
     build_record_unique_id,
 )
 from invenio_stats.processors import EventsIndexer, anonymize_user, flag_robots
-from invenio_stats.queries import ESDateHistogramQuery, ESTermsQuery
+from invenio_stats.queries import DateHistogramQuery, TermsQuery
 
 EVENTS_CONFIG = {
     "file-download": {
@@ -92,7 +92,7 @@ AGGREGATIONS_CONFIG = {
 
 QUERIES_CONFIG = {
     "bucket-file-download-histogram": {
-        "cls": ESDateHistogramQuery,
+        "cls": DateHistogramQuery,
         "params": {
             "index": "stats-file-download",
             "copy_fields": {
@@ -106,7 +106,7 @@ QUERIES_CONFIG = {
         },
     },
     "bucket-file-download-total": {
-        "cls": ESTermsQuery,
+        "cls": TermsQuery,
         "params": {
             "index": "stats-file-download",
             "required_filters": {

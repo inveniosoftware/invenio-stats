@@ -316,13 +316,13 @@ Again the registering function returns the configuraton for the query:
 
 .. code-block:: python
 
-    from invenio_stats.queries import ESDateHistogramQuery
+    from invenio_stats.queries import DateHistogramQuery
 
     def register_queries():
         return [
             {
                 "query_name": "bucket-file-download-histogram",
-                "cls": ESDateHistogramQuery,
+                "cls": DateHistogramQuery,
                 "params": {
                     "index": "stats-file-download",
                     "copy_fields": {
@@ -404,10 +404,10 @@ Query classes already return a common pattern of fields.
 
 The provided query classes are:
 
-* :py:class:`~invenio_stats.queries.ESDateHistogramQuery`: histogram style
+* :py:class:`~invenio_stats.queries.DateHistogramQuery`: histogram style
   aggregations.
 
-* :py:class:`~invenio_stats.queries.ESTermsQuery`: aggregation by terms
+* :py:class:`~invenio_stats.queries.TermsQuery`: aggregation by terms
   (unique field values).
 
 Those two query classes have a common format for their results:

@@ -12,7 +12,7 @@ import datetime
 
 import pytest
 
-from invenio_stats.queries import ESDateHistogramQuery, ESTermsQuery
+from invenio_stats.queries import DateHistogramQuery, TermsQuery
 
 
 @pytest.mark.parametrize(
@@ -30,7 +30,7 @@ from invenio_stats.queries import ESDateHistogramQuery, ESTermsQuery
 def test_histogram_query(app, event_queues, aggregated_events, queries_config):
     """Test histogram query daily results."""
     # reading the configuration as it is registered from registrations.py
-    histo_query = ESDateHistogramQuery(
+    histo_query = DateHistogramQuery(
         name="test_histo", **queries_config["bucket-file-download-histogram"]["params"]
     )
     results = histo_query.run(
@@ -57,7 +57,7 @@ def test_histogram_query(app, event_queues, aggregated_events, queries_config):
 )
 def test_terms_query(app, event_queues, aggregated_events, queries_config):
     """Test that the terms query returns the correct total count."""
-    terms_query = ESTermsQuery(
+    terms_query = TermsQuery(
         name="test_total_count",
         **queries_config["bucket-file-download-total"]["params"]
     )

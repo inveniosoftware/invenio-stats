@@ -18,7 +18,7 @@ from invenio_search.utils import build_alias_name
 from .errors import InvalidRequestInputError
 
 
-class ESQuery(object):
+class Query(object):
     """Search query."""
 
     def __init__(self, name, index, client=None, *args, **kwargs):
@@ -50,7 +50,7 @@ class ESQuery(object):
         raise NotImplementedError()
 
 
-class ESDateHistogramQuery(ESQuery):
+class DateHistogramQuery(Query):
     """Search date histogram query."""
 
     allowed_intervals = ["year", "quarter", "month", "week", "day"]
@@ -79,7 +79,7 @@ class ESDateHistogramQuery(ESQuery):
         :param metric_fields: Dict of "destination field" ->
             tuple("metric type", "source field", "metric_options").
         """
-        super(ESDateHistogramQuery, self).__init__(*args, **kwargs)
+        super(DateHistogramQuery, self).__init__(*args, **kwargs)
         self.time_field = time_field
         self.copy_fields = copy_fields or {}
         self.query_modifiers = query_modifiers or []
@@ -200,7 +200,7 @@ class ESDateHistogramQuery(ESQuery):
         return res
 
 
-class ESTermsQuery(ESQuery):
+class TermsQuery(Query):
     """Search sum query."""
 
     def __init__(
@@ -230,7 +230,7 @@ class ESTermsQuery(ESQuery):
         :param metric_fields: Dict of "destination field" ->
             tuple("metric type", "source field").
         """
-        super(ESTermsQuery, self).__init__(*args, **kwargs)
+        super(TermsQuery, self).__init__(*args, **kwargs)
         self.time_field = time_field
         self.copy_fields = copy_fields or {}
         self.query_modifiers = query_modifiers or []
@@ -340,3 +340,9 @@ class ESTermsQuery(ESQuery):
         res = self.process_query_result(query_result, start_date, end_date)
 
         return res
+
+
+# for backwards compatibility
+ESQuery = Query
+ESDateHistogramQuery = DateHistogramQuery
+ESTermsQuery = TermsQuery
