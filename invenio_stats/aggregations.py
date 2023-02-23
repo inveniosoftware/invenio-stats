@@ -295,12 +295,16 @@ class StatAggregator(object):
     def agg_iter(self, dt):
         """Aggregate and return dictionary to be indexed in the search engine."""
         rounded_dt = format_range_dt(dt, self.interval)
-        agg_query = dsl.Search(using=self.client, index=self.event_index).filter(
-            "range",
-            # Filter for the specific interval (hour, day, month)
-            timestamp={"gte": rounded_dt, "lte": rounded_dt},
+        self.agg_query = (
+            dsl.Search(using=self.client, index=self.event_index).filter(
+                "range",
+                # Filter for the specific interval (hour, day, month)
+                timestamp={"gte": rounded_dt, "lte": rounded_dt},
+            )
+            # we're only interested in the aggregated results but not the search hits,
+            # so we tell the search to ignore them to save some bandwidth
+            .extra(size=0)
         )
-        self.agg_query = agg_query
 
         # apply query modifiers
         for modifier in self.query_modifiers:
