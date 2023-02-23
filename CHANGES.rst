@@ -9,6 +9,11 @@
 Changes
 =======
 
+Version 2.0.0 (release 2023-02-23)
+-------------------------------------
+
+- add opensearch2 compatibility
+
 Version 1.0.0a18 (release 2020-09-01)
 -------------------------------------
 
