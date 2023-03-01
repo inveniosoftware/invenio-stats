@@ -9,6 +9,24 @@
 Changes
 =======
 
+Version 3.0.0 (release 2023-03-01)
+-------------------------------------
+
+- Upgrade to ``invenio-search`` 2.x
+- Drop support for Elasticsearch 2, 5, and 6
+- Add support for OpenSearch 1 and 2
+- Drop support for Python 2.7 and 3.6
+- Remove function ``invenio_stats.utils:get_doctype``
+- Fix ``validate_arguments`` for query classes
+- Add ``build_event_emitter`` function for creating an ``EventEmitter`` but not registering it as a signal handler
+- Add ``ext.get_event_emitter(name)``` function for caching built ``EventEmitter`` objects per name
+- Replace elasticsearch-specific terminology
+
+Version 2.0.0 (release 2023-02-23)
+-------------------------------------
+
+- add opensearch2 compatibility
+
 Version 1.0.0a18 (release 2020-09-01)
 -------------------------------------
 
@@ -20,7 +38,7 @@ Version 1.0.0a17 (release 2020-03-19)
 -------------------------------------
 
 - Removes Python 2.7 support.
-- Centralizes Flask depedendency via ``invenio-base``.
+- Centralizes Flask dependency via ``invenio-base``.
 
 Version 1.0.0a16 (release 2020-02-24)
 -------------------------------------
