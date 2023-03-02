@@ -13,12 +13,11 @@ import os
 from base64 import b64encode
 from math import ceil
 
-from flask import current_app, request, session
+from flask import request, session
 from flask_login import current_user
 from geolite2 import geolite2
 from invenio_cache import current_cache
 from invenio_search.engine import dsl
-from werkzeug.utils import import_string
 
 
 def get_anonymization_salt(ts):
