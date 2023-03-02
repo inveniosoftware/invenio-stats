@@ -12,6 +12,7 @@
 from flask import Flask
 
 from invenio_stats import InvenioStats
+from invenio_stats.proxies import current_stats
 
 
 def test_version():
@@ -32,3 +33,11 @@ def test_init():
     assert "invenio-stats" not in app.extensions
     ext.init_app(app)
     assert "invenio-stats" in app.extensions
+
+
+def test_extension_get_query_cache(app, queries_config):
+    """Test if the query object cache works properly."""
+    query1 = current_stats.get_query("test-query")
+    query2 = current_stats.get_query("test-query")
+
+    assert query1 is query2

@@ -68,7 +68,7 @@ class StatsQueryResource(ContentNegotiatedMethodView):
             stat = config["stat"]
             params = config.get("params", {})
             try:
-                query_cfg = current_stats.queries[stat]
+                query = current_stats.get_query(stat)
             except KeyError:
                 raise UnknownQueryError(stat)
 
@@ -86,7 +86,6 @@ class StatsQueryResource(ContentNegotiatedMethodView):
                 abort(401, message)
 
             try:
-                query = query_cfg.cls(name=query_name, **query_cfg.params)
                 result[query_name] = query.run(**params)
 
             except ValueError as e:
