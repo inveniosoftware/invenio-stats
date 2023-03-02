@@ -32,6 +32,7 @@ class _InvenioStatsState(object):
         self.app = app
         self.exchange = app.config["STATS_MQ_EXCHANGE"]
         self._event_emitters = {}
+        self._query_objects = {}
 
     @property
     def events_config(self):
@@ -46,13 +47,21 @@ class _InvenioStatsState(object):
         return self.app.config["STATS_QUERIES"]
 
     def get_event_emitter(self, event_name):
-        """Get the event emitter for the given event name."""
+        """Get the (cached) event emitter for the given event name."""
         if event_name not in self._event_emitters:
             self._event_emitters[event_name] = build_event_emitter(
                 event_name, self.events_config
             )
 
         return self._event_emitters[event_name]
+
+    def get_query(self, query_name):
+        """Get the (cached) query object for the given name."""
+        if query_name not in self._query_objects:
+            query = self.queries[query_name]
+            self._query_objects[query_name] = query.cls(name=query.name, **query.params)
+
+        return self._query_objects[query_name]
 
     @cached_property
     def events(self):
