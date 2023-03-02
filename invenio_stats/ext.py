@@ -56,7 +56,12 @@ class _InvenioStatsState(object):
         return self._event_emitters[event_name]
 
     def get_query(self, query_name):
-        """Get the (cached) query object for the given name."""
+        """Get the (cached) query object for the given name.
+
+        Note: Because this method potentially shares references to the same query
+        objects multiple times, their internal states should not be modified after
+        construction.
+        """
         if query_name not in self._query_objects:
             query = self.queries[query_name]
             self._query_objects[query_name] = query.cls(name=query.name, **query.params)
