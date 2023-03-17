@@ -49,12 +49,11 @@ def test_unauthorized_request(app, sample_histogram_query_data, users,
                         access_token=user.allowed_token if user else None),
                 headers=headers,
                 data=json.dumps(sample_histogram_query_data))
-            print(resp.data)
             return resp.status_code
 
     sample_histogram_query_data['mystat']['stat'] = 'test-query'
-    assert client_req(users['unauthorized']) == 403
     assert client_req(None) == 401
+    assert client_req(users['unauthorized']) == 403
     assert client_req(users['authorized']) == 200
 
     assert custom_permission_factory.query_name == 'test-query'

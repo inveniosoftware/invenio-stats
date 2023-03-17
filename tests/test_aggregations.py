@@ -180,10 +180,7 @@ def test_bookmark_removal(app, es, mock_event_queue):
         .execute()
 
     for bookmark in bookmarks:
-        es.delete(
-            index=bookmark.meta.index, id=bookmark.meta.id,
-            doc_type=get_doctype(bookmark.meta.doc_type)
-        )
+        es.delete(index=bookmark.meta.index, id=bookmark.meta.id)
 
     current_search.flush_and_refresh(index='*')
     # the aggregations should have been overwritten

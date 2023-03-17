@@ -226,13 +226,13 @@ class StatAggregator(object):
 
         if any(v not in ALLOWED_METRICS
                for k, (v, _, _) in self.metric_fields.items()):
-            raise(ValueError('Metric aggregation type should be one of [{}]'
-                             .format(', '.join(ALLOWED_METRICS))))
+            raise ValueError('Metric aggregation type should be one of [{}]'
+                             .format(', '.join(ALLOWED_METRICS)))
 
         if list(SUPPORTED_INTERVALS.keys()).index(interval) \
                 > list(SUPPORTED_INTERVALS.keys()).index(index_interval):
-            raise(ValueError('Aggregation interval should be'
-                             ' shorter than index interval'))
+            raise ValueError('Aggregation interval should be'
+                             ' shorter than index interval')
 
     def _get_oldest_event_timestamp(self):
         """Search for the oldest event timestamp."""
@@ -251,22 +251,7 @@ class StatAggregator(object):
             return None
         return parser.parse(result[0]['timestamp'])
 
-    def _split_date_range(self, lower_limit, upper_limit):
-        res = {}
-        current_interval = lower_limit
-        delta = INTERVAL_DELTAS[self.interval]
-        while current_interval < upper_limit:
-            dt_key = current_interval.strftime(
-                SUPPORTED_INTERVALS[self.interval])
-            res[dt_key] = current_interval
-            current_interval += delta
-
-        dt_key = upper_limit.strftime(
-            SUPPORTED_INTERVALS[self.interval])
-        res[dt_key] = upper_limit
-        return res
-
-    def agg_iter(self, dt):
+    def agg_iter(self, lower_limit, upper_limit):
         """Aggregate and return dictionary to be indexed in ES."""
         aggregation_data = {}
         start_date = format_range_dt(lower_limit, self.interval)
