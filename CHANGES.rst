@@ -9,6 +9,11 @@
 Changes
 =======
 
+Version 3.1.0 (release 2023-04-20)
+-------------------------------------
+
+- add extension method for building and caching queries
+
 Version 3.0.0 (release 2023-03-01)
 -------------------------------------
 
