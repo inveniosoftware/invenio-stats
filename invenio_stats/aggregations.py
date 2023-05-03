@@ -136,7 +136,7 @@ class BookmarkAPI(object):
         if start_date:
             range_args["gte"] = format_range_dt(start_date, self.agg_interval)
         if end_date:
-            range_args["lte"] = format_range_dt(end_date)
+            range_args["lte"] = format_range_dt(end_date, self.agg_interval)
         if range_args:
             query = query.filter("range", date=range_args)
 
