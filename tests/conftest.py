@@ -34,6 +34,7 @@ from invenio_db import InvenioDB
 from invenio_db import db as db_
 from invenio_files_rest import InvenioFilesREST
 from invenio_files_rest.models import Bucket, Location, ObjectVersion
+from invenio_i18n import InvenioI18N
 from invenio_oauth2server import InvenioOAuth2Server, InvenioOAuth2ServerREST
 from invenio_oauth2server.models import Token
 from invenio_pidstore import InvenioPIDStore
@@ -196,6 +197,7 @@ def base_app(events_config, aggregations_config):
     InvenioDB(app_)
     InvenioRecords(app_)
     InvenioFilesREST(app_)
+    InvenioI18N(app_)
     InvenioPIDStore(app_)
     InvenioCache(app_)
     InvenioQueues(app_)
