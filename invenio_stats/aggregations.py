@@ -19,6 +19,8 @@ from dateutil.relativedelta import relativedelta
 from invenio_search import current_search_client
 from invenio_search.engine import dsl, search
 from invenio_search.utils import prefix_index
+from invenio_access.permissions import system_identity
+from invenio_rdm_records.proxies import current_rdm_records_service
 
 from .utils import get_bucket_size
 
@@ -163,7 +165,7 @@ class StatAggregator(object):
     search document for each aggregated day/month/year... This enables
     to "compress" the events and keep only relevant information.
 
-    The expected events shoud have at least those two fields:
+    The expected events should have at least those two fields:
 
     .. code-block:: json
 
@@ -179,7 +181,7 @@ class StatAggregator(object):
         {
             "timestamp": "<ISO DATE TIME>",
             "field_on_which_we_aggregate": "<A VALUE>",
-            "count": "<NUMBER OF OCCURENCE OF THIS EVENT>",
+            "count": "<NUMBER OF OCCURRENCE OF THIS EVENT>",
             "field_metric": "<METRIC CALCULATION ON A FIELD>"
         }
 
@@ -266,7 +268,7 @@ class StatAggregator(object):
         return parser.parse(result[0]["timestamp"])
 
     def _split_date_range(self, lower_limit, upper_limit):
-        """Return dict of rounded dates in range, splitted by aggregation interval.
+        """Return dict of rounded dates in range, split by aggregation interval.
 
         .. code-block:: python
 
@@ -292,19 +294,37 @@ class StatAggregator(object):
         res[dt_key] = upper_limit
         return res
 
+    def _get_stats_done(self, index_name, timestamp):
+        """ Retrieve the statistics that have already been inserted """
+        my_query = dsl.Search(
+            using=self.client,
+            index=index_name,
+        ).filter("term", timestamp=timestamp,).\
+            extra(size=self.max_bucket_size,).\
+            source(includes=['count']).execute()
+        print(my_query)
+        # Putting them into a hash for faster checking
+        already_done_hash = {}
+        for entry in my_query:
+            # Let's remove the date from the id
+            already_done_hash[entry.meta['id'][:-11]] = entry.get('count')
+        print("ENTRIES DONE")
+        print(already_done_hash)
+        return already_done_hash
+
     def agg_iter(self, dt):
         """Aggregate and return dictionary to be indexed in the search engine."""
         rounded_dt = format_range_dt(dt, self.interval)
         self.agg_query = (
             dsl.Search(using=self.client, index=self.event_index).filter(
-                "range",
                 # Filter for the specific interval (hour, day, month)
-                timestamp={"gte": rounded_dt, "lte": rounded_dt},
+                "term", timestamp=rounded_dt,
             )
             # we're only interested in the aggregated results but not the search hits,
             # so we tell the search to ignore them to save some bandwidth
             .extra(size=0)
         )
+        index_name = prefix_index("stats-{0}-{1}".format(self.event, rounded_dt[0:7]))
 
         # apply query modifiers
         for modifier in self.query_modifiers:
@@ -321,6 +341,9 @@ class StatAggregator(object):
         num_partitions = max(
             int(math.ceil(float(total_buckets) / self.max_bucket_size)), 1
         )
+        # SHOULD THIS BE DONE PER BUCKET??
+        stats_done = self._get_stats_done(index_name, rounded_dt[:7])
+
         for p in range(num_partitions):
             terms = self.agg_query.aggs.bucket(
                 "terms",
@@ -346,6 +369,10 @@ class StatAggregator(object):
                     doc["timestamp"], "%Y-%m-%dT%H:%M:%S"
                 ).replace(**dict.fromkeys(INTERVAL_ROUNDING[self.interval], 0))
 
+                if doc["unique_id"] in stats_done and \
+                        stats_done[doc["unique_id"]] == aggregation["doc_count"]:
+                    continue
+
                 aggregation_data = {}
                 aggregation_data["timestamp"] = interval_date.isoformat()
                 aggregation_data[self.field] = aggregation["key"]
@@ -360,18 +387,46 @@ class StatAggregator(object):
                         aggregation_data[destination] = doc[source]
                     else:
                         aggregation_data[destination] = source(doc, aggregation_data)
-
-                index_name = "stats-{0}-{1}".format(
-                    self.event, interval_date.strftime(self.index_name_suffix)
-                )
-
+                print(aggregation_data)
                 yield {
                     "_id": "{0}-{1}".format(
                         aggregation["key"], interval_date.strftime(self.doc_id_suffix)
                     ),
-                    "_index": prefix_index(index_name),
+                    "_index": index_name,
                     "_source": aggregation_data,
                 }
+                yield {
+                    '_index': prefix_index("buffer_stats_to_reindex"),
+                    '_id': doc["parent_recid"],
+                    '_source': {
+                        "timestamp":  datetime.utcnow(),
+                    },
+                }
+
+        print("AS A PROOF OF CONCEPT, LET'S REINDEX NOW")
+        self.reindex_documents()
+
+    def reindex_documents(self):
+        """ Read the document from the buffer index and reindex them """
+        buffer_index = prefix_index("buffer_stats_to_reindex")
+        documents = dsl.Search(
+            using=self.client,
+            index=buffer_index,
+        ).source(includes=['timestamp']).execute()
+        latest=None
+        all_parents = []
+        for doc in documents:
+            all_parents.append(doc.meta['id'])
+            if not latest or latest < doc.get('timestamp'):
+                latest=doc.get('timestamp')
+        records_q = dsl.Q("terms", parent_recid=all_parents)
+
+        current_rdm_records_service.reindex_latest_first(
+        identity=system_identity, extra_filter=records_q, uow=None)
+        if latest:
+            print("Removing entries smaller than latest")
+            print(latest)
+            self.client.delete_by_query(index=buffer_index, body={"range": {"timestamp":{"lte": latest}}})
 
     def _upper_limit(self, end_date, lower_limit):
         return min(

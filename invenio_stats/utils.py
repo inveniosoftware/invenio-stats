@@ -58,7 +58,7 @@ def get_bucket_size(client, index, agg_field, start_date=None, end_date=None):
     unique_values = result.aggregations.unique_values.value
 
     # NOTE: we increase the count by 10% in order to be safe
-    return int(ceil(unique_values + unique_values * 0.1))
+    return int(ceil(unique_values * 1.1))
 
 
 def get_geoip(ip):
