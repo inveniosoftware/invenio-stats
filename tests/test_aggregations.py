@@ -55,10 +55,12 @@ def test_get_bookmark(app, search_clear, indexed_events):
         interval="day",
     )
 
-    with patch("invenio_stats.aggregations.datetime", mock_date(2017, 1, 7)):
+    with patch("invenio_stats.aggregations.datetime", mock_date(2017, 1, 7, 11, 10, 9)):
         stat_agg.run()
     current_search.flush_and_refresh(index="*")
-    assert stat_agg.bookmark_api.get_bookmark() == datetime.datetime(2017, 1, 7)
+    assert stat_agg.bookmark_api.get_bookmark() == datetime.datetime(
+        2017, 1, 7, 11, 9, 9  # Note that the bookmark is one minute older
+    )
 
 
 def test_overwriting_aggregations(app, search_clear, mock_event_queue):

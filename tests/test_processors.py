@@ -14,7 +14,7 @@ from unittest.mock import patch
 
 import pytest
 from conftest import _create_file_download_event
-from helpers import get_queue_size
+from helpers import get_queue_size, mock_date
 from invenio_queues.proxies import current_queues
 from invenio_search import current_search
 from invenio_search.engine import dsl
@@ -301,8 +301,9 @@ def test_events_indexer_preprocessors(app, mock_event_queue):
     def bulk(client, generator, *args, **kwargs):
         received_docs.extend(generator)
 
-    with patch("invenio_search.engine.search.helpers.bulk", side_effect=bulk):
-        indexer.run()
+    with patch("invenio_stats.processors.datetime", mock_date(2017, 6, 2, 12)):
+        with patch("invenio_search.engine.search.helpers.bulk", side_effect=bulk):
+            indexer.run()
 
     # Process the events as we expect them to be
     expected_docs = []
@@ -310,6 +311,7 @@ def test_events_indexer_preprocessors(app, mock_event_queue):
         event = build_file_unique_id(event)
         event = test_preprocessor1(event)
         event = test_preprocessor2(event)
+        event["updated_timestamp"] = "2017-06-02T12:00:00"
         _id = hash_id("2017-01-01T00:00:00", event)
         expected_docs.append(
             {
@@ -319,7 +321,6 @@ def test_events_indexer_preprocessors(app, mock_event_queue):
                 "_source": event,
             }
         )
-
     assert received_docs == expected_docs
 
 

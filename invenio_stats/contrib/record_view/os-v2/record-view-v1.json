@@ -40,6 +40,9 @@
       },
       "unique_session_id": {
         "type": "keyword"
+      },
+      "updated_timestamp": {
+        "type": "date"
       }
     }
   },

@@ -10,9 +10,7 @@
 """Aggregation classes."""
 
 import math
-from collections import OrderedDict
 from datetime import datetime
-from functools import wraps
 
 from dateutil import parser
 from dateutil.relativedelta import relativedelta
@@ -20,15 +18,8 @@ from invenio_search import current_search_client
 from invenio_search.engine import dsl, search
 from invenio_search.utils import prefix_index
 
+from .bookmark import SUPPORTED_INTERVALS, BookmarkAPI, format_range_dt
 from .utils import get_bucket_size
-
-SUPPORTED_INTERVALS = OrderedDict(
-    [
-        ("hour", "%Y-%m-%dT%H"),
-        ("day", "%Y-%m-%d"),
-        ("month", "%Y-%m"),
-    ]
-)
 
 INTERVAL_ROUNDING = {
     "hour": ("minute", "second", "microsecond"),
@@ -46,101 +37,6 @@ INTERVAL_DELTAS = {
 def filter_robots(query):
     """Modify a search query so that robot events are filtered out."""
     return query.filter("term", is_robot=False)
-
-
-def format_range_dt(dt, interval):
-    """Format range filter datetime to the closest aggregation interval."""
-    dt_rounding_map = {"hour": "h", "day": "d", "month": "M", "year": "y"}
-
-    if not isinstance(dt, str):
-        dt = dt.replace(microsecond=0).isoformat()
-    return f"{dt}||/{dt_rounding_map[interval]}"
-
-
-class BookmarkAPI(object):
-    """Bookmark API class.
-
-    It provides an interface that lets us interact with a bookmark.
-    """
-
-    MAPPINGS = {
-        "mappings": {
-            "date_detection": False,
-            "properties": {
-                "date": {"type": "date", "format": "date_optional_time"},
-                "aggregation_type": {"type": "keyword"},
-            },
-        }
-    }
-
-    def __init__(self, client, agg_type, agg_interval):
-        """Construct bookmark instance.
-
-        :param client: search client
-        :param agg_type: aggregation type for the bookmark
-        """
-        self.bookmark_index = prefix_index("stats-bookmarks")
-        self.client = client
-        self.agg_type = agg_type
-        self.agg_interval = agg_interval
-
-    def _ensure_index_exists(func):
-        """Decorator for ensuring the bookmarks index exists."""
-
-        @wraps(func)
-        def wrapped(self, *args, **kwargs):
-            if not dsl.Index(self.bookmark_index, using=self.client).exists():
-                self.client.indices.create(
-                    index=self.bookmark_index, body=BookmarkAPI.MAPPINGS
-                )
-            return func(self, *args, **kwargs)
-
-        return wrapped
-
-    @_ensure_index_exists
-    def set_bookmark(self, value):
-        """Set bookmark for starting next aggregation."""
-        self.client.index(
-            index=self.bookmark_index,
-            body={"date": value, "aggregation_type": self.agg_type},
-        )
-
-    @_ensure_index_exists
-    def get_bookmark(self):
-        """Get last aggregation date."""
-        # retrieve the oldest bookmark
-        query_bookmark = (
-            dsl.Search(using=self.client, index=self.bookmark_index)
-            .filter("term", aggregation_type=self.agg_type)
-            .sort({"date": {"order": "desc"}})[0:1]  # fetch one document only
-        )
-        bookmark = next(iter(query_bookmark.execute()), None)
-        if bookmark:
-            return datetime.strptime(
-                bookmark.date, SUPPORTED_INTERVALS[self.agg_interval]
-            )
-
-    @_ensure_index_exists
-    def list_bookmarks(self, start_date=None, end_date=None, limit=None):
-        """List bookmarks."""
-        query = (
-            dsl.Search(
-                using=self.client,
-                index=self.bookmark_index,
-            )
-            .filter("term", aggregation_type=self.agg_type)
-            .sort({"date": {"order": "desc"}})
-        )
-
-        range_args = {}
-        if start_date:
-            range_args["gte"] = format_range_dt(start_date, self.agg_interval)
-        if end_date:
-            range_args["lte"] = format_range_dt(end_date, self.agg_interval)
-        if range_args:
-            query = query.filter("range", date=range_args)
-
-        return query[0:limit].execute() if limit else query.scan()
 
 
 ALLOWED_METRICS = {
@@ -163,7 +59,7 @@ class StatAggregator(object):
     search document for each aggregated day/month/year... This enables
     to "compress" the events and keep only relevant information.
 
-    The expected events shoud have at least those two fields:
+    The expected events should have at least those two fields:
 
     .. code-block:: json
 
@@ -179,12 +75,17 @@ class StatAggregator(object):
         {
             "timestamp": "<ISO DATE TIME>",
             "field_on_which_we_aggregate": "<A VALUE>",
-            "count": "<NUMBER OF OCCURENCE OF THIS EVENT>",
-            "field_metric": "<METRIC CALCULATION ON A FIELD>"
+            "count": "<NUMBER OF OCCURRENCE OF THIS EVENT>",
+            "field_metric": "<METRIC CALCULATION ON A FIELD>",
+            "updated_timestamp": "<ISO DATE TIME>"
         }
 
     This aggregator saves a bookmark document after each run. This bookmark
     is used to aggregate new events without having to redo the old ones.
+
+    Note the difference between the `timestamp` and the `updated_timestamp`. The first one identifies
+    the date that is being calculated. The second one is to identify when the aggregation was modified.
+    That might be useful if there are more actions depending on that action, like reindexing.
     """
 
     def __init__(
@@ -255,9 +156,11 @@ class StatAggregator(object):
         """Search for the oldest event timestamp."""
         # Retrieve the oldest event in order to start aggregation
         # from there
-        query_events = dsl.Search(using=self.client, index=self.event_index).sort(
-            {"timestamp": {"order": "asc"}}
-        )[0:1]
+        query_events = (
+            dsl.Search(using=self.client, index=self.event_index)
+            .sort({"timestamp": {"order": "asc"}})
+            .extra(size=1)
+        )
         result = query_events.execute()
         # There might not be any events yet if the first event have been
         # indexed but the indices have not been refreshed yet.
@@ -266,7 +169,7 @@ class StatAggregator(object):
         return parser.parse(result[0]["timestamp"])
 
     def _split_date_range(self, lower_limit, upper_limit):
-        """Return dict of rounded dates in range, splitted by aggregation interval.
+        """Return dict of rounded dates in range, split by aggregation interval.
 
         .. code-block:: python
 
@@ -292,23 +195,22 @@ class StatAggregator(object):
         res[dt_key] = upper_limit
         return res
 
-    def agg_iter(self, dt):
+    def agg_iter(self, dt, previous_bookmark):
         """Aggregate and return dictionary to be indexed in the search engine."""
         rounded_dt = format_range_dt(dt, self.interval)
-        self.agg_query = (
+        agg_query = (
             dsl.Search(using=self.client, index=self.event_index).filter(
-                "range",
                 # Filter for the specific interval (hour, day, month)
-                timestamp={"gte": rounded_dt, "lte": rounded_dt},
+                "term",
+                timestamp=rounded_dt,
             )
             # we're only interested in the aggregated results but not the search hits,
             # so we tell the search to ignore them to save some bandwidth
             .extra(size=0)
         )
-
         # apply query modifiers
         for modifier in self.query_modifiers:
-            self.agg_query = modifier(self.agg_query)
+            agg_query = modifier(agg_query)
 
         total_buckets = get_bucket_size(
             self.client,
@@ -321,8 +223,14 @@ class StatAggregator(object):
         num_partitions = max(
             int(math.ceil(float(total_buckets) / self.max_bucket_size)), 1
         )
+        if previous_bookmark:
+            # Let's make sure that both objects are of the same type. This is important for the test
+            previous = float(previous_bookmark.strftime("%s"))
+        else:
+            previous = 0
+
         for p in range(num_partitions):
-            terms = self.agg_query.aggs.bucket(
+            terms = agg_query.aggs.bucket(
                 "terms",
                 "terms",
                 field=self.field,
@@ -332,8 +240,10 @@ class StatAggregator(object):
             terms.metric("top_hit", "top_hits", size=1, sort={"timestamp": "desc"})
             for dst, (metric, src, opts) in self.metric_fields.items():
                 terms.metric(dst, metric, field=src, **opts)
+            # Let's get also the last time that the event happened
+            terms.metric("last_update", "max", field="updated_timestamp")
 
-            results = self.agg_query.execute(
+            results = agg_query.execute(
                 # NOTE: Without this, the aggregation changes above, do not
                 # invalidate the search's response cache, and thus you would
                 # always get the same results for each partition.
@@ -345,11 +255,14 @@ class StatAggregator(object):
                 interval_date = datetime.strptime(
                     doc["timestamp"], "%Y-%m-%dT%H:%M:%S"
                 ).replace(**dict.fromkeys(INTERVAL_ROUNDING[self.interval], 0))
-
+                if aggregation["last_update"]["value"] and previous_bookmark:
+                    if aggregation["last_update"]["value"] < previous:
+                        continue
                 aggregation_data = {}
                 aggregation_data["timestamp"] = interval_date.isoformat()
                 aggregation_data[self.field] = aggregation["key"]
                 aggregation_data["count"] = aggregation["doc_count"]
+                aggregation_data["updated_timestamp"] = datetime.utcnow().isoformat()
 
                 if self.metric_fields:
                     for f in self.metric_fields:
@@ -361,19 +274,20 @@ class StatAggregator(object):
                     else:
                         aggregation_data[destination] = source(doc, aggregation_data)
 
-                index_name = "stats-{0}-{1}".format(
-                    self.event, interval_date.strftime(self.index_name_suffix)
+                index_name = prefix_index(
+                    "stats-{0}-{1}".format(
+                        self.event, interval_date.strftime(self.index_name_suffix)
+                    )
                 )
-
                 yield {
                     "_id": "{0}-{1}".format(
                         aggregation["key"], interval_date.strftime(self.doc_id_suffix)
                     ),
-                    "_index": prefix_index(index_name),
+                    "_index": index_name,
                     "_source": aggregation_data,
                 }
 
-    def _upper_limit(self, end_date, lower_limit):
+    def _upper_limit(self, end_date):
         return min(
             end_date or datetime.max,  # ignore if `None`
             datetime.utcnow(),
@@ -385,26 +299,34 @@ class StatAggregator(object):
         if not dsl.Index(self.event_index, using=self.client).exists():
             return
 
+        previous_bookmark = self.bookmark_api.get_bookmark()
         lower_limit = (
-            start_date
-            or self.bookmark_api.get_bookmark()
-            or self._get_oldest_event_timestamp()
+            start_date or previous_bookmark or self._get_oldest_event_timestamp()
         )
         # Stop here if no bookmark could be estimated.
         if lower_limit is None:
             return
 
-        upper_limit = self._upper_limit(end_date, lower_limit)
+        upper_limit = self._upper_limit(end_date)
         dates = self._split_date_range(lower_limit, upper_limit)
+        # Let's get the timestamp before we start the aggregation.
+        # This will be used for the next iteration. Some events might be processed twice
+        if not end_date:
+            end_date = datetime.utcnow().isoformat()
+
+        results = []
         for dt_key, dt in sorted(dates.items()):
-            search.helpers.bulk(
-                self.client,
-                self.agg_iter(dt),
-                stats_only=True,
-                chunk_size=50,
+            results.append(
+                search.helpers.bulk(
+                    self.client,
+                    self.agg_iter(dt, previous_bookmark),
+                    stats_only=True,
+                    chunk_size=50,
+                )
             )
-            if update_bookmark:
-                self.bookmark_api.set_bookmark(dt.strftime(self.doc_id_suffix))
+        if update_bookmark:
+            self.bookmark_api.set_bookmark(end_date)
+        return results
 
     def list_bookmarks(self, start_date=None, end_date=None, limit=None):
         """List the aggregation's bookmarks."""

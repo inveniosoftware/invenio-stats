@@ -9,10 +9,28 @@
 
 """Celery background tasks."""
 
+from datetime import timedelta
+
 from celery import shared_task
 from dateutil.parser import parse as dateutil_parse
 
 from .proxies import current_stats
+
+StatsEventTask = {
+    "task": "invenio_stats.tasks.process_events",
+    "schedule": timedelta(minutes=30),
+    "args": [("record-view", "file-download")],
+}
+StatsAggregationTask = {
+    "task": "invenio_stats.tasks.aggregate_events",
+    "schedule": timedelta(hours=1),
+    "args": [
+        (
+            "record-view-agg",
+            "file-download-agg",
+        )
+    ],
+}
 
 
 @shared_task
@@ -35,7 +53,6 @@ def aggregate_events(
     start_date = dateutil_parse(start_date) if start_date else None
     end_date = dateutil_parse(end_date) if end_date else None
     results = []
-
     for aggr_name in aggregations:
         aggr_cfg = current_stats.aggregations[aggr_name]
         aggregator = aggr_cfg.cls(name=aggr_cfg.name, **aggr_cfg.params)
