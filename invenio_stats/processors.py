@@ -10,6 +10,7 @@
 """Events indexer."""
 
 import hashlib
+from datetime import datetime
 from time import mktime
 
 from counter_robots import is_machine, is_robot
@@ -188,7 +189,7 @@ class EventsIndexer(object):
                 # This is to improve search engine performances.
                 ts = ts.replace(microsecond=0)
                 msg["timestamp"] = ts.isoformat()
-
+                msg["updated_timestamp"] = datetime.utcnow().isoformat()
                 # apply timestamp windowing in order to group events too close in time
                 if self.double_click_window > 0:
                     timestamp = mktime(utc.localize(ts).utctimetuple())

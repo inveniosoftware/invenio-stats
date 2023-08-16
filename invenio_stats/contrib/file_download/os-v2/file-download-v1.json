@@ -54,6 +54,9 @@
       },
       "size": {
         "type": "double"
+      },
+      "updated_timestamp": {
+        "type": "date"
       }
     }
   },

@@ -137,7 +137,12 @@ def test_aggregations_process(script_info, event_queues, search_clear, indexed_e
 
     current_search.flush_and_refresh(index="*")
     assert agg_alias.count() == 10
-    assert not search_clear.indices.exists("stats-bookmarks")  # no bookmark is created
+    assert search_clear.indices.exists(
+        "stats-bookmarks"
+    )  # the bookmark indexed is created
+    assert (
+        search_obj.index("stats-bookmarks").count() == 0
+    )  # And it should not have any entries
     assert search_obj.index("stats-file-download-2018-01").count() == 10
 
     # Run again over same period, but update the bookmark
@@ -159,7 +164,9 @@ def test_aggregations_process(script_info, event_queues, search_clear, indexed_e
     current_search.flush_and_refresh(index="*")
     assert agg_alias.count() == 10
     assert search_obj.index("stats-file-download-2018-01").count() == 10
-    assert search_obj.index("stats-bookmarks").count() == 10  # for 01-10/01
+    assert (
+        search_obj.index("stats-bookmarks").count() == 1
+    )  # There is a single bookmark per run
 
     # Run over all the events via celery task
     with patch("invenio_stats.aggregations.datetime", mock_date(2018, 2, 15)):
@@ -172,9 +179,9 @@ def test_aggregations_process(script_info, event_queues, search_clear, indexed_e
 
     current_search.flush_and_refresh(index="*")
     assert agg_alias.count() == 46
-    assert search_obj.index("stats-bookmarks").count() == (
-        10 + 37  # 10 for 01-10/01, 37 for 10/01-15/02
-    )
+    assert (
+        search_obj.index("stats-bookmarks").count() == 2
+    )  # This time there are two, since we had two different dates
     assert search_obj.index("stats-file-download-2018-01").count() == 31
     assert search_obj.index("stats-file-download-2018-02").count() == 15
 
@@ -202,7 +209,9 @@ def test_aggregations_delete(
     current_search.flush_and_refresh(index="*")
     agg_alias = search_obj.index("stats-file-download")
     assert agg_alias.count() == 31
-    assert search_obj.index("stats-bookmarks").count() == 31  # for 01-31/01
+    assert (
+        search_obj.index("stats-bookmarks").count() == 1
+    )  # There is a single bookmark per run
     assert search_obj.index("stats-file-download-2018-01").count() == 31
 
     result = runner.invoke(
@@ -223,7 +232,7 @@ def test_aggregations_delete(
     agg_alias = search_obj.index("stats-file-download")
 
     assert agg_alias.count() == 21
-    assert search_obj.index("stats-bookmarks").count() == (31 - 10) == 21
+    assert search_obj.index("stats-bookmarks").count() == 1
     assert search_obj.index("stats-file-download-2018-01").count() == 21
 
     # Delete all aggregations
@@ -261,7 +270,7 @@ def test_aggregations_list_bookmarks(
     current_search.flush_and_refresh(index="*")
     agg_alias = search_obj.index("stats-file-download")
     assert agg_alias.count() == 31
-    assert search_obj.index("stats-bookmarks").count() == 31
+    assert search_obj.index("stats-bookmarks").count() == 1
     assert search_obj.index("stats-file-download-2018-01").count() == 31
 
     bookmarks = [b.date for b in search_obj.index("stats-bookmarks").scan()]
