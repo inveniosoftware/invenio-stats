@@ -302,14 +302,12 @@ class StatAggregator(object):
         ).filter("term", timestamp=timestamp,).\
             extra(size=self.max_bucket_size,).\
             source(includes=['count']).execute()
-        print(my_query)
         # Putting them into a hash for faster checking
         already_done_hash = {}
         for entry in my_query:
             # Let's remove the date from the id
             already_done_hash[entry.meta['id'][:-11]] = entry.get('count')
-        print("ENTRIES DONE")
-        print(already_done_hash)
+
         return already_done_hash
 
     def agg_iter(self, dt):
@@ -342,7 +340,7 @@ class StatAggregator(object):
             int(math.ceil(float(total_buckets) / self.max_bucket_size)), 1
         )
         # SHOULD THIS BE DONE PER BUCKET??
-        stats_done = self._get_stats_done(index_name, rounded_dt[:7])
+        stats_done = self._get_stats_done(index_name, rounded_dt)
 
         for p in range(num_partitions):
             terms = self.agg_query.aggs.bucket(
@@ -387,7 +385,6 @@ class StatAggregator(object):
                         aggregation_data[destination] = doc[source]
                     else:
                         aggregation_data[destination] = source(doc, aggregation_data)
-                print(aggregation_data)
                 yield {
                     "_id": "{0}-{1}".format(
                         aggregation["key"], interval_date.strftime(self.doc_id_suffix)
@@ -402,9 +399,9 @@ class StatAggregator(object):
                         "timestamp":  datetime.utcnow(),
                     },
                 }
-
-        print("AS A PROOF OF CONCEPT, LET'S REINDEX NOW")
-        self.reindex_documents()
+        #THIS CALL (AND THE FOLLOWING METHOD) SHOULD BE MOVED SOMEWHERE ELSE
+        if self.event == "record-view":
+            self.reindex_documents()
 
     def reindex_documents(self):
         """ Read the document from the buffer index and reindex them """
@@ -419,14 +416,18 @@ class StatAggregator(object):
             all_parents.append(doc.meta['id'])
             if not latest or latest < doc.get('timestamp'):
                 latest=doc.get('timestamp')
-        records_q = dsl.Q("terms", parent_recid=all_parents)
+        if not all_parents:
+            return
+        records_q = dsl.Q("terms", parent__id=all_parents)
 
-        current_rdm_records_service.reindex_latest_first(
-        identity=system_identity, extra_filter=records_q, uow=None)
+        current_rdm_records_service.reindex(
+            params={"allversions": True},
+            identity=system_identity,
+            extra_filter=records_q
+        )
         if latest:
-            print("Removing entries smaller than latest")
-            print(latest)
-            self.client.delete_by_query(index=buffer_index, body={"range": {"timestamp":{"lte": latest}}})
+            self.client.delete_by_query(index=buffer_index,
+                                        body={"query":{"range": {"timestamp": {"lte": latest}}}})
 
     def _upper_limit(self, end_date, lower_limit):
         return min(
