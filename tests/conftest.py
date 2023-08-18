@@ -220,12 +220,15 @@ def app(base_app):
 @pytest.fixture()
 def db(app):
     """Setup database."""
+    print("Creating the database")
+    print(db_.engine.url)
+    #db_.drop_all()
     if not database_exists(str(db_.engine.url)):
         create_database(str(db_.engine.url))
     db_.create_all()
     yield db_
     db_.session.remove()
-    db_.drop_all()
+    #db_.drop_all()
 
 
 @pytest.fixture()
@@ -242,8 +245,9 @@ def search(app):
     try:
         yield current_search_client
     finally:
-        current_search_client.indices.delete(index="*")
-        current_search_client.indices.delete_template("*")
+    #    current_search_client.indices.delete(index="*")
+    #    current_search_client.indices.delete_template("*")
+        pass
 
 
 @pytest.fixture()
@@ -602,3 +606,10 @@ class CustomQuery:
     def run(self, *args, **kwargs):
         """Sample response."""
         return {"bucket_id": "test_bucket", "value": 100}
+
+
+def pytest_runtest_makereport(item, call):
+    if "incremental" in item.keywords:
+        if call.excinfo is not None:
+            parent = item.parent
+            parent._previousfailed = item

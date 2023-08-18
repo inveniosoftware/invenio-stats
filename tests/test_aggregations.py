@@ -31,6 +31,12 @@ def test_wrong_intervals(app, search):
         )
 
 
+def _register_event(event_type, event):
+    current_stats.publish(event_type, event)
+    process_events([event_type])
+    current_search.flush_and_refresh(index="*")
+
+
 @pytest.mark.parametrize(
     "indexed_events",
     [
@@ -46,6 +52,7 @@ def test_wrong_intervals(app, search):
 )
 def test_get_bookmark(app, search, indexed_events):
     """Test bookmark reading."""
+    _register_event("file-download", [indexed_events])
     stat_agg = StatAggregator(
         name="file-download-agg",
         client=search,
@@ -60,6 +67,7 @@ def test_get_bookmark(app, search, indexed_events):
     assert stat_agg.bookmark_api.get_bookmark() == datetime.datetime(2017, 1, 7)
 
 
+@pytest.mark.incremental
 def test_overwriting_aggregations(app, search, mock_event_queue):
     """Check that the StatAggregator correctly starts from bookmark.
 
@@ -112,6 +120,7 @@ def test_overwriting_aggregations(app, search, mock_event_queue):
             assert hit["_version"] == 1
 
 
+@pytest.mark.incremental
 def test_aggregation_without_events(app, search):
     """Check that the aggregation doesn't crash if there are no events.
 
@@ -145,6 +154,7 @@ def test_aggregation_without_events(app, search):
     assert not dsl.Index("stats-file-download", using=search).exists()
 
 
+@pytest.mark.incremental
 def test_bookmark_removal(app, search, mock_event_queue):
     """Remove aggregation bookmark and restart aggregation.
 
@@ -182,6 +192,7 @@ def test_bookmark_removal(app, search, mock_event_queue):
     aggregate_and_check_version(2)
 
 
+@pytest.mark.incremental
 @pytest.mark.parametrize(
     "indexed_events",
     [
@@ -209,6 +220,7 @@ def test_date_range(app, search, event_queues, indexed_events):
     assert total_count == 30
 
 
+@pytest.mark.incremental
 @pytest.mark.parametrize(
     "indexed_events",
     [
@@ -248,6 +260,7 @@ def test_filter_robots(app, search, event_queues, indexed_events, with_robots):
             assert result.count == (5 if with_robots else 2)
 
 
+@pytest.mark.incremental
 def test_metric_aggregations(app, search, event_queues):
     """Test aggregation metrics."""
     current_stats.publish(

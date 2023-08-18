@@ -16,11 +16,11 @@ from functools import wraps
 
 from dateutil import parser
 from dateutil.relativedelta import relativedelta
+from invenio_access.permissions import system_identity
+from invenio_rdm_records.proxies import current_rdm_records_service
 from invenio_search import current_search_client
 from invenio_search.engine import dsl, search
 from invenio_search.utils import prefix_index
-from invenio_access.permissions import system_identity
-from invenio_rdm_records.proxies import current_rdm_records_service
 
 from .utils import get_bucket_size
 
@@ -295,18 +295,25 @@ class StatAggregator(object):
         return res
 
     def _get_stats_done(self, index_name, timestamp):
-        """ Retrieve the statistics that have already been inserted """
-        my_query = dsl.Search(
-            using=self.client,
-            index=index_name,
-        ).filter("term", timestamp=timestamp,).\
-            extra(size=self.max_bucket_size,).\
-            source(includes=['count']).execute()
+        """Retrieve the statistics that have already been inserted"""
+        my_query = (
+            dsl.Search(
+                using=self.client,
+                index=index_name,
+            )
+            .filter(
+                "term",
+                timestamp=timestamp,
+            )
+            .extra(size=self.max_bucket_size)
+            .source(includes=["count"])
+            .execute()
+        )
         # Putting them into a hash for faster checking
         already_done_hash = {}
         for entry in my_query:
             # Let's remove the date from the id
-            already_done_hash[entry.meta['id'][:-11]] = entry.get('count')
+            already_done_hash[entry.meta["id"][:-11]] = entry.get("count")
 
         return already_done_hash
 
@@ -316,7 +323,8 @@ class StatAggregator(object):
         self.agg_query = (
             dsl.Search(using=self.client, index=self.event_index).filter(
                 # Filter for the specific interval (hour, day, month)
-                "term", timestamp=rounded_dt,
+                "term",
+                timestamp=rounded_dt,
             )
             # we're only interested in the aggregated results but not the search hits,
             # so we tell the search to ignore them to save some bandwidth
@@ -367,8 +375,10 @@ class StatAggregator(object):
                     doc["timestamp"], "%Y-%m-%dT%H:%M:%S"
                 ).replace(**dict.fromkeys(INTERVAL_ROUNDING[self.interval], 0))
 
-                if doc["unique_id"] in stats_done and \
-                        stats_done[doc["unique_id"]] == aggregation["doc_count"]:
+                if (
+                    doc["unique_id"] in stats_done
+                    and stats_done[doc["unique_id"]] == aggregation["doc_count"]
+                ):
                     continue
 
                 aggregation_data = {}
@@ -385,6 +395,11 @@ class StatAggregator(object):
                         aggregation_data[destination] = doc[source]
                     else:
                         aggregation_data[destination] = source(doc, aggregation_data)
+
+                index_name = prefix_index("stats-{0}-{1}".format(
+                    self.event, interval_date.strftime(self.index_name_suffix)
+                ))
+
                 yield {
                     "_id": "{0}-{1}".format(
                         aggregation["key"], interval_date.strftime(self.doc_id_suffix)
@@ -393,29 +408,36 @@ class StatAggregator(object):
                     "_source": aggregation_data,
                 }
                 yield {
-                    '_index': prefix_index("buffer_stats_to_reindex"),
-                    '_id': doc["parent_recid"],
-                    '_source': {
-                        "timestamp":  datetime.utcnow(),
+                    "_index": prefix_index("buffer_stats_to_reindex"),
+                    "_id": doc["parent_recid"],
+                    "_source": {
+                        "timestamp": datetime.utcnow(),
                     },
                 }
-        #THIS CALL (AND THE FOLLOWING METHOD) SHOULD BE MOVED SOMEWHERE ELSE
+        # THIS CALL (AND THE FOLLOWING METHOD) SHOULD BE MOVED SOMEWHERE ELSE
         if self.event == "record-view":
             self.reindex_documents()
 
     def reindex_documents(self):
-        """ Read the document from the buffer index and reindex them """
-        buffer_index = prefix_index("buffer_stats_to_reindex")
-        documents = dsl.Search(
-            using=self.client,
-            index=buffer_index,
-        ).source(includes=['timestamp']).execute()
-        latest=None
+        """Read the document from the buffer index and reindex them"""
+        try:
+            buffer_index = prefix_index("buffer_stats_to_reindex")
+            documents = (
+                dsl.Search(
+                    using=self.client,
+                    index=buffer_index,
+                )
+                .source(includes=["timestamp"])
+                .execute()
+            )
+        except search.exceptions.NotFoundError:
+            return
+        latest = None
         all_parents = []
         for doc in documents:
-            all_parents.append(doc.meta['id'])
-            if not latest or latest < doc.get('timestamp'):
-                latest=doc.get('timestamp')
+            all_parents.append(doc.meta["id"])
+            if not latest or latest < doc.get("timestamp"):
+                latest = doc.get("timestamp")
         if not all_parents:
             return
         records_q = dsl.Q("terms", parent__id=all_parents)
@@ -423,11 +445,13 @@ class StatAggregator(object):
         current_rdm_records_service.reindex(
             params={"allversions": True},
             identity=system_identity,
-            extra_filter=records_q
+            extra_filter=records_q,
         )
         if latest:
-            self.client.delete_by_query(index=buffer_index,
-                                        body={"query":{"range": {"timestamp": {"lte": latest}}}})
+            self.client.delete_by_query(
+                index=buffer_index,
+                body={"query": {"range": {"timestamp": {"lte": latest}}}},
+            )
 
     def _upper_limit(self, end_date, lower_limit):
         return min(
