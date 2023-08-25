@@ -222,13 +222,13 @@ def db(app):
     """Setup database."""
     print("Creating the database")
     print(db_.engine.url)
-    #db_.drop_all()
+    db_.drop_all()
     if not database_exists(str(db_.engine.url)):
         create_database(str(db_.engine.url))
     db_.create_all()
     yield db_
     db_.session.remove()
-    #db_.drop_all()
+    db_.drop_all()
 
 
 @pytest.fixture()
@@ -245,8 +245,8 @@ def search(app):
     try:
         yield current_search_client
     finally:
-    #    current_search_client.indices.delete(index="*")
-    #    current_search_client.indices.delete_template("*")
+        #    current_search_client.indices.delete(index="*")
+        #    current_search_client.indices.delete_template("*")
         pass
 
 

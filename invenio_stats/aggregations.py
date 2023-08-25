@@ -296,19 +296,23 @@ class StatAggregator(object):
 
     def _get_stats_done(self, index_name, timestamp):
         """Retrieve the statistics that have already been inserted"""
-        my_query = (
-            dsl.Search(
-                using=self.client,
-                index=index_name,
+        try:
+            my_query = (
+                dsl.Search(
+                    using=self.client,
+                    index=index_name,
+                )
+                .filter(
+                    "term",
+                    timestamp=timestamp,
+                )
+                .extra(size=self.max_bucket_size)
+                .source(includes=["count"])
+                .execute()
             )
-            .filter(
-                "term",
-                timestamp=timestamp,
-            )
-            .extra(size=self.max_bucket_size)
-            .source(includes=["count"])
-            .execute()
-        )
+        except search.exceptions.NotFoundError:
+            # The index does not exist.
+            return {}
         # Putting them into a hash for faster checking
         already_done_hash = {}
         for entry in my_query:
@@ -396,9 +400,11 @@ class StatAggregator(object):
                     else:
                         aggregation_data[destination] = source(doc, aggregation_data)
 
-                index_name = prefix_index("stats-{0}-{1}".format(
-                    self.event, interval_date.strftime(self.index_name_suffix)
-                ))
+                index_name = prefix_index(
+                    "stats-{0}-{1}".format(
+                        self.event, interval_date.strftime(self.index_name_suffix)
+                    )
+                )
 
                 yield {
                     "_id": "{0}-{1}".format(
@@ -407,13 +413,14 @@ class StatAggregator(object):
                     "_index": index_name,
                     "_source": aggregation_data,
                 }
-                yield {
-                    "_index": prefix_index("buffer_stats_to_reindex"),
-                    "_id": doc["parent_recid"],
-                    "_source": {
-                        "timestamp": datetime.utcnow(),
-                    },
-                }
+                if "parent_recid" in doc:
+                    yield {
+                        "_index": prefix_index("buffer_stats_to_reindex"),
+                        "_id": doc["parent_recid"],
+                        "_source": {
+                            "timestamp": datetime.utcnow(),
+                        },
+                    }
         # THIS CALL (AND THE FOLLOWING METHOD) SHOULD BE MOVED SOMEWHERE ELSE
         if self.event == "record-view":
             self.reindex_documents()
