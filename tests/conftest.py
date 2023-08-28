@@ -220,8 +220,6 @@ def app(base_app):
 @pytest.fixture()
 def db(app):
     """Setup database."""
-    print("Creating the database")
-    print(db_.engine.url)
     db_.drop_all()
     if not database_exists(str(db_.engine.url)):
         create_database(str(db_.engine.url))
@@ -245,9 +243,8 @@ def search(app):
     try:
         yield current_search_client
     finally:
-        #    current_search_client.indices.delete(index="*")
-        #    current_search_client.indices.delete_template("*")
-        pass
+        current_search_client.indices.delete(index="*")
+        current_search_client.indices.delete_template("*")
 
 
 @pytest.fixture()
@@ -427,6 +424,7 @@ def generate_events(
     robot_event_number=0,
     start_date=datetime.date(2017, 1, 1),
     end_date=datetime.date(2017, 1, 7),
+    parent_recid=11,
 ):
     """Queued events for processing tests."""
     current_queues.declare()
@@ -448,7 +446,8 @@ def generate_events(
                     ts = next(unique_ts)
                     return {
                         "timestamp": datetime.datetime.combine(
-                            entry_date, datetime.time(minute=ts % 60, second=ts % 60)
+                            entry_date,
+                            datetime.time(minute=ts % 60, second=ts % 60),
                         ).isoformat(),
                         "bucket_id": bucket_id,
                         "file_id": file_id,
@@ -456,6 +455,7 @@ def generate_events(
                         "size": 9000,
                         "visitor_id": 100,
                         "is_robot": is_robot,
+                        "parent_recid": parent_recid,
                     }
 
                 for event_idx in range(event_number):
@@ -606,10 +606,3 @@ class CustomQuery:
     def run(self, *args, **kwargs):
         """Sample response."""
         return {"bucket_id": "test_bucket", "value": 100}
-
-
-def pytest_runtest_makereport(item, call):
-    if "incremental" in item.keywords:
-        if call.excinfo is not None:
-            parent = item.parent
-            parent._previousfailed = item

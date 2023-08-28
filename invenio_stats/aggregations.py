@@ -295,24 +295,23 @@ class StatAggregator(object):
         return res
 
     def _get_stats_done(self, index_name, timestamp):
-        """Retrieve the statistics that have already been inserted"""
-        try:
-            my_query = (
-                dsl.Search(
-                    using=self.client,
-                    index=index_name,
-                )
-                .filter(
-                    "term",
-                    timestamp=timestamp,
-                )
-                .extra(size=self.max_bucket_size)
-                .source(includes=["count"])
-                .execute()
-            )
-        except search.exceptions.NotFoundError:
-            # The index does not exist.
+        """Retrieve the statistics that have already been inserted."""
+        if not dsl.Index(index_name, using=self.client).exists():
             return {}
+
+        my_query = (
+            dsl.Search(
+                using=self.client,
+                index=index_name,
+            )
+            .filter(
+                "term",
+                timestamp=timestamp,
+            )
+            .extra(size=self.max_bucket_size)
+            .source(includes=["count"])
+            .execute()
+        )
         # Putting them into a hash for faster checking
         already_done_hash = {}
         for entry in my_query:
@@ -335,7 +334,6 @@ class StatAggregator(object):
             .extra(size=0)
         )
         index_name = prefix_index("stats-{0}-{1}".format(self.event, rounded_dt[0:7]))
-
         # apply query modifiers
         for modifier in self.query_modifiers:
             self.agg_query = modifier(self.agg_query)
@@ -353,7 +351,6 @@ class StatAggregator(object):
         )
         # SHOULD THIS BE DONE PER BUCKET??
         stats_done = self._get_stats_done(index_name, rounded_dt)
-
         for p in range(num_partitions):
             terms = self.agg_query.aggs.bucket(
                 "terms",
@@ -426,19 +423,18 @@ class StatAggregator(object):
             self.reindex_documents()
 
     def reindex_documents(self):
-        """Read the document from the buffer index and reindex them"""
-        try:
-            buffer_index = prefix_index("buffer_stats_to_reindex")
-            documents = (
-                dsl.Search(
-                    using=self.client,
-                    index=buffer_index,
-                )
-                .source(includes=["timestamp"])
-                .execute()
-            )
-        except search.exceptions.NotFoundError:
+        """Read the document from the buffer index and reindex them."""
+        buffer_index = prefix_index("buffer_stats_to_reindex")
+        if not dsl.Index(buffer_index, using=self.client).exists():
             return
+        documents = (
+            dsl.Search(
+                using=self.client,
+                index=buffer_index,
+            )
+            .source(includes=["timestamp"])
+            .execute()
+        )
         latest = None
         all_parents = []
         for doc in documents:
@@ -469,9 +465,9 @@ class StatAggregator(object):
     def run(self, start_date=None, end_date=None, update_bookmark=True):
         """Calculate statistics aggregations."""
         # If no events have been indexed there is nothing to aggregate
+
         if not dsl.Index(self.event_index, using=self.client).exists():
             return
-
         lower_limit = (
             start_date
             or self.bookmark_api.get_bookmark()

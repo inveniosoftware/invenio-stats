@@ -295,6 +295,45 @@ def test_metric_aggregations(app, search, event_queues):
     query = dsl.Search(using=search, index="stats-file-download")
     results = query.execute()
     assert len(results) == 1
-    assert results[0].count == 12  # 3 views over 4 differnet hour slices
+    assert results[0].count == 12  # 3 views over 4 different hour slices
     assert results[0].unique_count == 4  # 4 different hour slices accessed
     assert results[0].volume == 9000 * 12
+
+
+@pytest.mark.parametrize(
+    "indexed_events",
+    [
+        {
+            "file_number": 1,
+            "event_number": 2,
+            "robot_event_number": 0,
+            "start_date": datetime.date(2023, 8, 1),
+            "end_date": datetime.date(2023, 8, 15),
+            "parent_recid": 25,
+        },
+    ],
+    indirect=["indexed_events"],
+)
+def test_record_to_reindex(app, search, indexed_events):
+    """Check that the documents to be reindexed are in the buffer index."""
+    buffer_index = "buffer_stats_to_reindex"
+    StatAggregator(
+        name="file-download-agg",
+        client=search,
+        event="file-download",
+        field="file_id",
+        metric_fields={
+            "unique_count": (
+                "cardinality",
+                "unique_session_id",
+                {"precision_threshold": 3000},
+            ),
+            "volume": ("sum", "size", {}),
+        },
+        interval="day",
+    ).run()
+    current_search.flush_and_refresh(index=buffer_index)
+
+    results = dsl.Search(using=search, index=buffer_index).execute()
+    assert len(results) == 1
+    assert results[0].meta.id == "25"

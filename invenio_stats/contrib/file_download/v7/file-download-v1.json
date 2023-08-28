@@ -54,6 +54,9 @@
       },
       "size": {
         "type": "double"
+      },
+      "parent_recid": {
+        "type": "keyword"
       }
     }
   },
