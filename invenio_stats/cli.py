@@ -13,7 +13,11 @@ from functools import wraps
 
 import click
 from dateutil.parser import parse as dateutil_parse
+from datetime import datetime
+from flask import current_app
 from flask.cli import with_appcontext
+from invenio_search.engine import search
+from invenio_search.proxies import current_search_client
 from werkzeug.local import LocalProxy
 
 from .proxies import current_stats
@@ -164,3 +168,61 @@ def _aggregations_list_bookmarks(
         click.echo("{}:".format(a))
         for b in bookmarks:
             click.echo(" - {}".format(b.date))
+
+
+@stats.command("migrate_zenodo")
+@with_appcontext
+def _migrate():
+    """Migrate the statistics from zenodo."""
+    print("Checking if there are any `legacy` indices")
+    my_date = datetime.utcnow().isoformat()
+    painless = f'ctx._source.parent_recid=ctx._source.conceptrecid;ctx._source.updated_timestamp="{my_date}";'
+    # Removing obsolete fields
+    for f in [
+        "conceptdoi",
+        "resource_type",
+        "access_right",
+        "bucket_id",
+        "file_key",
+        "referrer",
+        "size",
+        "file_id",
+        "conceptrecid",
+        "doi",
+        "owners",
+        "is_parent",
+        "communities"
+    ]:
+        painless += f'ctx._source.remove("{f}");'
+    print(painless)
+    legacy_indices = current_search_client.cat.indices("legacy*", format="json")
+    i = 0
+    total = len(legacy_indices)
+    for my_index in sorted(legacy_indices, key=lambda d: d["index"]):
+        print("%i/%i Doing index: %s" % (i, total, my_index["index"]))
+        i += 1
+        target = my_index["index"].replace("legacy-zenodo", "zenodo-prod")
+        source = my_index["index"]
+        try:
+            old = current_search_client.count({}, source)
+            new = current_search_client.count({}, target)
+            if old == new:
+                print("\tThe target has the same number of entries. Skipping")
+                continue
+        except search.exceptions.NotFoundError:
+            pass
+        try:
+            current_search_client.reindex(
+                {
+                    "conflicts": "proceed",
+                    "source": {"index": my_index["index"]},
+                    "dest": {"index": target, "op_type": "create"},
+                    "script": {
+                        "lang": "painless",
+                        "source": painless,
+                    },
+                }
+            )
+        except Exception as d:
+            print("NOPE")
+            print(d)
