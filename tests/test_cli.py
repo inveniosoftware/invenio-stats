@@ -22,9 +22,9 @@ from invenio_stats import current_stats
 from invenio_stats.cli import stats
 
 
-def test_events_process(search, script_info, event_queues):
+def test_events_process(search_clear, script_info, event_queues):
     """Test "events process" CLI command."""
-    search_obj = dsl.Search(using=search)
+    search_obj = dsl.Search(using=search_clear)
     runner = CliRunner()
 
     # Invalid argument
@@ -58,8 +58,8 @@ def test_events_process(search, script_info, event_queues):
 
     assert search_obj.index("events-stats-file-download-2018-01-01").count() == 3
     assert search_obj.index("events-stats-file-download").count() == 3
-    assert not search.indices.exists("events-stats-record-view-2018-01-01")
-    assert not search.indices.exists_alias(name="events-stats-record-view")
+    assert not search_clear.indices.exists("events-stats-record-view-2018-01-01")
+    assert not search_clear.indices.exists_alias(name="events-stats-record-view")
 
     result = runner.invoke(
         stats, ["events", "process", "record-view", "--eager"], obj=script_info
@@ -105,9 +105,9 @@ def test_events_process(search, script_info, event_queues):
     ],
     indirect=["indexed_events"],
 )
-def test_aggregations_process(script_info, event_queues, search, indexed_events):
+def test_aggregations_process(script_info, event_queues, search_clear, indexed_events):
     """Test "aggregations process" CLI command."""
-    search_obj = dsl.Search(using=search)
+    search_obj = dsl.Search(using=search_clear)
     runner = CliRunner()
 
     # Invalid argument
@@ -137,7 +137,7 @@ def test_aggregations_process(script_info, event_queues, search, indexed_events)
 
     current_search.flush_and_refresh(index="*")
     assert agg_alias.count() == 10
-    assert not search.indices.exists("stats-bookmarks")  # no bookmark is created
+    assert not search_clear.indices.exists("stats-bookmarks")  # no bookmark is created
     assert search_obj.index("stats-file-download-2018-01").count() == 10
 
     # Run again over same period, but update the bookmark
@@ -192,9 +192,11 @@ def test_aggregations_process(script_info, event_queues, search, indexed_events)
     ],
     indirect=["aggregated_events"],
 )
-def test_aggregations_delete(script_info, event_queues, search, aggregated_events):
+def test_aggregations_delete(
+    script_info, event_queues, search_clear, aggregated_events
+):
     """Test "aggregations process" CLI command."""
-    search_obj = dsl.Search(using=search)
+    search_obj = dsl.Search(using=search_clear)
     runner = CliRunner()
 
     current_search.flush_and_refresh(index="*")
@@ -250,10 +252,10 @@ def test_aggregations_delete(script_info, event_queues, search, aggregated_event
     indirect=["aggregated_events"],
 )
 def test_aggregations_list_bookmarks(
-    script_info, event_queues, search, aggregated_events
+    script_info, event_queues, search_clear, aggregated_events
 ):
     """Test "aggregations list-bookmarks" CLI command."""
-    search_obj = dsl.Search(using=search)
+    search_obj = dsl.Search(using=search_clear)
     runner = CliRunner()
 
     current_search.flush_and_refresh(index="*")

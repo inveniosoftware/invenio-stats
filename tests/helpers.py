@@ -9,6 +9,7 @@
 """Invenio Stats testing helpers."""
 
 import datetime
+import time
 
 from invenio_queues.proxies import current_queues
 
@@ -16,6 +17,7 @@ from invenio_queues.proxies import current_queues
 def get_queue_size(queue_name):
     """Get the current number of messages in a queue."""
     queue = current_queues.queues[queue_name]
+    time.sleep(1)  # necessary, queue returning random sizes otherwise
     _, size, _ = queue.queue.queue_declare(passive=True)
     return size
 

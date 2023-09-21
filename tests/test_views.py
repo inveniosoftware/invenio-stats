@@ -12,6 +12,8 @@ import json
 import pytest
 from flask import url_for
 
+from invenio_stats import current_stats
+
 
 def test_post_request(app, db, users, queries_config, sample_histogram_query_data):
     """Test post request to stats API."""
@@ -76,8 +78,6 @@ def test_unauthorized_request(
     user = users[which_user] if which_user else None
     assert client_req(user) == expected_code
 
-    assert custom_permission_factory.query_name == "test-query"
-    assert (
-        custom_permission_factory.params
-        == sample_histogram_query_data["mystat"]["params"]
-    )
+    factory = current_stats.queries["test-query"].permission_factory
+    assert factory.query_name == "test-query"
+    assert factory.params == sample_histogram_query_data["mystat"]["params"]

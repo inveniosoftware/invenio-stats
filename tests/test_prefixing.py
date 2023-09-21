@@ -22,7 +22,7 @@ from invenio_stats.tasks import aggregate_events
 
 
 def test_index_prefix(
-    config_with_index_prefix, app, search, event_queues, queries_config
+    config_with_index_prefix, app, search_clear, event_queues, queries_config
 ):
     # 1) publish events in the queue
     current_stats.publish(
@@ -39,24 +39,24 @@ def test_index_prefix(
     # 2) preprocess events
     indexer = EventsIndexer(queue, preprocessors=[flag_machines, flag_robots])
     indexer.run()
-    search.indices.refresh(index="*")
+    search_clear.indices.refresh(index="*")
 
     assert get_queue_size("stats-file-download") == 0
 
     index_prefix = config_with_index_prefix["SEARCH_INDEX_PREFIX"]
     index_name = index_prefix + "events-stats-file-download"
 
-    assert search.indices.exists(index_name + "-2018-01-01")
-    assert search.indices.exists(index_name + "-2018-01-02")
-    assert search.indices.exists(index_name + "-2018-01-03")
-    assert search.indices.exists(index_name + "-2018-01-04")
-    assert search.indices.exists_alias(name=index_name)
+    assert search_clear.indices.exists(index_name + "-2018-01-01")
+    assert search_clear.indices.exists(index_name + "-2018-01-02")
+    assert search_clear.indices.exists(index_name + "-2018-01-03")
+    assert search_clear.indices.exists(index_name + "-2018-01-04")
+    assert search_clear.indices.exists_alias(name=index_name)
 
     # 3) aggregate events
     with patch("invenio_stats.aggregations.datetime", mock_date(2018, 1, 4)):
         aggregate_events(["file-download-agg"])
-    search.indices.refresh(index="*")
-    search.indices.exists(index_prefix + "stats-file-download-2018-01")
+    search_clear.indices.refresh(index="*")
+    search_clear.indices.exists(index_prefix + "stats-file-download-2018-01")
 
     # 4) queries
     histo_query_name = "bucket-file-download-histogram"
