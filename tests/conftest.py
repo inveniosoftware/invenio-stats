@@ -19,35 +19,22 @@ from copy import deepcopy
 from io import BytesIO
 from unittest.mock import Mock, patch
 
-# imported to make sure that
-# login_oauth2_user(valid, oauth) is included
-import invenio_oauth2server.views.server  # noqa
 import pytest
-from flask import Flask, appcontext_pushed, g
+from flask import appcontext_pushed, g
 from flask.cli import ScriptInfo
-from flask_celeryext import FlaskCeleryExt
 from helpers import mock_date
-from invenio_accounts import InvenioAccounts, InvenioAccountsREST
 from invenio_accounts.testutils import create_test_user
-from invenio_cache import InvenioCache
-from invenio_db import InvenioDB
+from invenio_app.factory import create_api as _create_api
 from invenio_db import db as db_
-from invenio_files_rest import InvenioFilesREST
 from invenio_files_rest.models import Bucket, Location, ObjectVersion
-from invenio_i18n import InvenioI18N
-from invenio_oauth2server import InvenioOAuth2Server, InvenioOAuth2ServerREST
 from invenio_oauth2server.models import Token
-from invenio_pidstore import InvenioPIDStore
 from invenio_pidstore.minters import recid_minter
-from invenio_queues import InvenioQueues
 from invenio_queues.proxies import current_queues
-from invenio_records import InvenioRecords
 from invenio_records.api import Record
-from invenio_search import InvenioSearch, current_search, current_search_client
+from invenio_search import current_search, current_search_client
 from kombu import Exchange
 from sqlalchemy_utils.functions import create_database, database_exists
 
-from invenio_stats import InvenioStats
 from invenio_stats.contrib.config import (
     AGGREGATIONS_CONFIG,
     EVENTS_CONFIG,
@@ -60,7 +47,6 @@ from invenio_stats.contrib.event_builders import (
 )
 from invenio_stats.processors import EventsIndexer, anonymize_user
 from invenio_stats.tasks import aggregate_events
-from invenio_stats.views import blueprint
 
 
 @pytest.fixture()
@@ -93,7 +79,7 @@ def event_queues(app):
         current_queues.delete()
 
 
-@pytest.fixture()
+@pytest.fixture(scope="module")
 def events_config():
     """Events config for the tests."""
     stats_events = deepcopy(EVENTS_CONFIG)
@@ -106,7 +92,7 @@ def events_config():
     return stats_events
 
 
-@pytest.fixture()
+@pytest.fixture(scope="module")
 def aggregations_config():
     """Aggregations config for the tests."""
     return deepcopy(AGGREGATIONS_CONFIG)
@@ -155,71 +141,47 @@ def queries_config(app, custom_permission_factory):
     app.config["STATS_QUERIES"] = original_value
 
 
-@pytest.fixture()
-def base_app(events_config, aggregations_config):
-    """Flask application fixture without InvenioStats."""
-    instance_path = tempfile.mkdtemp()
-    app_ = Flask("testapp", instance_path=instance_path)
-    app_.config.update(
+@pytest.fixture(scope="module")
+def app_config(app_config, db_uri, events_config, aggregations_config):
+    """Application configuration."""
+    app_config.update(
         {
-            "CELERY_ALWAYS_EAGER": True,
-            "CELERY_TASK_ALWAYS_EAGER": True,
-            "CELERY_CACHE_BACKEND": "memory",
-            "CELERY_EAGER_PROPAGATES_EXCEPTIONS": True,
-            "CELERY_TASK_EAGER_PROPAGATES": True,
-            "CELERY_RESULT_BACKEND": "cache",
-            "SQLALCHEMY_DATABASE_URI": os.environ.get(
-                "SQLALCHEMY_DATABASE_URI", "sqlite://"
-            ),
-            "SQLALCHEMY_TRACK_MODIFICATIONS": True,
-            # Bump the search client timeout for slower environments (like Travis CI)
-            "SEARCH_CLIENT_CONFIG": {"timeout": 30, "max_retries": 5},
-            "TESTING": True,
-            "OAUTH2SERVER_CLIENT_ID_SALT_LEN": 64,
-            "OAUTH2SERVER_CLIENT_SECRET_SALT_LEN": 60,
-            "OAUTH2SERVER_TOKEN_PERSONAL_SALT_LEN": 60,
+            "SQLALCHEMY_DATABASE_URI": db_uri,
             "STATS_MQ_EXCHANGE": Exchange(
                 "test_events",
                 type="direct",
                 delivery_mode="transient",  # in-memory queue
                 durable=True,
             ),
-            "SECRET_KEY": "asecretkey",
-            "SERVER_NAME": "localhost",
             "STATS_QUERIES": {},
             "STATS_EVENTS": events_config,
             "STATS_AGGREGATIONS": aggregations_config,
         }
     )
-    FlaskCeleryExt(app_)
-    InvenioAccounts(app_)
-    InvenioAccountsREST(app_)
-    InvenioDB(app_)
-    InvenioRecords(app_)
-    InvenioFilesREST(app_)
-    InvenioI18N(app_)
-    InvenioPIDStore(app_)
-    InvenioCache(app_)
-    InvenioQueues(app_)
-    InvenioOAuth2Server(app_)
-    InvenioOAuth2ServerREST(app_)
-    InvenioSearch(app_, entry_point_group=None)
-    with app_.app_context():
-        yield app_
-    shutil.rmtree(instance_path)
+    return app_config
+
+
+@pytest.fixture(scope="module")
+def create_app(instance_path, entry_points):
+    """Application factory fixture."""
+    return _create_api
+
+
+@pytest.fixture(scope="function")
+def search_clear(search_clear):
+    """Clear search indices after test finishes (function scope)."""
+    current_search_client.indices.delete(index="*")
+    current_search_client.indices.delete_template("*")
+    list(current_search.create())
+    list(current_search.put_templates())
+    yield search_clear
+    current_search_client.indices.delete(index="*")
+    current_search_client.indices.delete_template("*")
 
 
 @pytest.fixture()
-def app(base_app):
-    """Flask application fixture with InvenioStats."""
-    base_app.register_blueprint(blueprint)
-    InvenioStats(base_app)
-    yield base_app
-
-
-@pytest.fixture()
-def db(app):
-    """Setup database."""
+def db():
+    """Recreate db at each test that requires it."""
     if not database_exists(str(db_.engine.url)):
         create_database(str(db_.engine.url))
     db_.create_all()
@@ -228,22 +190,10 @@ def db(app):
     db_.drop_all()
 
 
-@pytest.fixture()
-def search(app):
-    """Provide search engine access, create and clean indices.
-
-    Don't create template so that the test or another fixture can modify the
-    enabled events.
-    """
-    current_search_client.indices.delete(index="*")
-    current_search_client.indices.delete_template("*")
-    list(current_search.create())
-    list(current_search.put_templates())
-    try:
-        yield current_search_client
-    finally:
-        current_search_client.indices.delete(index="*")
-        current_search_client.indices.delete_template("*")
+@pytest.fixture(scope="module")
+def app(base_app, search):
+    """Invenio application with search only (no db)."""
+    yield base_app
 
 
 @pytest.fixture()
@@ -472,14 +422,14 @@ def generate_events(
 
 
 @pytest.fixture()
-def indexed_events(app, search, mock_user_ctx, request):
+def indexed_events(app, search_clear, mock_user_ctx, request):
     """Parametrized pre indexed sample events."""
     generate_events(app=app, **request.param)
     yield
 
 
 @pytest.fixture()
-def aggregated_events(app, search, mock_user_ctx, request):
+def aggregated_events(app, search_clear, mock_user_ctx, request):
     """Parametrized pre indexed sample events."""
     list(current_search.put_templates(ignore=[400]))
     generate_events(app=app, **request.param)

@@ -18,7 +18,7 @@ from invenio_stats import InvenioStats
 from invenio_stats.proxies import current_stats
 
 
-def test_register_receivers(base_app):
+def test_register_receivers(app):
     """Test signal-receiving/event-emitting functions registration."""
     try:
         _signals = Namespace()
@@ -33,14 +33,14 @@ def test_register_receivers(base_app):
             return event
 
         # NOTE: event_0 already exists from the mocked events decorate further.
-        base_app.config["STATS_EVENTS"]["event_0"].update(
+        app.config["STATS_EVENTS"]["event_0"].update(
             {"signal": my_signal, "event_builders": [event_builder1, event_builder2]}
         )
 
-        InvenioStats(base_app)
+        InvenioStats(app)
         current_queues.declare()
-        my_signal.send(base_app, signal_param=42)
-        my_signal.send(base_app, signal_param=42)
+        my_signal.send(app, signal_param=42)
+        my_signal.send(app, signal_param=42)
         events = [event for event in current_stats.consume("event_0")]
         # two events should have been created from the sent events. They should
         # have been both processed by the two event builders.
@@ -49,7 +49,7 @@ def test_register_receivers(base_app):
         current_queues.delete()
 
 
-def test_failing_receiver(base_app, caplog):
+def test_failing_receiver(app, caplog):
     """Test failing signal receiver function."""
     try:
         _signals = Namespace()
@@ -59,15 +59,15 @@ def test_failing_receiver(base_app, caplog):
             raise Exception("builder-exception")
 
         # NOTE: event_0 already exists from the mocked events decorate further.
-        base_app.config["STATS_EVENTS"]["event_0"].update(
+        app.config["STATS_EVENTS"]["event_0"].update(
             {"signal": my_signal, "event_builders": [failing_event_builder]}
         )
 
-        InvenioStats(base_app)
+        InvenioStats(app)
         current_queues.declare()
 
         with caplog.at_level(logging.ERROR):
-            my_signal.send(base_app)
+            my_signal.send(app)
 
         error_logs = [r for r in caplog.records if r.levelno == logging.ERROR]
         assert len(error_logs) == 1
