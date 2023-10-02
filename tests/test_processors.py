@@ -315,7 +315,7 @@ def test_events_indexer_preprocessors(app, mock_event_queue):
             {
                 "_id": _id,
                 "_op_type": "index",
-                "_index": "events-stats-file-download-2017-01-01",
+                "_index": "events-stats-file-download-2017-01",
                 "_source": event,
             }
         )
@@ -372,7 +372,7 @@ def test_double_clicks(app, mock_event_queue, search_clear):
     process_events(["file-download"])
     current_search.flush_and_refresh(index="*")
     res = search_clear.search(
-        index="events-stats-file-download-2000-06-01",
+        index="events-stats-file-download-2000-06",
     )
     assert res["hits"]["total"]["value"] == 2
 
@@ -404,10 +404,10 @@ def test_failing_processors(app, search_clear, event_queues, caplog):
 
     current_search.flush_and_refresh(index="*")
     assert get_queue_size("stats-file-download") == 4
-    assert not search_clear.indices.exists("events-stats-file-download-2018-01-01")
-    assert not search_clear.indices.exists("events-stats-file-download-2018-01-02")
-    assert not search_clear.indices.exists("events-stats-file-download-2018-01-03")
-    assert not search_clear.indices.exists("events-stats-file-download-2018-01-04")
+    assert not search_clear.indices.exists("events-stats-file-download-2018-01")
+    assert not search_clear.indices.exists("events-stats-file-download-2018-01")
+    assert not search_clear.indices.exists("events-stats-file-download-2018-01")
+    assert not search_clear.indices.exists("events-stats-file-download-2018-01")
     assert not search_clear.indices.exists_alias(name="events-stats-file-download")
 
     with caplog.at_level(logging.ERROR):
@@ -422,7 +422,4 @@ def test_failing_processors(app, search_clear, event_queues, caplog):
     current_search.flush_and_refresh(index="*")
     assert get_queue_size("stats-file-download") == 0
     assert search_obj.index("events-stats-file-download").count() == 3
-    assert search_obj.index("events-stats-file-download-2018-01-01").count() == 1
-    assert not search_clear.indices.exists("events-stats-file-download-2018-01-02")
-    assert search_obj.index("events-stats-file-download-2018-01-03").count() == 1
-    assert search_obj.index("events-stats-file-download-2018-01-04").count() == 1
+    assert search_obj.index("events-stats-file-download-2018-01").count() == 3

@@ -56,9 +56,9 @@ def test_events_process(search_clear, script_info, event_queues):
 
     current_search.flush_and_refresh(index="*")
 
-    assert search_obj.index("events-stats-file-download-2018-01-01").count() == 3
+    assert search_obj.index("events-stats-file-download-2018-01").count() == 3
     assert search_obj.index("events-stats-file-download").count() == 3
-    assert not search_clear.indices.exists("events-stats-record-view-2018-01-01")
+    assert not search_clear.indices.exists("events-stats-record-view-2018-01")
     assert not search_clear.indices.exists_alias(name="events-stats-record-view")
 
     result = runner.invoke(
@@ -67,9 +67,9 @@ def test_events_process(search_clear, script_info, event_queues):
     assert result.exit_code == 0
 
     current_search.flush_and_refresh(index="*")
-    assert search_obj.index("events-stats-file-download-2018-01-01").count() == 3
+    assert search_obj.index("events-stats-file-download-2018-01").count() == 3
     assert search_obj.index("events-stats-file-download").count() == 3
-    assert search_obj.index("events-stats-record-view-2018-01-01").count() == 3
+    assert search_obj.index("events-stats-record-view-2018-01").count() == 3
     assert search_obj.index("events-stats-record-view").count() == 3
 
     # Create some more events
@@ -84,11 +84,11 @@ def test_events_process(search_clear, script_info, event_queues):
     assert result.exit_code == 0
 
     current_search.flush_and_refresh(index="*")
-    assert search_obj.index("events-stats-file-download-2018-01-01").count() == 3
-    assert search_obj.index("events-stats-file-download-2018-02-01").count() == 1
+    assert search_obj.index("events-stats-file-download-2018-01").count() == 3
+    assert search_obj.index("events-stats-file-download-2018-02").count() == 1
     assert search_obj.index("events-stats-file-download").count() == 4
-    assert search_obj.index("events-stats-record-view-2018-01-01").count() == 3
-    assert search_obj.index("events-stats-record-view-2018-02-01").count() == 1
+    assert search_obj.index("events-stats-record-view-2018-01").count() == 3
+    assert search_obj.index("events-stats-record-view-2018-02").count() == 1
     assert search_obj.index("events-stats-record-view").count() == 4
 
 

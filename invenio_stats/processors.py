@@ -140,7 +140,7 @@ class EventsIndexer(object):
         self,
         queue,
         prefix="events",
-        suffix="%Y-%m-%d",
+        suffix="%Y-%m",
         client=None,
         preprocessors=None,
         double_click_window=10,

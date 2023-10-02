@@ -46,10 +46,7 @@ def test_index_prefix(
     index_prefix = config_with_index_prefix["SEARCH_INDEX_PREFIX"]
     index_name = index_prefix + "events-stats-file-download"
 
-    assert search_clear.indices.exists(index_name + "-2018-01-01")
-    assert search_clear.indices.exists(index_name + "-2018-01-02")
-    assert search_clear.indices.exists(index_name + "-2018-01-03")
-    assert search_clear.indices.exists(index_name + "-2018-01-04")
+    assert search_clear.indices.exists(index_name + "-2018-01")
     assert search_clear.indices.exists_alias(name=index_name)
 
     # 3) aggregate events
