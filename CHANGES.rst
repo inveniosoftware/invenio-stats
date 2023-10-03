@@ -1,6 +1,6 @@
 ..
     This file is part of Invenio.
-    Copyright (C) 2017-2019 CERN.
+    Copyright (C) 2017-2023 CERN.
 
     Invenio is free software; you can redistribute it and/or modify it
     under the terms of the MIT License; see LICENSE file for more details.
@@ -9,8 +9,18 @@
 Changes
 =======
 
+Version 4.0.0 (release 2023-10-03)
+----------------------------------
+
+- introduce new field `updated_timestamp`` in the events and stats templates
+  and mappings
+- improved calculation of aggregations skipping already aggregated events
+- changed `refresh_interval` from 1m to 5s
+- changed default events index name from daily to monthly
+- moved BookmarkAPI to a new module
+
 Version 3.1.0 (release 2023-04-20)
--------------------------------------
+----------------------------------
 
 - add extension method for building and caching queries
 
