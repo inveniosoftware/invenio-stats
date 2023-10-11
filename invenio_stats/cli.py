@@ -182,23 +182,21 @@ def _migrate():
         "conceptdoi",
         "resource_type",
         "access_right",
-        "bucket_id",
-        "file_key",
         "referrer",
         "size",
-        "file_id",
         "conceptrecid",
         "doi",
-        "owners",
         "is_parent",
-        "communities"
+        "owners",
+        "communities",
     ]:
         painless += f'ctx._source.remove("{f}");'
-    print(painless)
     legacy_indices = current_search_client.cat.indices("legacy*", format="json")
     i = 0
     total = len(legacy_indices)
     for my_index in sorted(legacy_indices, key=lambda d: d["index"]):
+        if my_index["index"] == "legacy-zenodo-stats-bookmarks":
+            continue
         print("%i/%i Doing index: %s" % (i, total, my_index["index"]))
         i += 1
         target = my_index["index"].replace("legacy-zenodo", "zenodo-prod")
@@ -212,10 +210,31 @@ def _migrate():
         except search.exceptions.NotFoundError:
             pass
         try:
+            print(
+                {
+                    "conflicts": "proceed",
+                    "source": {
+                        "index": my_index["index"],
+                        "query": {
+                            "bool": {"must_not": [{"term": {"is_parent": True}}]}
+                        },
+                    },
+                    "dest": {"index": target, "op_type": "create"},
+                    "script": {
+                        "lang": "painless",
+                        "source": painless,
+                    },
+                }
+            )
             current_search_client.reindex(
                 {
                     "conflicts": "proceed",
-                    "source": {"index": my_index["index"]},
+                    "source": {
+                        "index": my_index["index"],
+                        "query": {
+                            "bool": {"must_not": [{"term": {"is_parent": True}}]}
+                        },
+                    },
                     "dest": {"index": target, "op_type": "create"},
                     "script": {
                         "lang": "painless",
