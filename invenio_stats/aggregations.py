@@ -223,12 +223,6 @@ class StatAggregator(object):
         num_partitions = max(
             int(math.ceil(float(total_buckets) / self.max_bucket_size)), 1
         )
-        if previous_bookmark:
-            # Let's make sure that both objects are of the same type. This is important for the test
-            previous = float(previous_bookmark.strftime("%s"))
-        else:
-            previous = 0
-
         for p in range(num_partitions):
             terms = agg_query.aggs.bucket(
                 "terms",
@@ -255,8 +249,11 @@ class StatAggregator(object):
                 interval_date = datetime.strptime(
                     doc["timestamp"], "%Y-%m-%dT%H:%M:%S"
                 ).replace(**dict.fromkeys(INTERVAL_ROUNDING[self.interval], 0))
-                if aggregation["last_update"]["value"] and previous_bookmark:
-                    if aggregation["last_update"]["value"] < previous:
+                if aggregation["last_update"]["value_as_string"] and previous_bookmark:
+                    last_date = datetime.fromisoformat(
+                        aggregation["last_update"]["value_as_string"].rstrip("Z")
+                    )
+                    if last_date < previous_bookmark:
                         continue
                 aggregation_data = {}
                 aggregation_data["timestamp"] = interval_date.isoformat()
