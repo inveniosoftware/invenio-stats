@@ -72,14 +72,17 @@ def test_overwriting_aggregations(app, search_clear, mock_event_queue):
         results within the interval of the previous events
         overwrite the aggregation,
         by checking that the document version has increased.
+    4. Run one more time, without any new events, and ensure that the
+        aggregations have not been overwritten
     """
     # Send some events
     mock_event_queue.consume.return_value = [
         _create_file_download_event(date) for date in [(2017, 6, 1), (2017, 6, 2, 10)]
     ]
-
-    indexer = EventsIndexer(mock_event_queue)
-    indexer.run()
+    # Note that the events use the current time. Let's mock that as well
+    with patch("invenio_stats.processors.datetime", mock_date(2017, 6, 2, 11)):
+        indexer = EventsIndexer(mock_event_queue)
+        indexer.run()
     current_search.flush_and_refresh(index="*")
 
     # Aggregate events
@@ -98,13 +101,47 @@ def test_overwriting_aggregations(app, search_clear, mock_event_queue):
         _create_file_download_event(date)
         for date in [(2017, 6, 2, 15), (2017, 7, 1)]  # second event on the same date
     ]
-    indexer = EventsIndexer(mock_event_queue)
-    indexer.run()
+    with patch("invenio_stats.processors.datetime", mock_date(2017, 7, 1, 5)):
+        indexer = EventsIndexer(mock_event_queue)
+        indexer.run()
     current_search.flush_and_refresh(index="*")
-
     # Aggregate again. The aggregation should start from the last bookmark.
-    with patch("invenio_stats.aggregations.datetime", mock_date(2017, 7, 2)):
-        aggregate_events(["file-download-agg"])
+    with patch("invenio_stats.aggregations.datetime", mock_date(2017, 7, 1, 6)):
+        d = aggregate_events(["file-download-agg"])
+    assert d == [
+        [
+            (1, 0),
+            (0, 0),
+            (0, 0),
+            (0, 0),
+            (0, 0),
+            (0, 0),
+            (0, 0),
+            (0, 0),
+            (0, 0),
+            (0, 0),
+            (0, 0),
+            (0, 0),
+            (0, 0),
+            (0, 0),
+            (0, 0),
+            (0, 0),
+            (0, 0),
+            (0, 0),
+            (0, 0),
+            (0, 0),
+            (0, 0),
+            (0, 0),
+            (0, 0),
+            (0, 0),
+            (0, 0),
+            (0, 0),
+            (0, 0),
+            (0, 0),
+            (0, 0),
+            (1, 0),
+        ]
+    ]
     current_search.flush_and_refresh(index="*")
     res = search_clear.search(index="stats-file-download", version=True)
     for hit in res["hits"]["hits"]:
@@ -113,6 +150,11 @@ def test_overwriting_aggregations(app, search_clear, mock_event_queue):
             assert hit["_source"]["count"] == 2
         else:
             assert hit["_version"] == 1
+
+    # Run one more time, one hour later, and ensure that the aggregation does not modify anything
+    with patch("invenio_stats.aggregations.datetime", mock_date(2017, 7, 1, 7)):
+        d = aggregate_events(["file-download-agg"])
+    assert d == [[(0, 0)]]
 
 
 def test_aggregation_without_events(app, search_clear):
