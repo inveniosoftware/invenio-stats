@@ -9,6 +9,11 @@
 Changes
 =======
 
+Version 4.0.1 (release 2023-10-09)
+----------------------------------
+
+- aggregations: ensure events are aggregated only once
+
 Version 4.0.0 (release 2023-10-03)
 ----------------------------------
 
