@@ -249,12 +249,16 @@ class StatAggregator(object):
                 interval_date = datetime.strptime(
                     doc["timestamp"], "%Y-%m-%dT%H:%M:%S"
                 ).replace(**dict.fromkeys(INTERVAL_ROUNDING[self.interval], 0))
-                if aggregation["last_update"]["value_as_string"] and previous_bookmark:
-                    last_date = datetime.fromisoformat(
-                        aggregation["last_update"]["value_as_string"].rstrip("Z")
-                    )
+
+                # Skip events that have been previously aggregated.
+                # The`updated_timestamp` field was introduced with v4.0.0, and it will
+                # not exist in events created earlier
+                last_update_aggr = aggregation["last_update"].get("value_as_string", None)
+                if last_update_aggr and previous_bookmark:
+                    last_date = datetime.fromisoformat(last_update_aggr.rstrip("Z"))
                     if last_date < previous_bookmark:
                         continue
+
                 aggregation_data = {}
                 aggregation_data["timestamp"] = interval_date.isoformat()
                 aggregation_data[self.field] = aggregation["key"]
