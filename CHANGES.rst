@@ -9,6 +9,11 @@
 Changes
 =======
 
+Version 4.0.2 (release 2024-03-04)
+----------------------------------
+
+- aggregations: consider updated_timestamp field optional (ensure backwards compatibility)
+
 Version 4.0.1 (release 2023-10-09)
 ----------------------------------
 
