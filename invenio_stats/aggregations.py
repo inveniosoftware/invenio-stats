@@ -253,7 +253,9 @@ class StatAggregator(object):
                 # Skip events that have been previously aggregated.
                 # The`updated_timestamp` field was introduced with v4.0.0, and it will
                 # not exist in events created earlier
-                last_update_aggr = aggregation["last_update"].get("value_as_string", None)
+                last_update_aggr = aggregation["last_update"].get(
+                    "value_as_string", None
+                )
                 if last_update_aggr and previous_bookmark:
                     last_date = datetime.fromisoformat(last_update_aggr.rstrip("Z"))
                     if last_date < previous_bookmark:
