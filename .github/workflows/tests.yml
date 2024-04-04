@@ -25,7 +25,7 @@ jobs:
         # a new item to the following lists.
         # You can see the complete list of services and versions that are available at:
         # https://docker-services-cli.readthedocs.io/en/latest/configuration.html
-        python-version: ['3.9', '3.10', '3.11', '3.12']
+        python-version: [3.9, 3.12]
         search-service: [opensearch2, opensearch1]
         include:
         - search-service: opensearch2
