@@ -70,3 +70,9 @@ STATS_MQ_EXCHANGE = Exchange(
     delivery_mode="transient",  # in-memory queue
 )
 """Default exchange used for the message queues."""
+
+STATS_REGISTER_INDEX_TEMPLATES = False
+"""Register templates as index templates.
+
+Default behaviour will register the templates as search templates.
+"""
