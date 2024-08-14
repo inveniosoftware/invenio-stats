@@ -7,57 +7,14 @@ on:
     branches: master
   schedule:
     # * is a special character in YAML so you have to quote this string
-    - cron:  '0 3 * * 6'
+    - cron: "0 3 * * 6"
   workflow_dispatch:
     inputs:
       reason:
-        description: 'Reason'
+        description: "Reason"
         required: false
-        default: 'Manual trigger'
+        default: "Manual trigger"
 
 jobs:
-  Tests:
-    runs-on: ubuntu-20.04
-    strategy:
-      fail-fast: false
-      matrix:
-        # You can add/remove combinations e.g. `dev` requirements or `postgresql13` by adding
-        # a new item to the following lists.
-        # You can see the complete list of services and versions that are available at:
-        # https://docker-services-cli.readthedocs.io/en/latest/configuration.html
-        python-version: [3.9, 3.12]
-        search-service: [opensearch2, opensearch1]
-        include:
-        - search-service: opensearch2
-          SEARCH_EXTRAS: "opensearch2"
-
-        - search-service: opensearch1
-          SEARCH_EXTRAS: "opensearch1"
-
-    env:
-      SEARCH: ${{ matrix.search-service }}
-      EXTRAS: tests,${{ matrix.SEARCH_EXTRAS }}
-
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Setup Graphviz
-        uses: ts-graphviz/setup-graphviz@v1
-
-      - name: Set up Python ${{ matrix.python-version }}
-        uses: actions/setup-python@v5
-        with:
-          python-version: ${{ matrix.python-version }}
-          cache: pip
-          cache-dependency-path: setup.cfg
-
-      - name: Install dependencies
-        run: |
-          pip install ".[$EXTRAS]"
-          pip freeze
-          docker --version
-          docker-compose --version
-
-      - name: Run tests
-        run: ./run-tests.sh
+  Python:
+    uses: inveniosoftware/workflows/.github/workflows/tests-python.yml@master
