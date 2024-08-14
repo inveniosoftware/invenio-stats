@@ -9,6 +9,13 @@
 Changes
 =======
 
+Version 4.1.0 (release 2024-08-14)
+----------------------------------
+
+- introduce a new config `STATS_REGISTER_INDEX_TEMPLATES` to be able to register
+  events and aggregations as index templates (ensure backwards compatibility)
+
+
 Version 4.0.2 (release 2024-03-04)
 ----------------------------------
 
