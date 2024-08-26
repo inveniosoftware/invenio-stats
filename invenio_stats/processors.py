@@ -11,6 +11,7 @@
 
 import hashlib
 from datetime import datetime
+from functools import partial
 from time import mktime
 
 from counter_robots import is_machine, is_robot
@@ -88,8 +89,8 @@ def anonymize_user(doc):
     return doc
 
 
-def flag_robots(doc):
-    """Flag events which are created by robots.
+def flag_robots(doc, exclude=False):
+    """Flag and filter events which are created by robots.
 
     The list of robots is defined by the `COUNTER-robots Python package
     <https://github.com/inveniosoftware/counter-robots>`_ , which follows the
@@ -99,11 +100,17 @@ def flag_robots(doc):
     <https://github.com/CDLUC3/Make-Data-Count/tree/master/user-agents>`_.
     """
     doc["is_robot"] = "user_agent" in doc and is_robot(doc["user_agent"])
+    if exclude and doc["is_robot"]:
+        return None
     return doc
 
 
-def flag_machines(doc):
-    """Flag events which are created by machines.
+filter_robots = partial(flag_robots, exclude=True)
+"""Filter out robot events."""
+
+
+def flag_machines(doc, exclude=False):
+    """Flag and filter events which are created by machines.
 
     The list of machines is defined by the `COUNTER-robots Python package
     <https://github.com/inveniosoftware/counter-robots>`_ , which follows the
@@ -114,7 +121,13 @@ def flag_machines(doc):
 
     """
     doc["is_machine"] = "user_agent" in doc and is_machine(doc["user_agent"])
+    if exclude and doc["is_machine"]:
+        return None
     return doc
+
+
+filter_machines = partial(flag_machines, exclude=True)
+"""Filter out machine events."""
 
 
 def hash_id(iso_timestamp, msg):
