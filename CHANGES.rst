@@ -9,6 +9,10 @@
 Changes
 =======
 
+Version v4.2.0 (released 2024-08-27)
+
+- processors: allow filtering out robots/machines
+
 Version 4.1.0 (release 2024-08-14)
 ----------------------------------
 
