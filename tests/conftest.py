@@ -10,7 +10,6 @@
 """Pytest configuration."""
 
 import datetime
-import os
 import shutil
 import tempfile
 import uuid
@@ -23,11 +22,9 @@ import pytest
 from flask import appcontext_pushed, g
 from flask.cli import ScriptInfo
 from helpers import mock_date
-from invenio_accounts.testutils import create_test_user
 from invenio_app.factory import create_api as _create_api
 from invenio_db import db as db_
 from invenio_files_rest.models import Bucket, Location, ObjectVersion
-from invenio_oauth2server.models import Token
 from invenio_pidstore.minters import recid_minter
 from invenio_queues.proxies import current_queues
 from invenio_records.api import Record
@@ -442,17 +439,14 @@ def aggregated_events(app, search_clear, mock_user_ctx, request):
 
 
 @pytest.fixture()
-def users(app, db):
+def users(UserFixture, app, db):
     """Create users."""
-    user1 = create_test_user(email="info@inveniosoftware.org", password="tester")
-    user2 = create_test_user(email="info2@inveniosoftware.org", password="tester2")
+    user1 = UserFixture(email="info@inveniosoftware.org", password="tester")
+    user1.create(app, db)
 
-    user1.allowed_token = Token.create_personal(
-        name="allowed_token", user_id=user1.id, scopes=[]
-    ).access_token
-    user2.allowed_token = Token.create_personal(
-        name="allowed_token", user_id=user2.id, scopes=[]
-    ).access_token
+    user2 = UserFixture(email="info2@inveniosoftware.org", password="tester2")
+    user2.create(app, db)
+
     return {"authorized": user1, "unauthorized": user2}
 
 
@@ -516,7 +510,10 @@ def custom_permission_factory(users):
         permission_factory.params = params
         from flask_login import current_user
 
-        if current_user.is_authenticated and current_user.id == users["authorized"].id:
+        if (
+            current_user.is_authenticated
+            and current_user.get_id() == users["authorized"].id
+        ):
             return type("Allow", (), {"can": lambda self: True})()
         return type("Deny", (), {"can": lambda self: False})()
 
