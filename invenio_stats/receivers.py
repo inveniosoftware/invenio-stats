@@ -3,6 +3,7 @@
 # This file is part of Invenio.
 # Copyright (C) 2017-2018 CERN.
 # Copyright (C)      2022 TU Wien.
+# Copyright (C) 2024 Graz University of Technology.
 #
 # Invenio is free software; you can redistribute it and/or modify it
 # under the terms of the MIT License; see LICENSE file for more details.
@@ -51,7 +52,7 @@ def build_event_emitter(event_name, events_config=None):
     events_config = events_config or current_stats.events_config
 
     if event_name not in events_config:
-        current_app.logger.warn(
+        current_app.logger.warning(
             f"Tried to build event emitter for unregistered event '{event_name}'"
         )
         return None
