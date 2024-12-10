@@ -9,6 +9,7 @@
 
 """Errors used in Invenio-Stats."""
 
+from invenio_i18n import gettext as _
 from invenio_rest.errors import RESTException
 
 ##
@@ -71,6 +72,6 @@ class UnknownQueryError(RESTException):
         """
         super(RESTException, self).__init__()
         self.query_name = query_name
-        self.description = "Unknown statistic '{}'".format(query_name)
+        self.description = _("Unknown statistic '{}'").format(query_name)
 
     code = 400
