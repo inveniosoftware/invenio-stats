@@ -10,6 +10,11 @@
 Changes
 =======
 
+Version 5.0.0 (release 2024-12-10)
+
+- tests: remove dependency to invenio-oauth2server
+- setup: bump major dependencies
+
 Version 4.2.1 (release 2024-11-30)
 
 - setup: change to reusable workflows
