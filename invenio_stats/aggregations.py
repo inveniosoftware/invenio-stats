@@ -25,12 +25,14 @@ INTERVAL_ROUNDING = {
     "hour": ("minute", "second", "microsecond"),
     "day": ("hour", "minute", "second", "microsecond"),
     "month": ("day", "hour", "minute", "second", "microsecond"),
+    "year": ("month", "day", "hour", "minute", "second", "microsecond"),
 }
 
 INTERVAL_DELTAS = {
     "hour": relativedelta(hours=1),
     "day": relativedelta(days=1),
     "month": relativedelta(months=1),
+    "year": relativedelta(years=1),
 }
 
 

@@ -20,6 +20,7 @@ SUPPORTED_INTERVALS = OrderedDict(
         ("hour", "%Y-%m-%dT%H"),
         ("day", "%Y-%m-%d"),
         ("month", "%Y-%m"),
+        ("year", "%Y"),
     ]
 )
 
