@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 #
 # This file is part of Invenio.
-# Copyright (C) 2017-2024 CERN.
+# Copyright (C) 2017-2025 CERN.
 # Copyright (C) 2022-2023 TU Wien.
 # Copyright (C) 2024 Graz University of Technology.
 #
@@ -441,7 +441,7 @@ Invenio-Stats provides some default statistics which can be found in
 from .ext import InvenioStats
 from .proxies import current_stats
 
-__version__ = "4.2.1"
+__version__ = "4.3.0"
 
 __all__ = (
     "__version__",

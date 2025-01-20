@@ -1,6 +1,6 @@
 ..
     This file is part of Invenio.
-    Copyright (C) 2017-2023 CERN.
+    Copyright (C) 2017-2025 CERN.
     Copyright (C) 2024 Graz University of Technology.
 
     Invenio is free software; you can redistribute it and/or modify it
@@ -9,6 +9,9 @@
 
 Changes
 =======
+Version 4.3.0 (release 2025-01-20)
+
+- aggregations: add yearly interval
 
 Version 4.2.1 (release 2024-11-30)
 
