@@ -72,6 +72,8 @@ class UnknownQueryError(RESTException):
         """
         super(RESTException, self).__init__()
         self.query_name = query_name
-        self.description = _("Unknown statistic '{}'").format(query_name)
+        self.description = _(
+            "Unknown statistic '%(query_name)s'", query_name=query_name
+        )
 
     code = 400
