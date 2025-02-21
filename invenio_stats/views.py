@@ -79,9 +79,10 @@ class StatsQueryResource(ContentNegotiatedMethodView):
             if permission is not None and not permission.can():
                 message = _(
                     "You do not have a permission to query the "
-                    'statistic "{}" with those '
-                    "parameters"
-                ).format(stat)
+                    'statistic "%(stat)s" with those '
+                    "parameters",
+                    stat=stat,
+                )
 
                 if current_user.is_authenticated:
                     abort(403, message)
