@@ -3,6 +3,7 @@
 # This file is part of Invenio.
 # Copyright (C) 2016-2019 CERN.
 # Copyright (C)      2022 TU Wien.
+# Copyright (C) 2025 Graz University of Technology.
 #
 # Invenio is free software; you can redistribute it and/or modify it
 # under the terms of the MIT License; see LICENSE file for more details.
@@ -179,8 +180,8 @@ def search_clear(search_clear):
 @pytest.fixture()
 def db():
     """Recreate db at each test that requires it."""
-    if not database_exists(str(db_.engine.url)):
-        create_database(str(db_.engine.url))
+    if not database_exists(str(db_.engine.url.render_as_string(hide_password=False))):
+        create_database(str(db_.engine.url.render_as_string(hide_password=False)))
     db_.create_all()
     yield db_
     db_.session.remove()
