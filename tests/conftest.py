@@ -140,10 +140,11 @@ def queries_config(app, custom_permission_factory):
 
 
 @pytest.fixture(scope="module")
-def app_config(app_config, db_uri, events_config, aggregations_config):
+def app_config(app_config, db_uri, cache_uri, events_config, aggregations_config):
     """Application configuration."""
     app_config.update(
         {
+            "CACHE_REDIS_URL": cache_uri,
             "SQLALCHEMY_DATABASE_URI": db_uri,
             "STATS_MQ_EXCHANGE": Exchange(
                 "test_events",
