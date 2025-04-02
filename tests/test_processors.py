@@ -253,7 +253,7 @@ def test_flag_robots(app, mock_user_ctx, request_headers, objects):
         return flag_robots(event)
 
     assert build_event(request_headers["user"])["is_robot"] is False
-    assert build_event(request_headers["machine"])["is_robot"] is False
+    assert build_event(request_headers["machine"])["is_robot"] is True
     assert build_event(request_headers["robot"])["is_robot"] is True
 
 
