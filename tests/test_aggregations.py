@@ -9,7 +9,6 @@
 """Aggregation tests."""
 
 import datetime
-from turtle import pd
 from unittest.mock import patch
 
 import pytest
