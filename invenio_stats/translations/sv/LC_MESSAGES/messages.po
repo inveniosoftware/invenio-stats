@@ -1,0 +1,47 @@
+# Translations template for invenio-stats.
+# Copyright (C) 2025 CERN
+# This file is distributed under the same license as the invenio-stats
+# project.
+# FIRST AUTHOR <EMAIL@ADDRESS>, 2025.
+# 
+# Translators:
+# Mattias Vesterlund, 2025
+# 
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: invenio-stats 4.3.0\n"
+"Report-Msgid-Bugs-To: info@inveniosoftware.org\n"
+"POT-Creation-Date: 2025-04-08 19:41+0000\n"
+"PO-Revision-Date: 2025-04-08 19:41+0000\n"
+"Last-Translator: Mattias Vesterlund, 2025\n"
+"Language-Team: Swedish (https://app.transifex.com/inveniosoftware/teams/23537/sv/)\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Generated-By: Babel 2.17.0\n"
+"Language: sv\n"
+"Plural-Forms: nplurals=2; plural=(n != 1);\n"
+
+#: invenio_stats/errors.py:76
+#, python-format
+msgid "Unknown statistic '%(query_name)s'"
+msgstr "Okänd statistik '%(query_name)s'"
+
+#: invenio_stats/views.py:65
+#, python-brace-format
+msgid ""
+"Invalid Input. It should be of the form { STATISTIC_NAME: { \"stat\": "
+"STAT_TYPE, \"params\": STAT_PARAMS }}"
+msgstr ""
+"Ogiltig inmatning. Den ska ha formen { STATISTIC_NAME: { \"stat\": "
+"STAT_TYPE, \"params\": STAT_PARAMS }}"
+
+#: invenio_stats/views.py:81
+#, python-format
+msgid ""
+"You do not have a permission to query the statistic \"%(stat)s\" with those "
+"parameters"
+msgstr ""
+"Du har inte behörighet att fråga efter statistiken  \"%(stat)s\" med dessa "
+"parametrar"
