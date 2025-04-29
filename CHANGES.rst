@@ -9,7 +9,22 @@
 
 Changes
 =======
+Version 4.4.0 (release 2025-04-29)
+----------------------------------
+
+- i18n:pulled translations
+- i18n:push translations
+- i18n: restrict invenio-i18n version to <3.0.0 for compatibility
+- ci:fix failing build
+- i18n: add Invenio i18n dependency and update translation configuration
+- i18n: add missing translation configuration and add new message templates
+- ci: add i18n pull and push translation workflows
+- ci: fix failing test
+- i18n: replaced {} with %()s in gettext
+- i18n: fix untranslated strings in views and errors
+
 Version 4.3.0 (release 2025-01-20)
+----------------------------------
 
 - aggregations: add yearly interval
 
