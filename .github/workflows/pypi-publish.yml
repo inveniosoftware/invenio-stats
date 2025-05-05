@@ -1,3 +1,12 @@
+# -*- coding: utf-8 -*-
+#
+# Copyright (C) 2021 CERN.
+# Copyright (C) 2025 Graz University of Technology.
+# Copyright (C) 2025 KTH Royal Institute of Technology.
+#
+# Invenio-stats is free software; you can redistribute it and/or modify
+# it under the terms of the MIT License; see LICENSE file for more details.
+
 name: Publish
 
 on:
@@ -9,3 +18,5 @@ jobs:
   Publish:
     uses: inveniosoftware/workflows/.github/workflows/pypi-publish.yml@master
     secrets: inherit
+    with:
+      babel-compile-catalog: true
