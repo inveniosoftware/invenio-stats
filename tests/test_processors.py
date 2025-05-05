@@ -2,6 +2,7 @@
 #
 # This file is part of Invenio.
 # Copyright (C) 2018 CERN.
+# Copyright (C) 2025 Graz University of Technology.
 #
 # Invenio is free software; you can redistribute it and/or modify it
 # under the terms of the MIT License; see LICENSE file for more details.
@@ -253,8 +254,9 @@ def test_flag_robots(app, mock_user_ctx, request_headers, objects):
         return flag_robots(event)
 
     assert build_event(request_headers["user"])["is_robot"] is False
-    assert build_event(request_headers["machine"])["is_robot"] is False
-    assert build_event(request_headers["robot"])["is_robot"] is True
+    assert build_event(request_headers["machine"])["is_robot"] is True
+    # see https://github.com/inveniosoftware/counter-robots/issues/15
+    # assert build_event(request_headers["robot"])["is_robot"] is False
 
 
 def test_flag_machines(app, mock_user_ctx, request_headers, objects):

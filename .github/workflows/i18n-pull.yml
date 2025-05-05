@@ -6,12 +6,10 @@
 # Invenio is free software; you can redistribute it and/or modify
 # it under the terms of the MIT License; see LICENSE file for more details.
 
-name: i18n:push translations
+name: i18n:pull translations
 on: workflow_dispatch # manually trigger
 
 jobs:
-  i18n-extract:
-    uses: inveniosoftware/invenio-i18n/.github/workflows/i18n-push-base.yml@master
-    with:
-      extract-backend: true
+  i18n-pull:
+    uses: inveniosoftware/invenio-i18n/.github/workflows/i18n-pull-base.yml@master
     secrets: inherit
