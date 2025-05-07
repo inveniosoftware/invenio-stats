@@ -4,6 +4,7 @@
 # Copyright (C) 2016-2019 CERN.
 # Copyright (C)      2022 TU Wien.
 # Copyright (C) 2025 Graz University of Technology.
+# Copyright (C) 2025 KTH Royal Institute of Technology.
 #
 # Invenio is free software; you can redistribute it and/or modify it
 # under the terms of the MIT License; see LICENSE file for more details.
@@ -155,6 +156,7 @@ def app_config(app_config, db_uri, cache_uri, events_config, aggregations_config
             "STATS_QUERIES": {},
             "STATS_EVENTS": events_config,
             "STATS_AGGREGATIONS": aggregations_config,
+            "THEME_FRONTPAGE": False,
         }
     )
     return app_config
