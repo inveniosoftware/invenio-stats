@@ -10,6 +10,11 @@
 Changes
 =======
 
+Version 5.1.1 (release 2025-06-09)
+
+- tests: fix issues with CI
+- translations: add untranslated strings and add translation workflow
+
 Version 5.1.0 (release 2025-01-20)
 
 - aggregations: add yearly interval
