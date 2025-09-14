@@ -349,3 +349,42 @@ def test_metric_aggregations(app, search_clear, event_queues):
     assert results[0].count == 12  # 3 views over 4 differnet hour slices
     assert results[0].unique_count == 4  # 4 different hour slices accessed
     assert results[0].volume == 9000 * 12
+
+
+def test_global_aggregation_field_none(app, search_clear, event_queues):
+    """Test aggregation without a field (global aggregation)."""
+    current_stats.publish(
+        "file-download",
+        [
+            _create_file_download_event(date, user_id="1")
+            for date in [
+                (2018, 1, 1, 12, 10),
+                (2018, 1, 1, 12, 20),
+                (2018, 1, 1, 12, 30),
+                (2018, 1, 1, 13, 10),
+                (2018, 1, 1, 13, 20),
+            ]
+        ],
+    )
+    process_events(["file-download"])
+    current_search.flush_and_refresh(index="*")
+
+    # Create aggregator with field=None to aggregate all events together
+    stat_agg = StatAggregator(
+        name="file-download-global-agg",
+        client=search_clear,
+        event="file-download",
+        field=None,  # This is the key change - no field grouping
+        interval="day",
+    )
+    with patch("invenio_stats.aggregations.datetime", mock_date(2018, 1, 2)):
+        stat_agg.run()
+    current_search.flush_and_refresh(index="*")
+
+    query = dsl.Search(using=search_clear, index="stats-file-download")
+    results = query.execute()
+    assert len(results) == 1
+    result = results[0]
+    assert result.count == 5  # All 5 events aggregated together
+    assert "timestamp" in result
+    assert "updated_timestamp" in result

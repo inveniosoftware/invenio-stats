@@ -10,7 +10,7 @@
 """Aggregation classes."""
 
 import math
-from datetime import datetime
+from datetime import datetime, timezone
 
 from dateutil import parser
 from dateutil.relativedelta import relativedelta
@@ -20,6 +20,8 @@ from invenio_search.utils import prefix_index
 
 from .bookmark import SUPPORTED_INTERVALS, BookmarkAPI, format_range_dt
 from .utils import get_bucket_size
+
+GLOBAL_BUCKET = "GLOBAL_BUCKET"
 
 INTERVAL_ROUNDING = {
     "hour": ("minute", "second", "microsecond"),
@@ -107,7 +109,8 @@ class StatAggregator(object):
 
         :param event: aggregated event.
         :param client: search client.
-        :param field: field on which the aggregation will be done.
+        :param field: field on which the aggregation will be done. If None,
+            aggregates all documents together without grouping.
         :param metric_fields: dictionary of fields on which a
             metric aggregation will be computed. The format of the dictionary
             is "destination field" ->
@@ -197,6 +200,19 @@ class StatAggregator(object):
         res[dt_key] = upper_limit
         return res
 
+    def _iter_buckets(self, agg_query_results):
+        """Yield (key, bucket) pairs from aggregation results.
+
+        - For field-based aggregations: iterate over terms buckets.
+        - For global aggregation (field=None): yield one fake bucket.
+        """
+        if self.field is not None:
+            for bucket in agg_query_results.aggregations["terms"].buckets:
+                yield bucket["key"], bucket
+        else:
+            global_agg = agg_query_results.aggregations[GLOBAL_BUCKET]
+            yield None, global_agg
+
     def agg_iter(self, dt, previous_bookmark):
         """Aggregate and return dictionary to be indexed in the search engine."""
         rounded_dt = format_range_dt(dt, self.interval)
@@ -214,25 +230,32 @@ class StatAggregator(object):
         for modifier in self.query_modifiers:
             agg_query = modifier(agg_query)
 
-        total_buckets = get_bucket_size(
-            self.client,
-            self.event_index,
-            self.field,
-            start_date=rounded_dt,
-            end_date=rounded_dt,
-        )
+        if self.field is not None:
+            total_buckets = get_bucket_size(
+                self.client,
+                self.event_index,
+                self.field,
+                start_date=rounded_dt,
+                end_date=rounded_dt,
+            )
+        else:
+            total_buckets = 1
 
         num_partitions = max(
             int(math.ceil(float(total_buckets) / self.max_bucket_size)), 1
         )
         for p in range(num_partitions):
-            terms = agg_query.aggs.bucket(
-                "terms",
-                "terms",
-                field=self.field,
-                include={"partition": p, "num_partitions": num_partitions},
-                size=self.max_bucket_size,
-            )
+            if self.field is not None:
+                terms = agg_query.aggs.bucket(
+                    "terms",
+                    "terms",
+                    field=self.field,
+                    include={"partition": p, "num_partitions": num_partitions},
+                    size=self.max_bucket_size,
+                )
+            else:
+                terms = agg_query.aggs.bucket(GLOBAL_BUCKET, "global")
+
             terms.metric("top_hit", "top_hits", size=1, sort={"timestamp": "desc"})
             for dst, (metric, src, opts) in self.metric_fields.items():
                 terms.metric(dst, metric, field=src, **opts)
@@ -245,7 +268,7 @@ class StatAggregator(object):
                 # always get the same results for each partition.
                 ignore_cache=True,
             )
-            for aggregation in results.aggregations["terms"].buckets:
+            for bucket_key, aggregation in self._iter_buckets(results):
                 doc = aggregation.top_hit.hits.hits[0]["_source"].to_dict()
                 aggregation = aggregation.to_dict()
                 interval_date = datetime.strptime(
@@ -263,11 +286,14 @@ class StatAggregator(object):
                     if last_date < previous_bookmark:
                         continue
 
-                aggregation_data = {}
-                aggregation_data["timestamp"] = interval_date.isoformat()
-                aggregation_data[self.field] = aggregation["key"]
-                aggregation_data["count"] = aggregation["doc_count"]
-                aggregation_data["updated_timestamp"] = datetime.utcnow().isoformat()
+                aggregation_data = {
+                    "timestamp": interval_date.isoformat(),
+                    "count": aggregation["doc_count"],
+                    "updated_timestamp": datetime.now(timezone.utc).isoformat(),
+                }
+
+                if self.field is not None:
+                    aggregation_data[self.field] = bucket_key
 
                 if self.metric_fields:
                     for f in self.metric_fields:
@@ -286,7 +312,7 @@ class StatAggregator(object):
                 )
                 yield {
                     "_id": "{0}-{1}".format(
-                        aggregation["key"], interval_date.strftime(self.doc_id_suffix)
+                        bucket_key, interval_date.strftime(self.doc_id_suffix)
                     ),
                     "_index": index_name,
                     "_source": aggregation_data,
