@@ -2,13 +2,14 @@
 #
 # This file is part of Invenio.
 # Copyright (C) 2017-2018 CERN.
+# Copyright (C) 2025 Graz University of Technology.
 #
 # Invenio is free software; you can redistribute it and/or modify it
 # under the terms of the MIT License; see LICENSE file for more details.
 
 """Test event builders."""
 
-import datetime
+from datetime import datetime, timezone
 from unittest.mock import patch
 
 from invenio_stats.contrib.event_builders import (
@@ -18,10 +19,10 @@ from invenio_stats.contrib.event_builders import (
 from invenio_stats.utils import get_user
 
 
-class NewDate(datetime.datetime):
+class NewDate(datetime):
     @classmethod
-    def utcnow(cls):
-        return cls(2017, 1, 1)
+    def now(cls, tzinfo):
+        return cls(2017, 1, 1, tzinfo=tzinfo)
 
 
 headers = {
@@ -42,7 +43,7 @@ def test_file_download_event_builder(app, mock_user_ctx, sequential_ids, objects
             file_download_event_builder(event, app, file_obj)
         assert event == {
             # When:
-            "timestamp": NewDate.utcnow().isoformat(),
+            "timestamp": NewDate.now(tzinfo=timezone.utc).isoformat(),
             # What:
             "bucket_id": str(file_obj.bucket_id),
             "file_id": str(file_obj.file_id),
@@ -62,7 +63,7 @@ def test_record_view_event_builder(app, mock_user_ctx, record, pid):
             record_view_event_builder(event, app, pid, record)
         assert event == {
             # When:
-            "timestamp": NewDate.utcnow().isoformat(),
+            "timestamp": NewDate.now(tzinfo=timezone.utc).isoformat(),
             # What:
             "record_id": str(record.id),
             "pid_type": pid.pid_type,

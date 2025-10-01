@@ -3,6 +3,7 @@
 # This file is part of Invenio.
 # Copyright (C) 2017-2018 CERN.
 # Copyright (C)      2022 TU Wien.
+# Copyright (C) 2025 Graz University of Technology.
 #
 # Invenio is free software; you can redistribute it and/or modify it
 # under the terms of the MIT License; see LICENSE file for more details.
@@ -21,7 +22,7 @@ def file_download_event_builder(event, sender_app, obj=None, **kwargs):
     event.update(
         {
             # When:
-            "timestamp": datetime.datetime.utcnow().isoformat(),
+            "timestamp": datetime.datetime.now(datetime.timezone.utc).isoformat(),
             # What:
             "bucket_id": str(obj.bucket_id),
             "file_id": str(obj.file_id),
@@ -52,7 +53,7 @@ def record_view_event_builder(event, sender_app, pid=None, record=None, **kwargs
     event.update(
         {
             # When:
-            "timestamp": datetime.datetime.utcnow().isoformat(),
+            "timestamp": datetime.datetime.now(datetime.timezone.utc).isoformat(),
             # What:
             "record_id": str(record.id),
             "pid_type": pid.pid_type,

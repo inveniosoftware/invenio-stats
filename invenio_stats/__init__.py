@@ -3,7 +3,7 @@
 # This file is part of Invenio.
 # Copyright (C) 2017-2024 CERN.
 # Copyright (C) 2022-2023 TU Wien.
-# Copyright (C) 2024 Graz University of Technology.
+# Copyright (C) 2024-2025 Graz University of Technology.
 #
 # Invenio is free software; you can redistribute it and/or modify it
 # under the terms of the MIT License; see LICENSE file for more details.
@@ -171,7 +171,7 @@ If you prefer to generate your event directly, here is an example:
     from invenio_stats.proxies import current_stats
 
     event = {
-        "timestamp": datetime.datetime.utcnow().isoformat(),
+        "timestamp": datetime.datetime.now(datetime.timezone.utc).isoformat(),
         "mydata": "somedata"
     }
 

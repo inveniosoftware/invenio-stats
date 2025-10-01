@@ -3,6 +3,7 @@
 # This file is part of Invenio.
 # Copyright (C) 2017-2024 CERN.
 # Copyright (C)      2022 TU Wien.
+# Copyright (C) 2025 Graz University of Technology.
 #
 # Invenio is free software; you can redistribute it and/or modify it
 # under the terms of the MIT License; see LICENSE file for more details.
@@ -10,7 +11,7 @@
 """Events indexer."""
 
 import hashlib
-from datetime import datetime
+from datetime import datetime, timezone
 from functools import partial
 from time import mktime
 
@@ -21,7 +22,6 @@ from invenio_base.utils import obj_or_import_string
 from invenio_search import current_search_client
 from invenio_search.engine import search
 from invenio_search.utils import prefix_index
-from pytz import utc
 
 from .utils import get_anonymization_salt, get_geoip
 
@@ -202,10 +202,10 @@ class EventsIndexer(object):
                 # This is to improve search engine performances.
                 ts = ts.replace(microsecond=0)
                 msg["timestamp"] = ts.isoformat()
-                msg["updated_timestamp"] = datetime.utcnow().isoformat()
+                msg["updated_timestamp"] = datetime.now(timezone.utc).isoformat()
                 # apply timestamp windowing in order to group events too close in time
                 if self.double_click_window > 0:
-                    timestamp = mktime(utc.localize(ts).utctimetuple())
+                    timestamp = mktime(ts.utctimetuple())
                     ts = ts.fromtimestamp(
                         timestamp // self.double_click_window * self.double_click_window
                     )

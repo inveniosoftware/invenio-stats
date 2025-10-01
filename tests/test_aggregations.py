@@ -2,6 +2,7 @@
 #
 # This file is part of Invenio.
 # Copyright (C) 2017-2018 CERN.
+# Copyright (C) 2025 Graz University of Technology.
 #
 # Invenio is free software; you can redistribute it and/or modify it
 # under the terms of the MIT License; see LICENSE file for more details.
@@ -58,8 +59,8 @@ def test_get_bookmark(app, search_clear, indexed_events):
         stat_agg.run()
     current_search.flush_and_refresh(index="*")
     assert stat_agg.bookmark_api.get_bookmark() == datetime.datetime(
-        2017, 1, 7, 11, 9, 9  # Note that the bookmark is one minute older
-    )
+        2017, 1, 7, 11, 9, 9, tzinfo=datetime.timezone.utc
+    )  # Note that the bookmark is one minute older
 
 
 def test_overwriting_aggregations(app, search_clear, mock_event_queue):

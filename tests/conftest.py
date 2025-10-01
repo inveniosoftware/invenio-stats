@@ -332,19 +332,19 @@ def request_headers():
 def mock_datetime():
     """Mock datetime.datetime.
 
-    Use set_utcnow to set the current utcnow time.
+    Use set_now to set the current now time.
     """
 
     class NewDate(datetime.datetime):
-        _utcnow = (2017, 1, 1)
+        _now = (2017, 1, 1)
 
         @classmethod
-        def set_utcnow(cls, value):
-            cls._utcnow = value
+        def set_now(cls, value):
+            cls._now = value
 
         @classmethod
-        def utcnow(cls):
-            return cls(*cls._utcnow)
+        def now(cls, tzinfo):
+            return cls(*cls._now, tzinfo=tzinfo)
 
     yield NewDate
 

@@ -3,13 +3,14 @@
 # This file is part of Invenio.
 # Copyright (C) 2017-2019 CERN.
 # Copyright (C)      2022 TU Wien.
+# Copyright (C) 2025 Graz University of Technology.
 #
 # Invenio is free software; you can redistribute it and/or modify it
 # under the terms of the MIT License; see LICENSE file for more details.
 """BookMark used by aggregations."""
 
 from collections import OrderedDict
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from functools import wraps
 
 from invenio_search.engine import dsl, search
@@ -107,7 +108,7 @@ class BookmarkAPI(object):
             # This means that some events might be processed twice
             if refresh_time:
                 my_date -= timedelta(seconds=refresh_time)
-            return my_date
+            return my_date.replace(tzinfo=timezone.utc)
 
     @_ensure_index_exists
     def list_bookmarks(self, start_date=None, end_date=None, limit=None):

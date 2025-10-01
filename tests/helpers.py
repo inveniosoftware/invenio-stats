@@ -2,6 +2,7 @@
 #
 # This file is part of Invenio.
 # Copyright (C) 2018 CERN.
+# Copyright (C) 2025 Graz University of Technology.
 #
 # Invenio is free software; you can redistribute it and/or modify it
 # under the terms of the MIT License; see LICENSE file for more details.
@@ -23,14 +24,14 @@ def get_queue_size(queue_name):
 
 
 def mock_date(*date_parts):
-    """Mocked 'datetime.utcnow()'."""
+    """Mocked 'datetime.now()'."""
 
     class MockDate(datetime.datetime):
         """datetime.datetime mock."""
 
         @classmethod
-        def utcnow(cls):
+        def now(cls, tzinfo=datetime.timezone.utc):
             """Override to return 'current_date'."""
-            return cls(*date_parts)
+            return cls(*date_parts, tzinfo=tzinfo)
 
     return MockDate

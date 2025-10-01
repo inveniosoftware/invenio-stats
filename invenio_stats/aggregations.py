@@ -3,6 +3,7 @@
 # This file is part of Invenio.
 # Copyright (C) 2017-2019 CERN.
 # Copyright (C)      2022 TU Wien.
+# Copyright (C) 2025 Graz University of Technology.
 #
 # Invenio is free software; you can redistribute it and/or modify it
 # under the terms of the MIT License; see LICENSE file for more details.
@@ -10,7 +11,7 @@
 """Aggregation classes."""
 
 import math
-from datetime import datetime
+from datetime import datetime, timezone
 
 from dateutil import parser
 from dateutil.relativedelta import relativedelta
@@ -168,7 +169,7 @@ class StatAggregator(object):
         # indexed but the indices have not been refreshed yet.
         if len(result) == 0:
             return None
-        return parser.parse(result[0]["timestamp"])
+        return parser.parse(result[0]["timestamp"]).replace(tzinfo=timezone.utc)
 
     def _split_date_range(self, lower_limit, upper_limit):
         """Return dict of rounded dates in range, split by aggregation interval.
@@ -259,7 +260,9 @@ class StatAggregator(object):
                     "value_as_string", None
                 )
                 if last_update_aggr and previous_bookmark:
-                    last_date = datetime.fromisoformat(last_update_aggr.rstrip("Z"))
+                    last_date = datetime.fromisoformat(
+                        last_update_aggr.rstrip("Z")
+                    ).replace(tzinfo=timezone.utc)
                     if last_date < previous_bookmark:
                         continue
 
@@ -267,7 +270,9 @@ class StatAggregator(object):
                 aggregation_data["timestamp"] = interval_date.isoformat()
                 aggregation_data[self.field] = aggregation["key"]
                 aggregation_data["count"] = aggregation["doc_count"]
-                aggregation_data["updated_timestamp"] = datetime.utcnow().isoformat()
+                aggregation_data["updated_timestamp"] = datetime.now(
+                    timezone.utc
+                ).isoformat()
 
                 if self.metric_fields:
                     for f in self.metric_fields:
@@ -293,9 +298,10 @@ class StatAggregator(object):
                 }
 
     def _upper_limit(self, end_date):
+        max_ = datetime.max.replace(tzinfo=timezone.utc)
         return min(
-            end_date or datetime.max,  # ignore if `None`
-            datetime.utcnow(),
+            end_date or max_,  # ignore if `None`
+            datetime.now(timezone.utc),
         )
 
     def run(self, start_date=None, end_date=None, update_bookmark=True):
@@ -317,7 +323,7 @@ class StatAggregator(object):
         # Let's get the timestamp before we start the aggregation.
         # This will be used for the next iteration. Some events might be processed twice
         if not end_date:
-            end_date = datetime.utcnow().isoformat()
+            end_date = datetime.now(timezone.utc).isoformat()
 
         results = []
         for dt_key, dt in sorted(dates.items()):

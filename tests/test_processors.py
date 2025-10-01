@@ -313,7 +313,7 @@ def test_events_indexer_preprocessors(app, mock_event_queue):
         event = build_file_unique_id(event)
         event = test_preprocessor1(event)
         event = test_preprocessor2(event)
-        event["updated_timestamp"] = "2017-06-02T12:00:00"
+        event["updated_timestamp"] = "2017-06-02T12:00:00+00:00"
         _id = hash_id("2017-01-01T00:00:00", event)
         expected_docs.append(
             {

@@ -3,13 +3,14 @@
 # This file is part of Invenio.
 # Copyright (C) 2016-2018 CERN.
 # Copyright (C)      2022 TU Wien.
+# Copyright (C) 2025 Graz University of Technology.
 #
 # Invenio is free software; you can redistribute it and/or modify it
 # under the terms of the MIT License; see LICENSE file for more details.
 
 """Celery background tasks."""
 
-from datetime import timedelta
+from datetime import timedelta, timezone
 
 from celery import shared_task
 from dateutil.parser import parse as dateutil_parse
@@ -50,8 +51,12 @@ def aggregate_events(
     aggregations, start_date=None, end_date=None, update_bookmark=True
 ):
     """Aggregate indexed events."""
-    start_date = dateutil_parse(start_date) if start_date else None
-    end_date = dateutil_parse(end_date) if end_date else None
+    start_date = (
+        dateutil_parse(start_date).replace(tzinfo=timezone.utc) if start_date else None
+    )
+    end_date = (
+        dateutil_parse(end_date).replace(tzinfo=timezone.utc) if end_date else None
+    )
     results = []
     for aggr_name in aggregations:
         aggr_cfg = current_stats.aggregations[aggr_name]
