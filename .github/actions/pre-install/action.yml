@@ -1,3 +1,5 @@
+name: Pre-install
+description: Composite action to prepare environment by installing Graphviz
 runs:
   using: composite
   steps:
