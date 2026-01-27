@@ -7,6 +7,7 @@
 # under the terms of the MIT License; see LICENSE file for more details.
 
 """Events tests."""
+
 from invenio_queues.proxies import current_queues
 
 from invenio_stats.proxies import current_stats
