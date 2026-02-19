@@ -76,3 +76,11 @@ STATS_REGISTER_INDEX_TEMPLATES = False
 
 Default behaviour will register the templates as search templates.
 """
+
+STATS_EVENTS_UTC_DATETIME_ENABLED = False
+"""Enable timezone-aware UTC datetimes for event timestamps.
+
+When set to ``False`` (default), naive UTC datetimes are used (tzinfo is
+stripped via ``datetime.replace(tzinfo=None)``). Set to ``True`` to use
+timezone-aware UTC datetimes with explicit UTC timezone information.
+"""

@@ -43,7 +43,9 @@ def test_file_download_event_builder(app, mock_user_ctx, sequential_ids, objects
             file_download_event_builder(event, app, file_obj)
         assert event == {
             # When:
-            "timestamp": NewDate.now(tzinfo=timezone.utc).isoformat(),
+            "timestamp": NewDate.now(tzinfo=timezone.utc)
+            .replace(tzinfo=None)
+            .isoformat(),
             # What:
             "bucket_id": str(file_obj.bucket_id),
             "file_id": str(file_obj.file_id),
@@ -63,7 +65,9 @@ def test_record_view_event_builder(app, mock_user_ctx, record, pid):
             record_view_event_builder(event, app, pid, record)
         assert event == {
             # When:
-            "timestamp": NewDate.now(tzinfo=timezone.utc).isoformat(),
+            "timestamp": NewDate.now(tzinfo=timezone.utc)
+            .replace(tzinfo=None)
+            .isoformat(),
             # What:
             "record_id": str(record.id),
             "pid_type": pid.pid_type,
@@ -72,3 +76,38 @@ def test_record_view_event_builder(app, mock_user_ctx, record, pid):
             # Who:
             **get_user(),
         }
+
+
+def test_file_download_event_builder_aware_datetime(
+    app, mock_user_ctx, sequential_ids, objects
+):
+    """Test file-download event builder produces aware UTC datetime when enabled."""
+    file_obj = objects[0]
+    file_obj.bucket_id = sequential_ids[0]
+
+    app.config["STATS_EVENTS_UTC_DATETIME_ENABLED"] = True
+    try:
+        with app.test_request_context(headers=headers):
+            event = {}
+            with patch("datetime.datetime", NewDate):
+                file_download_event_builder(event, app, file_obj)
+            assert event["timestamp"] == NewDate.now(tzinfo=timezone.utc).isoformat()
+            # Aware ISO format must contain timezone offset
+            assert "+00:00" in event["timestamp"]
+    finally:
+        app.config["STATS_EVENTS_UTC_DATETIME_ENABLED"] = False
+
+
+def test_record_view_event_builder_aware_datetime(app, mock_user_ctx, record, pid):
+    """Test record-view event builder produces aware UTC datetime when enabled."""
+    app.config["STATS_EVENTS_UTC_DATETIME_ENABLED"] = True
+    try:
+        with app.test_request_context(headers=headers):
+            event = {}
+            with patch("datetime.datetime", NewDate):
+                record_view_event_builder(event, app, pid, record)
+            assert event["timestamp"] == NewDate.now(tzinfo=timezone.utc).isoformat()
+            # Aware ISO format must contain timezone offset
+            assert "+00:00" in event["timestamp"]
+    finally:
+        app.config["STATS_EVENTS_UTC_DATETIME_ENABLED"] = False
