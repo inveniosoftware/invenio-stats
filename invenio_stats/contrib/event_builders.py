@@ -12,9 +12,17 @@
 
 import datetime
 
-from flask import request
+from flask import current_app, request
 
 from ..utils import get_user
+
+
+def _build_timestamp():
+    """Build an event timestamp, stripping tzinfo if configured."""
+    ts = datetime.datetime.now(datetime.timezone.utc)
+    if not current_app.config["STATS_EVENTS_UTC_DATETIME_ENABLED"]:
+        ts = ts.replace(tzinfo=None)
+    return ts.isoformat()
 
 
 def file_download_event_builder(event, sender_app, obj=None, **kwargs):
@@ -22,7 +30,7 @@ def file_download_event_builder(event, sender_app, obj=None, **kwargs):
     event.update(
         {
             # When:
-            "timestamp": datetime.datetime.now(datetime.timezone.utc).isoformat(),
+            "timestamp": _build_timestamp(),
             # What:
             "bucket_id": str(obj.bucket_id),
             "file_id": str(obj.file_id),
@@ -53,7 +61,7 @@ def record_view_event_builder(event, sender_app, pid=None, record=None, **kwargs
     event.update(
         {
             # When:
-            "timestamp": datetime.datetime.now(datetime.timezone.utc).isoformat(),
+            "timestamp": _build_timestamp(),
             # What:
             "record_id": str(record.id),
             "pid_type": pid.pid_type,
