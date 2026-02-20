@@ -10,6 +10,13 @@
 Changes
 =======
 
+Version v6.1.0 (released 2026-01-29)
+
+- feat(config): add STATS_EVENTS_UTC_DATETIME_ENABLED flag
+  Introduce STATS_EVENTS_UTC_DATETIME_ENABLED (default: False) to strip
+  tzinfo from event timestamps at build time. Set to True to opt-in to
+  timezone-aware UTC datetimes.
+
 Version v6.0.0 (released 2026-01-29)
 
 - chore(setup): bump dependencies
