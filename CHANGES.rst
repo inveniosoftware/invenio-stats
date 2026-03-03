@@ -10,6 +10,10 @@
 Changes
 =======
 
+Version v6.1.1 (released 2026-03-03)
+
+- fix(queries): make queries backwards-compatible with non timezone aware indices
+
 Version v6.1.0 (released 2026-01-29)
 
 - feat(config): add STATS_EVENTS_UTC_DATETIME_ENABLED flag
