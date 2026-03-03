@@ -67,3 +67,186 @@ def test_terms_query(app, event_queues, aggregated_events, queries_config):
         end_date=datetime.datetime(2017, 1, 7),
     )
     assert int(results["buckets"][0]["value"]) == 49
+
+
+def test_query_date_formatting_config_disabled(app, queries_config):
+    """Test date formatting in build_query when STATS_EVENTS_UTC_DATETIME_ENABLED is False.
+
+    When the config is False (default), dates in range filters should be formatted
+    without microseconds and timezone info for compatibility with strict_date_hour_minute_second.
+    """
+    # Ensure the config is False (default)
+    app.config["STATS_EVENTS_UTC_DATETIME_ENABLED"] = False
+
+    query = DateHistogramQuery(
+        name="test_date_format",
+        **queries_config["bucket-file-download-histogram"]["params"]
+    )
+
+    # Create datetimes with microseconds and timezone
+    start_date = datetime.datetime(
+        2024, 1, 15, 10, 30, 45, 123456, tzinfo=datetime.timezone.utc
+    )
+    end_date = datetime.datetime(
+        2024, 1, 20, 18, 45, 30, 654321, tzinfo=datetime.timezone.utc
+    )
+
+    # Build the query
+    agg_query = query.build_query(
+        interval="day", start_date=start_date, end_date=end_date
+    )
+
+    # Convert to dict to inspect the query structure
+    query_dict = agg_query.to_dict()
+
+    # Extract the range filter from the query
+    range_filter = None
+    for filter_item in query_dict.get("query", {}).get("bool", {}).get("filter", []):
+        if "range" in filter_item:
+            range_filter = filter_item["range"]["timestamp"]
+            break
+
+    # Verify the range filter exists and has correctly formatted dates
+    assert range_filter is not None, "Range filter should exist in query"
+
+    # Should strip both microseconds and timezone
+    assert range_filter["gte"] == "2024-01-15T10:30:45"
+    assert range_filter["lte"] == "2024-01-20T18:45:30"
+    assert ".123456" not in range_filter["gte"]
+    assert ".654321" not in range_filter["lte"]
+    assert "+00:00" not in range_filter["gte"]
+    assert "+00:00" not in range_filter["lte"]
+
+
+def test_query_date_formatting_config_enabled(app, queries_config):
+    """Test date formatting in build_query when STATS_EVENTS_UTC_DATETIME_ENABLED is True.
+
+    When the config is True, dates in range filters should preserve microseconds
+    and timezone info for use with flexible date formats.
+    """
+    # Enable the config
+    app.config["STATS_EVENTS_UTC_DATETIME_ENABLED"] = True
+
+    query = DateHistogramQuery(
+        name="test_date_format",
+        **queries_config["bucket-file-download-histogram"]["params"]
+    )
+
+    # Create datetimes with microseconds and timezone
+    start_date = datetime.datetime(
+        2024, 1, 15, 10, 30, 45, 123456, tzinfo=datetime.timezone.utc
+    )
+    end_date = datetime.datetime(
+        2024, 1, 20, 18, 45, 30, 654321, tzinfo=datetime.timezone.utc
+    )
+
+    # Build the query
+    agg_query = query.build_query(
+        interval="day", start_date=start_date, end_date=end_date
+    )
+
+    # Convert to dict to inspect the query structure
+    query_dict = agg_query.to_dict()
+
+    # Extract the range filter from the query
+    range_filter = None
+    for filter_item in query_dict.get("query", {}).get("bool", {}).get("filter", []):
+        if "range" in filter_item:
+            range_filter = filter_item["range"]["timestamp"]
+            break
+
+    # Verify the range filter exists and has correctly formatted dates
+    assert range_filter is not None, "Range filter should exist in query"
+
+    # Should keep both microseconds and timezone
+    assert range_filter["gte"] == "2024-01-15T10:30:45.123456+00:00"
+    assert range_filter["lte"] == "2024-01-20T18:45:30.654321+00:00"
+    assert ".123456" in range_filter["gte"]
+    assert ".654321" in range_filter["lte"]
+    assert "+00:00" in range_filter["gte"]
+    assert "+00:00" in range_filter["lte"]
+
+
+def test_terms_query_date_formatting_config_disabled(app, queries_config):
+    """Test date formatting in TermsQuery.build_query when config is False.
+
+    Verifies that TermsQuery also correctly formats dates in range filters
+    for compatibility with strict_date_hour_minute_second.
+    """
+    # Ensure the config is False (default)
+    app.config["STATS_EVENTS_UTC_DATETIME_ENABLED"] = False
+
+    query = TermsQuery(
+        name="test_terms_date_format",
+        **queries_config["bucket-file-download-total"]["params"]
+    )
+
+    # Create datetimes with microseconds and timezone
+    start_date = datetime.datetime(
+        2024, 1, 15, 10, 30, 45, 123456, tzinfo=datetime.timezone.utc
+    )
+    end_date = datetime.datetime(
+        2024, 1, 20, 18, 45, 30, 654321, tzinfo=datetime.timezone.utc
+    )
+
+    # Build the query
+    agg_query = query.build_query(start_date=start_date, end_date=end_date)
+
+    # Convert to dict to inspect the query structure
+    query_dict = agg_query.to_dict()
+
+    # Extract the range filter from the query
+    range_filter = None
+    for filter_item in query_dict.get("query", {}).get("bool", {}).get("filter", []):
+        if "range" in filter_item:
+            range_filter = filter_item["range"]["timestamp"]
+            break
+
+    # Verify the range filter exists and has correctly formatted dates
+    assert range_filter is not None, "Range filter should exist in query"
+
+    # Should strip both microseconds and timezone
+    assert range_filter["gte"] == "2024-01-15T10:30:45"
+    assert range_filter["lte"] == "2024-01-20T18:45:30"
+
+
+def test_terms_query_date_formatting_config_enabled(app, queries_config):
+    """Test date formatting in TermsQuery.build_query when config is True.
+
+    Verifies that TermsQuery preserves full datetime precision when configured.
+    """
+    # Enable the config
+    app.config["STATS_EVENTS_UTC_DATETIME_ENABLED"] = True
+
+    query = TermsQuery(
+        name="test_terms_date_format",
+        **queries_config["bucket-file-download-total"]["params"]
+    )
+
+    # Create datetimes with microseconds and timezone
+    start_date = datetime.datetime(
+        2024, 1, 15, 10, 30, 45, 123456, tzinfo=datetime.timezone.utc
+    )
+    end_date = datetime.datetime(
+        2024, 1, 20, 18, 45, 30, 654321, tzinfo=datetime.timezone.utc
+    )
+
+    # Build the query
+    agg_query = query.build_query(start_date=start_date, end_date=end_date)
+
+    # Convert to dict to inspect the query structure
+    query_dict = agg_query.to_dict()
+
+    # Extract the range filter from the query
+    range_filter = None
+    for filter_item in query_dict.get("query", {}).get("bool", {}).get("filter", []):
+        if "range" in filter_item:
+            range_filter = filter_item["range"]["timestamp"]
+            break
+
+    # Verify the range filter exists and has correctly formatted dates
+    assert range_filter is not None, "Range filter should exist in query"
+
+    # Should keep both microseconds and timezone
+    assert range_filter["gte"] == "2024-01-15T10:30:45.123456+00:00"
+    assert range_filter["lte"] == "2024-01-20T18:45:30.654321+00:00"

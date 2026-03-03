@@ -16,6 +16,7 @@ from invenio_search.engine import dsl
 from invenio_search.utils import build_alias_name
 
 from .errors import InvalidRequestInputError
+from .utils import format_datetime_iso
 
 
 class Query(object):
@@ -129,9 +130,9 @@ class DateHistogramQuery(Query):
         if start_date is not None or end_date is not None:
             time_range = {}
             if start_date is not None:
-                time_range["gte"] = start_date.isoformat()
+                time_range["gte"] = format_datetime_iso(start_date)
             if end_date is not None:
-                time_range["lte"] = end_date.isoformat()
+                time_range["lte"] = format_datetime_iso(end_date)
             agg_query = agg_query.filter("range", **{self.time_field: time_range})
 
         for modifier in self.query_modifiers:
@@ -254,9 +255,9 @@ class TermsQuery(Query):
         if start_date is not None or end_date is not None:
             time_range = {}
             if start_date is not None:
-                time_range["gte"] = start_date.isoformat()
+                time_range["gte"] = format_datetime_iso(start_date)
             if end_date is not None:
-                time_range["lte"] = end_date.isoformat()
+                time_range["lte"] = format_datetime_iso(end_date)
             agg_query = agg_query.filter("range", **{self.time_field: time_range})
 
         for modifier in self.query_modifiers:

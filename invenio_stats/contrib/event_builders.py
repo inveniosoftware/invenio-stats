@@ -12,17 +12,20 @@
 
 import datetime
 
-from flask import current_app, request
+from flask import request
 
-from ..utils import get_user
+from ..utils import format_datetime_iso, get_user
 
 
 def _build_timestamp():
-    """Build an event timestamp, stripping tzinfo if configured."""
+    """Build an event timestamp.
+
+    Uses centralized date formatting that strips microseconds and timezone info
+    when STATS_EVENTS_UTC_DATETIME_ENABLED is False (default) to ensure
+    compatibility with strict_date_hour_minute_second format.
+    """
     ts = datetime.datetime.now(datetime.timezone.utc)
-    if not current_app.config["STATS_EVENTS_UTC_DATETIME_ENABLED"]:
-        ts = ts.replace(tzinfo=None)
-    return ts.isoformat()
+    return format_datetime_iso(ts)
 
 
 def file_download_event_builder(event, sender_app, obj=None, **kwargs):

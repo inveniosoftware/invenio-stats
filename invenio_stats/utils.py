@@ -13,11 +13,31 @@ import os
 from base64 import b64encode
 from math import ceil
 
-from flask import request, session
+from flask import current_app, request, session
 from flask_login import current_user
 from geolite2 import geolite2
 from invenio_cache import current_cache
 from invenio_search.engine import dsl
+
+
+def format_datetime_iso(dt):
+    """Format datetime to ISO string, handling microseconds and timezone based on config.
+
+    When STATS_EVENTS_UTC_DATETIME_ENABLED is False (default), both microseconds
+    and timezone info are stripped to ensure compatibility with
+    strict_date_hour_minute_second format in existing index mappings.
+
+    When STATS_EVENTS_UTC_DATETIME_ENABLED is True, full datetime precision is preserved
+    including microseconds and timezone info for use with flexible date formats.
+
+    :param dt: datetime object to format (or None)
+    :returns: ISO formatted date string, or None if dt is None
+    """
+    if dt is None:
+        return None
+    if not current_app.config["STATS_EVENTS_UTC_DATETIME_ENABLED"]:
+        dt = dt.replace(microsecond=0, tzinfo=None)
+    return dt.isoformat()
 
 
 def get_anonymization_salt(ts):
