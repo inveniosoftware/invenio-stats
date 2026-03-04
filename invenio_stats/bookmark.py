@@ -16,6 +16,8 @@ from functools import wraps
 from invenio_search.engine import dsl, search
 from invenio_search.utils import prefix_index
 
+from .utils import format_datetime_iso
+
 SUPPORTED_INTERVALS = OrderedDict(
     [
         ("hour", "%Y-%m-%dT%H"),
@@ -31,7 +33,7 @@ def format_range_dt(dt, interval):
     dt_rounding_map = {"hour": "h", "day": "d", "month": "M", "year": "y"}
 
     if not isinstance(dt, str):
-        dt = dt.replace(microsecond=0).isoformat()
+        dt = format_datetime_iso(dt, replace_microsecond=True)
     return f"{dt}||/{dt_rounding_map[interval]}"
 
 
