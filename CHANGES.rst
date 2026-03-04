@@ -10,6 +10,10 @@
 Changes
 =======
 
+Version v6.1.2 (released 2026-03-04)
+
+- fix(aggregations): make queries backwards-compatible with non timezone aware indices 
+
 Version v6.1.1 (released 2026-03-03)
 
 - fix(queries): make queries backwards-compatible with non timezone aware indices
