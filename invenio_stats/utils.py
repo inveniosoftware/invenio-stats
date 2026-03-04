@@ -20,7 +20,7 @@ from invenio_cache import current_cache
 from invenio_search.engine import dsl
 
 
-def format_datetime_iso(dt):
+def format_datetime_iso(dt, replace_microsecond=False):
     """Format datetime to ISO string, handling microseconds and timezone based on config.
 
     When STATS_EVENTS_UTC_DATETIME_ENABLED is False (default), both microseconds
@@ -31,12 +31,15 @@ def format_datetime_iso(dt):
     including microseconds and timezone info for use with flexible date formats.
 
     :param dt: datetime object to format (or None)
+    :param replace_microsecond: bool to remove microseconds from dt object
     :returns: ISO formatted date string, or None if dt is None
     """
     if dt is None:
         return None
     if not current_app.config["STATS_EVENTS_UTC_DATETIME_ENABLED"]:
-        dt = dt.replace(microsecond=0, tzinfo=None)
+        dt = dt.replace(tzinfo=None)
+    if replace_microsecond:
+        dt = dt.replace(microsecond=0)
     return dt.isoformat()
 
 
