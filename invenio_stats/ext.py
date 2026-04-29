@@ -175,3 +175,10 @@ class InvenioStats(object):
     def __getattr__(self, name):
         """Proxy to state object."""
         return getattr(self._state, name, None)
+
+
+def finalize_app(app):
+    """Warm event caches after all extensions have initialized."""
+    state = app.extensions["invenio-stats"]
+    # Access the property, to trigger the cache to be populated for future access
+    _ = state.events
