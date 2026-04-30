@@ -10,9 +10,13 @@
 Changes
 =======
 
+Version v6.1.3 (released 2026-04-30)
+
+- fix(stats): warm event cache on finalization
+
 Version v6.1.2 (released 2026-03-04)
 
-- fix(aggregations): make queries backwards-compatible with non timezone aware indices 
+- fix(aggregations): make queries backwards-compatible with non timezone aware indices
 
 Version v6.1.1 (released 2026-03-03)
 
