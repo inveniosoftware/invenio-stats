@@ -10,6 +10,23 @@
 Changes
 =======
 
+Version v6.2.0 (unreleased)
+
+- feat(aggregations): add opt-in ``batch_bookmark`` flag on
+  ``StatAggregator``. When enabled, the aggregator writes a bookmark
+  after every successful interval instead of once at the end of
+  ``StatAggregator.run``, so a worker killed mid-loop only loses
+  the interval currently in progress.
+- feat(aggregations): add opt-in ``incremental`` flag on
+  ``StatAggregator``. When enabled (and a previous bookmark exists),
+  ``StatAggregator.agg_iter`` first looks up the field values whose
+  events were touched since the bookmark, then re-aggregates only
+  those values. Cuts steady-state read cost on busy deployments where
+  the bookmark cadence is much shorter than the aggregation interval.
+  A new ``affected_partition_size`` parameter (default ``10000``)
+  controls how the affected set is chunked across ``terms`` filters.
+- All new flags default to off; existing behavior is preserved.
+
 Version v6.1.3 (released 2026-04-30)
 
 - fix(stats): warm event cache on finalization
