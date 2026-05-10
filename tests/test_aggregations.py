@@ -350,3 +350,353 @@ def test_metric_aggregations(app, search_clear, event_queues):
     assert results[0].count == 12  # 3 views over 4 differnet hour slices
     assert results[0].unique_count == 4  # 4 different hour slices accessed
     assert results[0].volume == 9000 * 12
+
+
+@pytest.mark.parametrize(
+    "indexed_events",
+    [
+        {
+            "file_number": 1,
+            "event_number": 1,
+            "robot_event_number": 0,
+            "start_date": datetime.date(2017, 1, 1),
+            "end_date": datetime.date(2017, 1, 3),
+        }
+    ],
+    indirect=["indexed_events"],
+)
+def test_batch_bookmark_advances_per_interval(app, search_clear, indexed_events):
+    """Test that batch_bookmark writes one bookmark per processed interval."""
+    aggregator = StatAggregator(
+        name="file-download-agg",
+        client=search_clear,
+        event="file-download",
+        field="file_id",
+        interval="day",
+        batch_bookmark=True,
+    )
+    with patch("invenio_stats.aggregations.datetime", mock_date(2017, 1, 4)):
+        aggregator.run(
+            start_date=datetime.datetime(2017, 1, 1, tzinfo=datetime.timezone.utc),
+            end_date=datetime.datetime(
+                2017, 1, 3, 23, 59, 59, tzinfo=datetime.timezone.utc
+            ),
+        )
+    current_search.flush_and_refresh(index="*")
+
+    bookmarks = list(aggregator.list_bookmarks())
+    assert len(bookmarks) == 3
+    dates = sorted(b.date for b in bookmarks)
+    assert dates[0].startswith("2017-01-02")
+    assert dates[1].startswith("2017-01-03")
+    assert dates[2].startswith("2017-01-04")
+
+
+@pytest.mark.parametrize(
+    "indexed_events",
+    [
+        {
+            "file_number": 1,
+            "event_number": 1,
+            "robot_event_number": 0,
+            "start_date": datetime.date(2017, 1, 1),
+            "end_date": datetime.date(2017, 1, 3),
+        }
+    ],
+    indirect=["indexed_events"],
+)
+def test_batch_bookmark_resume_after_partial_run(app, search_clear, indexed_events):
+    """Test that a failure mid-loop preserves bookmarks for completed intervals."""
+    aggregator = StatAggregator(
+        name="file-download-agg",
+        client=search_clear,
+        event="file-download",
+        field="file_id",
+        interval="day",
+        batch_bookmark=True,
+    )
+
+    # Simulate a worker kill on the third interval
+    real_agg_iter = aggregator.agg_iter
+    call_count = {"n": 0}
+
+    def fail_on_third_interval(dt, previous_bookmark):
+        call_count["n"] += 1
+        if call_count["n"] > 2:
+            raise RuntimeError("simulated worker kill")
+        yield from real_agg_iter(dt, previous_bookmark)
+
+    aggregator.agg_iter = fail_on_third_interval
+
+    with patch("invenio_stats.aggregations.datetime", mock_date(2017, 1, 4)):
+        with pytest.raises(RuntimeError):
+            aggregator.run(
+                start_date=datetime.datetime(2017, 1, 1, tzinfo=datetime.timezone.utc),
+                end_date=datetime.datetime(
+                    2017, 1, 3, 23, 59, 59, tzinfo=datetime.timezone.utc
+                ),
+            )
+    current_search.flush_and_refresh(index="*")
+
+    # The first two intervals' bookmarks should be present
+    bookmarks = list(aggregator.list_bookmarks())
+    assert len(bookmarks) == 2
+    assert max(b.date for b in bookmarks).startswith("2017-01-03")
+
+    # Re-run from the saved bookmark and confirm all three days are aggregated
+    aggregator.agg_iter = real_agg_iter
+    with patch("invenio_stats.aggregations.datetime", mock_date(2017, 1, 4)):
+        aggregator.run(
+            end_date=datetime.datetime(
+                2017, 1, 3, 23, 59, 59, tzinfo=datetime.timezone.utc
+            ),
+        )
+    current_search.flush_and_refresh(index="*")
+
+    results = (
+        dsl.Search(using=search_clear, index="stats-file-download")
+        .sort("timestamp")
+        .execute()
+    )
+    timestamps = [r.timestamp[:10] for r in results if "file_id" in r]
+    assert timestamps == ["2017-01-01", "2017-01-02", "2017-01-03"]
+
+
+def test_incremental_skips_unchanged_records(app, search_clear, mock_event_queue):
+    """Test that the affected-set lookup returns only files touched since the bookmark."""
+    # Seed one event per file for five files
+    mock_event_queue.consume.return_value = [
+        _create_file_download_event(
+            (2017, 1, 2, 8),
+            file_id="F000000000000000000000000000000{}".format(i),
+        )
+        for i in range(1, 6)
+    ]
+    with patch("invenio_stats.processors.datetime", mock_date(2017, 1, 2, 8)):
+        indexer = EventsIndexer(mock_event_queue)
+        indexer.run()
+    current_search.flush_and_refresh(index="*")
+
+    bookmark = datetime.datetime(2017, 1, 2, 12, tzinfo=datetime.timezone.utc)
+
+    # Add new events for files 1 and 2 only, after the bookmark
+    mock_event_queue.consume.return_value = [
+        _create_file_download_event(
+            (2017, 1, 2, 14),
+            file_id="F000000000000000000000000000000{}".format(i),
+        )
+        for i in (1, 2)
+    ]
+    with patch("invenio_stats.processors.datetime", mock_date(2017, 1, 2, 14)):
+        indexer = EventsIndexer(mock_event_queue)
+        indexer.run()
+    current_search.flush_and_refresh(index="*")
+
+    aggregator = StatAggregator(
+        name="file-download-agg",
+        client=search_clear,
+        event="file-download",
+        field="file_id",
+        interval="day",
+        incremental=True,
+    )
+    affected = aggregator._affected_field_values(
+        datetime.datetime(2017, 1, 2, tzinfo=datetime.timezone.utc), bookmark
+    )
+    assert set(affected) == {
+        "F0000000000000000000000000000001",
+        "F0000000000000000000000000000002",
+    }
+
+
+def test_incremental_matches_full_results(app, search_clear, mock_event_queue):
+    """Test that the incremental and full paths produce identical aggregation docs."""
+    # Seed one event per file for five files
+    mock_event_queue.consume.return_value = [
+        _create_file_download_event(
+            (2017, 1, 2, 8),
+            file_id="F000000000000000000000000000000{}".format(i),
+        )
+        for i in range(1, 6)
+    ]
+    with patch("invenio_stats.processors.datetime", mock_date(2017, 1, 2, 8)):
+        indexer = EventsIndexer(mock_event_queue)
+        indexer.run()
+    current_search.flush_and_refresh(index="*")
+
+    # Initial aggregation run (full scan), establishes a bookmark
+    aggregator = StatAggregator(
+        name="file-download-agg",
+        client=search_clear,
+        event="file-download",
+        field="file_id",
+        interval="day",
+    )
+    with patch("invenio_stats.aggregations.datetime", mock_date(2017, 1, 2, 12)):
+        aggregator.run()
+    current_search.flush_and_refresh(index="*")
+
+    # Add new events for files 1 and 2
+    mock_event_queue.consume.return_value = [
+        _create_file_download_event(
+            (2017, 1, 2, 14),
+            file_id="F000000000000000000000000000000{}".format(i),
+        )
+        for i in (1, 2)
+    ]
+    with patch("invenio_stats.processors.datetime", mock_date(2017, 1, 2, 14)):
+        indexer = EventsIndexer(mock_event_queue)
+        indexer.run()
+    current_search.flush_and_refresh(index="*")
+
+    # Incremental run on top of the existing aggregation
+    incremental = StatAggregator(
+        name="file-download-agg",
+        client=search_clear,
+        event="file-download",
+        field="file_id",
+        interval="day",
+        incremental=True,
+    )
+    with patch("invenio_stats.aggregations.datetime", mock_date(2017, 1, 2, 18)):
+        incremental.run()
+    current_search.flush_and_refresh(index="*")
+
+    incremental_docs = {
+        h["_id"]: {k: v for k, v in h["_source"].items() if k != "updated_timestamp"}
+        for h in search_clear.search(index="stats-file-download")["hits"]["hits"]
+    }
+
+    # Wipe aggregation docs and the bookmark, then re-run from scratch (full scan)
+    aggregator.delete()
+    current_search.flush_and_refresh(index="*")
+    with patch("invenio_stats.aggregations.datetime", mock_date(2017, 1, 2, 18)):
+        aggregator.run()
+    current_search.flush_and_refresh(index="*")
+
+    full_docs = {
+        h["_id"]: {k: v for k, v in h["_source"].items() if k != "updated_timestamp"}
+        for h in search_clear.search(index="stats-file-download")["hits"]["hits"]
+    }
+    assert incremental_docs == full_docs
+    assert len(incremental_docs) == 5
+    counts = {doc["file_id"]: doc["count"] for doc in incremental_docs.values()}
+    assert counts["F0000000000000000000000000000001"] == 2
+    assert counts["F0000000000000000000000000000002"] == 2
+    for i in (3, 4, 5):
+        assert counts["F000000000000000000000000000000{}".format(i)] == 1
+
+
+def test_incremental_cold_start_falls_back(app, search_clear, mock_event_queue):
+    """Test that incremental falls back to the full scan when there is no bookmark."""
+    mock_event_queue.consume.return_value = [
+        _create_file_download_event(
+            (2017, 1, 2, 8),
+            file_id="F000000000000000000000000000000{}".format(i),
+        )
+        for i in range(1, 6)
+    ]
+    with patch("invenio_stats.processors.datetime", mock_date(2017, 1, 2, 8)):
+        indexer = EventsIndexer(mock_event_queue)
+        indexer.run()
+    current_search.flush_and_refresh(index="*")
+
+    aggregator = StatAggregator(
+        name="file-download-agg",
+        client=search_clear,
+        event="file-download",
+        field="file_id",
+        interval="day",
+        incremental=True,
+    )
+
+    full_calls = []
+    incremental_calls = []
+    real_full = StatAggregator._agg_iter_full
+    real_incremental = StatAggregator._agg_iter_incremental
+
+    def track_full(self, dt, previous_bookmark):
+        full_calls.append((dt, previous_bookmark))
+        yield from real_full(self, dt, previous_bookmark)
+
+    def track_incremental(self, dt, previous_bookmark):
+        incremental_calls.append((dt, previous_bookmark))
+        yield from real_incremental(self, dt, previous_bookmark)
+
+    with patch.object(StatAggregator, "_agg_iter_full", track_full), patch.object(
+        StatAggregator, "_agg_iter_incremental", track_incremental
+    ), patch("invenio_stats.aggregations.datetime", mock_date(2017, 1, 2, 12)):
+        aggregator.run()
+
+    assert len(full_calls) >= 1
+    assert incremental_calls == []
+
+
+def test_incremental_partitions_large_affected_set(app, search_clear, mock_event_queue):
+    """Test that affected_partition_size splits the affected set across queries."""
+    mock_event_queue.consume.return_value = [
+        _create_file_download_event(
+            (2017, 1, 2, 8),
+            file_id="F000000000000000000000000000000{}".format(i),
+        )
+        for i in range(1, 6)
+    ]
+    with patch("invenio_stats.processors.datetime", mock_date(2017, 1, 2, 8)):
+        indexer = EventsIndexer(mock_event_queue)
+        indexer.run()
+    current_search.flush_and_refresh(index="*")
+
+    # Initial run establishes the bookmark
+    seed = StatAggregator(
+        name="file-download-agg",
+        client=search_clear,
+        event="file-download",
+        field="file_id",
+        interval="day",
+    )
+    with patch("invenio_stats.aggregations.datetime", mock_date(2017, 1, 2, 12)):
+        seed.run()
+    current_search.flush_and_refresh(index="*")
+
+    # Touch all five files after the bookmark
+    mock_event_queue.consume.return_value = [
+        _create_file_download_event(
+            (2017, 1, 2, 14),
+            file_id="F000000000000000000000000000000{}".format(i),
+        )
+        for i in range(1, 6)
+    ]
+    with patch("invenio_stats.processors.datetime", mock_date(2017, 1, 2, 14)):
+        indexer = EventsIndexer(mock_event_queue)
+        indexer.run()
+    current_search.flush_and_refresh(index="*")
+
+    aggregator = StatAggregator(
+        name="file-download-agg",
+        client=search_clear,
+        event="file-download",
+        field="file_id",
+        interval="day",
+        incremental=True,
+        affected_partition_size=2,
+    )
+
+    chunks_seen = []
+    real_chunk = StatAggregator._agg_iter_chunk
+
+    def track_chunk(self, rounded_dt, chunk, previous_bookmark):
+        chunks_seen.append(list(chunk))
+        yield from real_chunk(self, rounded_dt, chunk, previous_bookmark)
+
+    with patch.object(StatAggregator, "_agg_iter_chunk", track_chunk), patch(
+        "invenio_stats.aggregations.datetime", mock_date(2017, 1, 2, 18)
+    ):
+        aggregator.run()
+
+    assert len(chunks_seen) == 3
+    assert sorted(len(c) for c in chunks_seen) == [1, 2, 2]
+    assert sum(len(c) for c in chunks_seen) == 5
+    expected_files = {
+        "F000000000000000000000000000000{}".format(i) for i in range(1, 6)
+    }
+    assert set().union(*chunks_seen) == expected_files
