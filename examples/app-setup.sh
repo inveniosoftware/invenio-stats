@@ -1,4 +1,6 @@
 #!/bin/sh -e
+# SPDX-FileCopyrightText: 2017-2023 CERN.
+# SPDX-License-Identifier: MIT
 
 # clean search indices & templates
 curl -XDELETE localhost:9200/_template/* && curl -XDELETE localhost:9200/*
