@@ -25,6 +25,27 @@ _Aggregation = namedtuple("Aggregation", ["name", "templates", "cls", "params"])
 _Query = namedtuple("Query", ["name", "cls", "permission_factory", "params"])
 
 
+def default_visitor_classifier(app):
+    """Build the default visitor classifier.
+
+    Composes the COUNTER baseline with the extended preset, and adds datacenter IP
+    resolution when ``STATS_VISITOR_ASN_DB`` points at a GeoLite2-ASN database
+    (requires the ``counter-robots[asn]`` extra).
+    """
+    from counter_robots import (
+        ClassifierBuilder,
+        counter_preset,
+        extended_preset,
+        maxminddb_resolver,
+    )
+
+    builder = ClassifierBuilder().use(counter_preset).use(extended_preset)
+    asn_db = app.config.get("STATS_VISITOR_ASN_DB")
+    if asn_db:
+        builder.asn_resolver(maxminddb_resolver(asn_db))
+    return builder.build()
+
+
 class _InvenioStatsState(object):
     """State object for Invenio stats."""
 
@@ -128,6 +149,19 @@ class _InvenioStatsState(object):
     def permission_factory(self):
         """Load default permission factory for Buckets collections."""
         return load_or_import_from_config("STATS_PERMISSION_FACTORY", app=self.app)
+
+    @cached_property
+    def visitor_classifier(self):
+        """The (cached) counter-robots classifier used by the preprocessors.
+
+        Built from ``STATS_VISITOR_CLASSIFIER`` (an import path or callable
+        ``app -> counter_robots.Classifier``); when unset it is
+        :func:`default_visitor_classifier`.
+        """
+        factory = self.app.config.get("STATS_VISITOR_CLASSIFIER")
+        if factory:
+            return obj_or_import_string(factory)(self.app)
+        return default_visitor_classifier(self.app)
 
     def publish(self, event_type, events):
         """Publish events."""
