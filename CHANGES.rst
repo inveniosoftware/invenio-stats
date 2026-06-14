@@ -7,6 +7,22 @@
 Changes
 =======
 
+Unreleased
+
+- feat: the event preprocessors go through a single counter-robots classifier,
+  exposed as the cached ``current_stats.visitor_classifier`` property and built from
+  ``STATS_VISITOR_CLASSIFIER`` (an import path or ``app -> Classifier``; the default
+  is the COUNTER baseline plus the extended preset). ``flag_robots`` /
+  ``flag_machines`` keep setting ``is_robot`` / ``is_machine`` as before.
+- feat: ``exclude_datacenter_browser`` preprocessor drops events whose user agent
+  looks like a browser but whose IP resolves to a datacenter/hosting ASN, catching
+  automation faking a browser from cloud infrastructure. It writes nothing to the
+  event (no ``is_datacenter`` field) and only excludes, returning ``None`` or the
+  document unchanged. It must run before ``anonymize_user``. Datacenter resolution
+  is enabled by pointing ``STATS_VISITOR_ASN_DB`` at a GeoLite2-ASN mmdb (the
+  ``counter-robots[asn]`` extra). invenio-stats holds no lists. Requires
+  counter-robots>=2026.6.
+
 Version v6.1.3 (released 2026-04-30)
 
 - fix(stats): warm event cache on finalization

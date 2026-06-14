@@ -197,7 +197,8 @@ class StatAggregator(object):
         """Aggregate and return dictionary to be indexed in the search engine."""
         rounded_dt = format_range_dt(dt, self.interval)
         agg_query = (
-            dsl.Search(using=self.client, index=self.event_index).filter(
+            dsl.Search(using=self.client, index=self.event_index)
+            .filter(
                 # Filter for the specific interval (hour, day, month)
                 "term",
                 timestamp=rounded_dt,

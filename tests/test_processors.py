@@ -421,3 +421,82 @@ def test_failing_processors(app, search_clear, event_queues, caplog):
     assert get_queue_size("stats-file-download") == 0
     assert search_obj.index("events-stats-file-download").count() == 3
     assert search_obj.index("events-stats-file-download-2018-01").count() == 3
+
+
+BROWSER_UA = (
+    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
+    "(KHTML, like Gecko) Chrome/145.0.0.0 Safari/537.36"
+)
+
+
+def _classifier(asn_by_ip=None):
+    """Build a real counter-robots classifier (COUNTER baseline + extended preset)."""
+    from counter_robots import ClassifierBuilder, counter_preset, extended_preset
+
+    builder = ClassifierBuilder().use(counter_preset).use(extended_preset)
+    if asn_by_ip is not None:
+        builder.asn_resolver(lambda ip: asn_by_ip.get(ip))
+    return builder.build()
+
+
+def _with_visitor_classifier(classifier):
+    """App context exposing ``current_stats.visitor_classifier``."""
+    from types import SimpleNamespace
+
+    from flask import Flask
+
+    app = Flask(__name__)
+    app.extensions["invenio-stats"] = SimpleNamespace(visitor_classifier=classifier)
+    return app.app_context()
+
+
+def test_flag_robots_uses_classifier():
+    """flag_robots goes through the visitor classifier (extended preset here)."""
+    import invenio_stats.processors as procs
+
+    with _with_visitor_classifier(_classifier()):
+        # CamelCase bot the case-sensitive COUNTER baseline misses
+        assert procs.flag_robots({"user_agent": "YisouSpider"})["is_robot"] is True
+        assert procs.flag_robots({"user_agent": BROWSER_UA})["is_robot"] is False
+
+
+def test_flag_machines_uses_classifier():
+    import invenio_stats.processors as procs
+
+    with _with_visitor_classifier(_classifier()):
+        ua = {"user_agent": "Python/3.10 aiohttp/3.10.5"}
+        assert procs.flag_machines(ua)["is_machine"] is True
+        assert procs.flag_machines({"user_agent": BROWSER_UA})["is_machine"] is False
+
+
+def test_exclude_datacenter_browser():
+    """Browser events from datacenter IPs are dropped; others pass unchanged."""
+    import invenio_stats.processors as procs
+
+    # AS16509 AWS (datacenter), AS714 Apple (allow-listed), AS3320 Deutsche Telekom.
+    asn_by_ip = {"1.1.1.1": 16509, "2.2.2.2": 714, "3.3.3.3": 3320}
+    with _with_visitor_classifier(_classifier(asn_by_ip)):
+
+        def excl(ip, ua):
+            return procs.exclude_datacenter_browser(
+                {"ip_address": ip, "user_agent": ua}
+            )
+
+        assert excl("1.1.1.1", BROWSER_UA) is None  # browser from AWS -> dropped
+        # everything else passes through unchanged, with no field written
+        kept = excl("3.3.3.3", BROWSER_UA)  # eyeball ISP
+        assert kept is not None and "is_datacenter" not in kept
+        assert excl("2.2.2.2", BROWSER_UA) is not None  # Apple, allow-listed
+        assert excl("1.1.1.1", "python-requests/2.31") is not None  # not a browser
+        assert excl(None, BROWSER_UA) is not None  # no IP
+
+
+def test_exclude_datacenter_browser_noop_without_resolver():
+    """With no ASN resolver, the datacenter check is a no-op and writes no field."""
+    import invenio_stats.processors as procs
+
+    with _with_visitor_classifier(_classifier()):
+        doc = {"ip_address": "1.1.1.1", "user_agent": BROWSER_UA}
+        result = procs.exclude_datacenter_browser(doc)
+        assert result is doc
+        assert "is_datacenter" not in result

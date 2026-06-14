@@ -10,7 +10,6 @@ from datetime import datetime, timezone
 from functools import partial
 from time import mktime
 
-from counter_robots import is_machine, is_robot
 from dateutil import parser
 from flask import current_app
 from invenio_base.utils import obj_or_import_string
@@ -18,6 +17,7 @@ from invenio_search import current_search_client
 from invenio_search.engine import search
 from invenio_search.utils import prefix_index
 
+from .proxies import current_stats
 from .utils import get_anonymization_salt, get_geoip
 
 
@@ -94,7 +94,9 @@ def flag_robots(doc, exclude=False):
     into robots and machines by `the Make Data Count project
     <https://github.com/CDLUC3/Make-Data-Count/tree/master/user-agents>`_.
     """
-    doc["is_robot"] = "user_agent" in doc and is_robot(doc["user_agent"])
+    doc["is_robot"] = "user_agent" in doc and current_stats.visitor_classifier.is_robot(
+        doc["user_agent"]
+    )
     if exclude and doc["is_robot"]:
         return None
     return doc
@@ -115,7 +117,10 @@ def flag_machines(doc, exclude=False):
     <https://github.com/CDLUC3/Make-Data-Count/tree/master/user-agents>`_.
 
     """
-    doc["is_machine"] = "user_agent" in doc and is_machine(doc["user_agent"])
+    doc["is_machine"] = (
+        "user_agent" in doc
+        and current_stats.visitor_classifier.is_machine(doc["user_agent"])
+    )
     if exclude and doc["is_machine"]:
         return None
     return doc
@@ -123,6 +128,32 @@ def flag_machines(doc, exclude=False):
 
 filter_machines = partial(flag_machines, exclude=True)
 """Filter out machine events."""
+
+
+def exclude_datacenter_browser(doc):
+    """Drop browser events that originate from datacenter/hosting networks.
+
+    Complements :func:`flag_robots`: counter-robots catches self-identifying bots
+    by their user agent, while this catches automation that fakes a real browser
+    user agent but runs from cloud or hosting infrastructure. The event is dropped
+    (``None`` is returned) when its user agent looks like a browser and its IP
+    resolves to a datacenter ASN; otherwise the document is returned unchanged.
+    Nothing is written to the event.
+
+    Datacenter resolution is only active when the visitor classifier has an ASN
+    resolver configured (``STATS_VISITOR_ASN_DB``); otherwise this is a no-op. It
+    must run before :func:`anonymize_user`, which removes ``ip_address`` from the
+    event.
+    """
+    ip = doc.get("ip_address")
+    classifier = current_stats.visitor_classifier
+    if (
+        ip
+        and classifier.is_browser(doc.get("user_agent", ""))
+        and classifier.is_datacenter_ip(ip)
+    ):
+        return None
+    return doc
 
 
 def hash_id(iso_timestamp, msg):

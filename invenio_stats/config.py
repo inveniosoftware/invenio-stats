@@ -79,3 +79,20 @@ When set to ``False`` (default), naive UTC datetimes are used (tzinfo is
 stripped via ``datetime.replace(tzinfo=None)``). Set to ``True`` to use
 timezone-aware UTC datetimes with explicit UTC timezone information.
 """
+
+STATS_VISITOR_CLASSIFIER = None
+"""Factory for the visitor classifier used by the event preprocessors.
+
+An import path or callable ``app -> counter_robots.Classifier``. When unset, the
+default factory builds the COUNTER baseline plus the extended preset (and a
+datacenter resolver when ``STATS_VISITOR_ASN_DB`` is set). Point this at your own
+factory to add instance-specific lists. The classifier is built once per
+application, cached on the extension state.
+"""
+
+STATS_VISITOR_ASN_DB = None
+"""Path to a GeoLite2-ASN mmdb, used by the default visitor-classifier factory.
+
+Enables datacenter detection (needs the ``counter-robots[asn]`` extra). The mmdb is
+provided and refreshed by the deployment; it is not shipped.
+"""
