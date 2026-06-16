@@ -436,7 +436,7 @@ Invenio-Stats provides some default statistics which can be found in
 from .ext import InvenioStats
 from .proxies import current_stats
 
-__version__ = "6.1.3"
+__version__ = "7.0.0"
 
 __all__ = (
     "__version__",
