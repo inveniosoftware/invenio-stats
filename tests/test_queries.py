@@ -55,7 +55,7 @@ def test_terms_query(app, event_queues, aggregated_events, queries_config):
     """Test that the terms query returns the correct total count."""
     terms_query = TermsQuery(
         name="test_total_count",
-        **queries_config["bucket-file-download-total"]["params"]
+        **queries_config["bucket-file-download-total"]["params"],
     )
     results = terms_query.run(
         bucket_id="B0000000000000000000000000000001",
@@ -93,7 +93,7 @@ def test_query_date_formatting_config_disabled(app, queries_config):
     # Verify build_query uses the same formatting
     query = DateHistogramQuery(
         name="test_date_format",
-        **queries_config["bucket-file-download-histogram"]["params"]
+        **queries_config["bucket-file-download-histogram"]["params"],
     )
 
     agg_query = query.build_query(
@@ -144,7 +144,7 @@ def test_query_date_formatting_config_enabled(app, queries_config):
     # Verify build_query uses the same formatting
     query = DateHistogramQuery(
         name="test_date_format",
-        **queries_config["bucket-file-download-histogram"]["params"]
+        **queries_config["bucket-file-download-histogram"]["params"],
     )
 
     agg_query = query.build_query(
@@ -195,7 +195,7 @@ def test_terms_query_date_formatting_config_disabled(app, queries_config):
     # Verify build_query uses the same formatting
     query = TermsQuery(
         name="test_terms_date_format",
-        **queries_config["bucket-file-download-total"]["params"]
+        **queries_config["bucket-file-download-total"]["params"],
     )
 
     agg_query = query.build_query(start_date=start_date, end_date=end_date)
@@ -243,7 +243,7 @@ def test_terms_query_date_formatting_config_enabled(app, queries_config):
     # Verify build_query uses the same formatting
     query = TermsQuery(
         name="test_terms_date_format",
-        **queries_config["bucket-file-download-total"]["params"]
+        **queries_config["bucket-file-download-total"]["params"],
     )
 
     agg_query = query.build_query(start_date=start_date, end_date=end_date)
