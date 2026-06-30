@@ -15,7 +15,6 @@ function cleanup() {
 }
 trap cleanup EXIT
 
-python -m check_manifest
 python -m sphinx.cmd.build -qnNW docs docs/_build/html
 eval "$(docker-services-cli up --db ${DB:-postgresql} --search ${SEARCH:-opensearch} --mq ${MQ:-rabbitmq} --cache ${CACHE:-redis} --env)"
 # Note: expansion of pytest_args looks like below to not cause an unbound
