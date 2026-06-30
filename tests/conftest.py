@@ -349,8 +349,9 @@ def mock_event_queue(app, mock_datetime, request_headers, objects, mock_user_ctx
     """Create a mock queue containing a few file download events."""
     mock_queue = Mock()
     mock_queue.routing_key = "stats-file-download"
-    with patch("datetime.datetime", mock_datetime), app.test_request_context(
-        headers=request_headers["user"]
+    with (
+        patch("datetime.datetime", mock_datetime),
+        app.test_request_context(headers=request_headers["user"]),
     ):
         events = [
             build_file_unique_id(file_download_event_builder({}, app, objects[0]))
