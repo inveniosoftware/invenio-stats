@@ -1,4 +1,160 @@
-[build-system]
-requires = ["setuptools", "wheel", "babel>2.8"]
-build-backend = "setuptools.build_meta"
+# SPDX-FileCopyrightText: 2016-2026 CERN.
+# SPDX-FileCopyrightText: 2024-2026 Graz University of Technology.
+# SPDX-FileCopyrightText: 2022-2026 TU Wien.
+# SPDX-License-Identifier: MIT
 
+[project]
+name = "invenio-stats"
+description = "Invenio module for collecting statistics."
+readme = "README.rst"
+requires-python = ">=3.9"
+license = "MIT"
+authors = [
+  { name = "CERN", email = "info@invenio-software.org" },
+]
+keywords = [
+  "invenio",
+  "statistics",
+]
+classifiers = [
+  "Development Status :: 5 - Production/Stable",
+]
+dependencies = [
+  "counter-robots>=2018.6",
+  "invenio-base>=2.0.0,<3.0.0",
+  "invenio-cache>=3.0.0,<4.0.0",
+  "invenio-celery>=2.0.0,<3.0.0",
+  "invenio-i18n>=4.0.0,<5.0.0",
+  "invenio-queues>=1.0.0a2",
+  "maxminddb-geolite2>=2018.703",
+  "python-dateutil>=2.7.0",
+  "python-geoip>=1.2",
+]
+dynamic = ["version"]
+
+[project.urls]
+Repository = "https://github.com/inveniosoftware/invenio-stats"
+
+[project.entry-points."flask.commands"]
+stats = "invenio_stats.cli:stats"
+
+[project.entry-points."invenio_base.api_apps"]
+invenio_stats = "invenio_stats:InvenioStats"
+
+[project.entry-points."invenio_base.api_blueprints"]
+invenio_stats = "invenio_stats.views:blueprint"
+
+[project.entry-points."invenio_base.api_finalize_app"]
+invenio_stats = "invenio_stats.ext:finalize_app"
+
+[project.entry-points."invenio_base.apps"]
+invenio_stats = "invenio_stats:InvenioStats"
+
+[project.entry-points."invenio_base.finalize_app"]
+invenio_stats = "invenio_stats.ext:finalize_app"
+
+[project.entry-points."invenio_celery.tasks"]
+invenio_stats = "invenio_stats.tasks"
+
+[project.entry-points."invenio_i18n.translations"]
+invenio_stats = "invenio_stats"
+
+[project.entry-points."invenio_queues.queues"]
+invenio_stats = "invenio_stats.queues:declare_queues"
+
+[project.entry-points."invenio_search.index_templates"]
+invenio_stats = "invenio_stats.templates:register_index_templates"
+
+[project.entry-points."invenio_search.templates"]
+invenio_stats = "invenio_stats.templates:register_templates"
+
+[project.optional-dependencies]
+docs = []
+elasticsearch7 = [
+  "invenio-search[elasticsearch7]>=3.0.0,<4.0.0",
+]
+opensearch1 = [
+  "invenio-search[opensearch1]>=3.0.0,<4.0.0",
+]
+opensearch2 = [
+  "invenio-search[opensearch2]>=3.0.0,<4.0.0",
+]
+tests = [
+  "invenio-accounts>=9.0.0,<10.0.0",
+  "invenio-app>=3.0.0,<4.0.0",
+  "invenio-db[postgresql]>=2.2.0,<3.0.0",
+  "invenio-files-rest>=6.0.0,<7.0.0",
+  "invenio-records-ui>=5.0.0,<6.0.0",
+  "invenio-records>=6.0.0,<7.0.0",
+  "pytest-black>=0.6.0",
+  "pytest-invenio>=4.0.0,<5.0.0",
+  "sphinx>=5",
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+# see https://babel.pocoo.org/en/latest/messages.html#toml-configuration-format
+[tool.babel]
+[tool.babel.compile_catalog]
+directory = "invenio_stats/translations/"
+use_fuzzy = true
+
+[tool.babel.extract_messages]
+copyright_holder = "CERN"
+msgid_bugs_address = "info@inveniosoftware.org"
+mapping_file = "pyproject.toml"
+output_file = "invenio_stats/translations/messages.pot"
+add_comments = "NOTE"
+
+[tool.babel.init_catalog]
+input_file = "invenio_stats/translations/messages.pot"
+output_dir = "invenio_stats/translations/"
+
+[[tool.babel.mappings]]
+method = "javascript"
+pattern = "**.js"
+encoding = "utf-8"
+extract_messages = "$._, jQuery._"
+
+[[tool.babel.mappings]]
+method = "python"
+pattern = "**.py"
+encoding = "utf-8"
+
+[[tool.babel.mappings]]
+method = "jinja2"
+pattern = "**/templates/**.html"
+encoding = "utf-8"
+
+[tool.hatch.version]
+path = "invenio_stats/__init__.py"
+
+[tool.hatch.build.targets.sdist]
+include = [
+  "/invenio_stats",
+]
+
+[tool.isort]
+profile = "black"
+
+[tool.pydocstyle]
+add_ignore = "D401"
+
+[tool.pytest.ini_options]
+addopts = '--black --isort --pydocstyle --doctest-glob="*.rst" --doctest-modules --cov=invenio_stats --cov-report=term-missing'
+filterwarnings = ["ignore::pytest.PytestDeprecationWarning"]
+testpaths = "tests invenio_stats"
+live_server_scope = "module"
+
+# UV needs to be told explicitly which extras are conflicting:
+# https://docs.astral.sh/uv/concepts/projects/config/#conflicting-dependencies
+[tool.uv]
+conflicts = [
+  [
+    { extra = "opensearch1" },
+    { extra = "opensearch2" },
+    { extra = "elasticsearch7" },
+  ]
+]
