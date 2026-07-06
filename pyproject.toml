@@ -24,7 +24,6 @@ dependencies = [
   "invenio-base>=2.0.0,<3.0.0",
   "invenio-cache>=3.0.0,<4.0.0",
   "invenio-celery>=2.0.0,<3.0.0",
-  "invenio-i18n>=4.0.0,<5.0.0",
   "invenio-queues>=1.0.0a2",
   "maxminddb-geolite2>=2018.703",
   "python-dateutil>=2.7.0",
@@ -55,9 +54,6 @@ invenio_stats = "invenio_stats.ext:finalize_app"
 
 [project.entry-points."invenio_celery.tasks"]
 invenio_stats = "invenio_stats.tasks"
-
-[project.entry-points."invenio_i18n.translations"]
-invenio_stats = "invenio_stats"
 
 [project.entry-points."invenio_queues.queues"]
 invenio_stats = "invenio_stats.queues:declare_queues"
@@ -94,39 +90,6 @@ tests = [
 [build-system]
 requires = ["hatchling"]
 build-backend = "hatchling.build"
-
-# see https://babel.pocoo.org/en/latest/messages.html#toml-configuration-format
-[tool.babel]
-[tool.babel.compile_catalog]
-directory = "invenio_stats/translations/"
-use_fuzzy = true
-
-[tool.babel.extract_messages]
-copyright_holder = "CERN"
-msgid_bugs_address = "info@inveniosoftware.org"
-mapping_file = "pyproject.toml"
-output_file = "invenio_stats/translations/messages.pot"
-add_comments = "NOTE"
-
-[tool.babel.init_catalog]
-input_file = "invenio_stats/translations/messages.pot"
-output_dir = "invenio_stats/translations/"
-
-[[tool.babel.mappings]]
-method = "javascript"
-pattern = "**.js"
-encoding = "utf-8"
-extract_messages = "$._, jQuery._"
-
-[[tool.babel.mappings]]
-method = "python"
-pattern = "**.py"
-encoding = "utf-8"
-
-[[tool.babel.mappings]]
-method = "jinja2"
-pattern = "**/templates/**.html"
-encoding = "utf-8"
 
 [tool.hatch.version]
 path = "invenio_stats/__init__.py"
