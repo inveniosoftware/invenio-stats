@@ -1,6 +1,7 @@
 # SPDX-FileCopyrightText: 2017-2024 CERN.
 # SPDX-FileCopyrightText: 2022-2023 TU Wien.
 # SPDX-FileCopyrightText: 2024-2026 Graz University of Technology.
+# SPDX-FileCopyrightText: 2026 TU Wien.
 # SPDX-License-Identifier: MIT
 
 r"""Invenio module for collecting statistics.
@@ -436,7 +437,7 @@ Invenio-Stats provides some default statistics which can be found in
 from .ext import InvenioStats
 from .proxies import current_stats
 
-__version__ = "7.0.0"
+__version__ = "7.0.1"
 
 __all__ = (
     "__version__",
