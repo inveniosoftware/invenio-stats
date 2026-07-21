@@ -7,6 +7,13 @@
 Changes
 =======
 
+Version v6.1.4 (released 2026-07-21)
+
+- chore(setup): migrate from setuptools to hatchling
+- chore(cleanup): remove outdated and unnecessary file
+- chore(format): reformat with black
+- chore(licenses): update license headers to use SPDX
+
 Version v6.1.3 (released 2026-04-30)
 
 - fix(stats): warm event cache on finalization
