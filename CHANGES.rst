@@ -7,6 +7,11 @@
 Changes
 =======
 
+Version v6.2.0 (released 2026-07-28)
+
+- fix(build): include mo files
+- i18n: pulled translations
+
 Version v6.1.4 (released 2026-07-21)
 
 - chore(setup): migrate from setuptools to hatchling
