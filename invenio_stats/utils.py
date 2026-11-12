@@ -10,9 +10,9 @@ from math import ceil
 
 from flask import current_app, request, session
 from flask_login import current_user
-from geolite2 import geolite2
 from invenio_cache import current_cache
 from invenio_search.engine import dsl
+from iptocc import country_code
 
 
 def format_datetime_iso(dt, replace_microsecond=False):
@@ -81,10 +81,7 @@ def get_bucket_size(client, index, agg_field, start_date=None, end_date=None):
 
 def get_geoip(ip):
     """Lookup country for IP address."""
-    reader = geolite2.reader()
-    ip_data = reader.get(ip) or {}
-    return ip_data.get("country", {}).get("iso_code")
-
+    return country_code(ip)
 
 def get_user():
     """User information.
