@@ -5,6 +5,7 @@
 """Utilities for Invenio-Stats."""
 
 import os
+import sys
 from base64 import b64encode
 from math import ceil
 
@@ -12,7 +13,21 @@ from flask import current_app, request, session
 from flask_login import current_user
 from invenio_cache import current_cache
 from invenio_search.engine import dsl
-from iptocc import country_code
+
+# iptocc>=3 needs Python 3.10.
+# Delete this branch when 3.9 is dropped.
+if sys.version_info >= (3, 10):
+    from iptocc import country_code
+else:
+    from geolite2 import geolite2
+
+    def country_code(ip):
+        """Return the country code, or None, like iptocc>=3."""
+        try:
+            match = geolite2.reader().get(ip) or {}
+        except ValueError:
+            return None
+        return match.get("country", {}).get("iso_code")
 
 
 def format_datetime_iso(dt, replace_microsecond=False):
@@ -82,6 +97,7 @@ def get_bucket_size(client, index, agg_field, start_date=None, end_date=None):
 def get_geoip(ip):
     """Lookup country for IP address."""
     return country_code(ip)
+
 
 def get_user():
     """User information.
