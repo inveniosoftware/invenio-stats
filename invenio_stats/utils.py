@@ -1,4 +1,4 @@
-# SPDX-FileCopyrightText: 2016-2018 CERN.
+# SPDX-FileCopyrightText: 2016-2026 CERN.
 # SPDX-FileCopyrightText: 2022 TU Wien.
 # SPDX-License-Identifier: MIT
 
@@ -15,7 +15,7 @@ from invenio_cache import current_cache
 from invenio_search.engine import dsl
 
 # iptocc>=3 needs Python 3.10.
-# Delete this branch when 3.9 is dropped.
+# TODO: Delete this branch when 3.9 is dropped.
 if sys.version_info >= (3, 10):
     from iptocc import country_code
 else:

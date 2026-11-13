@@ -1,4 +1,4 @@
-# SPDX-FileCopyrightText: 2017-2018 CERN.
+# SPDX-FileCopyrightText: 2017-2026 CERN.
 # SPDX-License-Identifier: MIT
 
 """Test utility functions."""
