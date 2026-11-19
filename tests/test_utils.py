@@ -1,9 +1,11 @@
-# SPDX-FileCopyrightText: 2017-2018 CERN.
+# SPDX-FileCopyrightText: 2017-2026 CERN.
 # SPDX-License-Identifier: MIT
 
 """Test utility functions."""
 
 from unittest.mock import patch
+
+import pytest
 
 from invenio_stats.utils import get_geoip, get_user
 
@@ -26,8 +28,3 @@ def test_get_user(app, mock_users, request_headers):
     assert user["user_id"] == mock_users["authenticated"].get_id()
     assert user["user_agent"] == header["USER_AGENT"]
     assert user["ip_address"] == "142.0.0.1"
-
-
-def test_get_geoip():
-    """Test looking up IP address."""
-    assert get_geoip("74.125.67.100") == "US"

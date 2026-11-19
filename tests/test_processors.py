@@ -177,6 +177,7 @@ from invenio_stats.tasks import process_events
     ],
 )
 def test_anonymize_user(
+    app,
     mock_anonymization_salt,
     ip_addess,
     user_id,
