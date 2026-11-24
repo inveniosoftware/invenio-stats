@@ -80,7 +80,7 @@ opensearch2 = [
   "invenio-search[opensearch2]>=3.0.0,<4.0.0",
 ]
 tests = [
-  "invenio-accounts>=9.0.0,<10.0.0",
+  "invenio-accounts>=10.0.0,<11.0.0",
   "invenio-app>=3.0.0,<4.0.0",
   "invenio-db[postgresql]>=2.2.0,<3.0.0",
   "invenio-files-rest>=6.0.0,<7.0.0",
