@@ -7,7 +7,7 @@
 name = "invenio-stats"
 description = "Invenio module for collecting statistics."
 readme = "README.rst"
-requires-python = ">=3.9"
+requires-python = ">=3.11"
 license = "MIT"
 authors = [
   { name = "CERN", email = "info@invenio-software.org" },
